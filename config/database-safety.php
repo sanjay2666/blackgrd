@@ -18,6 +18,7 @@ return [
     ],
 
     'destructive_commands' => [
+        'migrate',
         'migrate:fresh',
         'migrate:reset',
         'migrate:refresh',

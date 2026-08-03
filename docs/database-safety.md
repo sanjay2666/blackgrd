@@ -10,6 +10,7 @@ The guard never treats `APP_ENV=testing` or a single opt-in flag as sufficient p
 
 The following Artisan commands are intercepted before execution:
 
+- `migrate` (because historical migrations may contain destructive statements)
 - `migrate:fresh`
 - `migrate:reset`
 - `migrate:refresh`
@@ -109,6 +110,7 @@ Non-interactive use requires `--force` plus both confirmation environment values
 
 Never run these against `blackgrd`, `blackgrd_erp`, production, or live data:
 
+- `migrate` when the pending migration set has not been reviewed and approved
 - `migrate:fresh`, `migrate:reset`, or `migrate:refresh`
 - `db:wipe`
 - destructive test database traits

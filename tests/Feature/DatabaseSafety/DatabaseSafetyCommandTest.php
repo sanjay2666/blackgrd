@@ -45,4 +45,15 @@ class DatabaseSafetyCommandTest extends TestCase
             new BufferedOutput,
         ));
     }
+
+    public function test_migrate_command_is_blocked_when_not_armed(): void
+    {
+        $this->expectException(UnsafeDatabaseOperation::class);
+
+        Event::dispatch(new CommandStarting(
+            'migrate',
+            new ArrayInput([]),
+            new BufferedOutput,
+        ));
+    }
 }

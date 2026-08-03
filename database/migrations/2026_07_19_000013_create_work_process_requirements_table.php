@@ -11,7 +11,6 @@ return new class extends Migration
 		Schema::create('work_process_requirements', function (Blueprint $table) {
 			$table->increments('id');
 			$table->integer('work_order_id')->nullable();
-			$table->integer('warehouse_balance_item_id')->nullable();
 			$table->integer('wis_id')->nullable();
 			$table->integer('item_id')->nullable();
 			$table->integer('process_type_id')->nullable();
