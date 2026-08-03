@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Colour;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +17,7 @@ class ColourController extends Controller
     public function index(Request $request)
     {
         $query = Colour::query();
-        $query->where('status', '!=', 'Deleted');
+        $query->notDeleted();
 
         $qsearch = trim($request->input('qsearch', ''));
         if ($qsearch == '' && $request->filled('search')) {
@@ -36,7 +38,7 @@ class ColourController extends Controller
 
     public function create()
     {
-        return view('admin.colours.create');
+        return view('admin.colours.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
     public function store(Request $request)
@@ -44,7 +46,7 @@ class ColourController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'code' => 'nullable',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'name.required' => 'Please enter Colour Name.',
             'status.required' => 'Please select Status.',
@@ -89,7 +91,7 @@ class ColourController extends Controller
             abort(404);
         }
 
-        return view('admin.colours.edit', compact('colour'));
+        return view('admin.colours.edit', compact('colour'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -103,7 +105,7 @@ class ColourController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required',
             'code' => 'nullable',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'name.required' => 'Please enter Colour Name.',
             'status.required' => 'Please select Status.',

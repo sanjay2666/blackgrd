@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\UnitType;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +17,7 @@ class UnitTypeController extends Controller
     public function index(Request $request)
     {
         $query = UnitType::query();
-        $query->where('status', '!=', 'Deleted');
+        $query->notDeleted();
 
         if ($request->filled('search')) {
             $query->where(function ($query) use ($request) {
@@ -31,14 +32,14 @@ class UnitTypeController extends Controller
 
     public function create()
     {
-        return view('admin.unit_types.create');
+        return view('admin.unit_types.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'unit_type_name' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'unit_type_name.required' => 'Please enter Unit Type Name.',
             'status.required' => 'Please select Status.',
@@ -53,7 +54,7 @@ class UnitTypeController extends Controller
 
         DB::beginTransaction();
         try {
-            $unitType = new UnitType();
+            $unitType = new UnitType;
             $unitType->unit_type_name = $request->unit_type_name;
             $unitType->status = $request->status;
             $unitType->created = now();
@@ -82,7 +83,7 @@ class UnitTypeController extends Controller
             abort(404);
         }
 
-        return view('admin.unit_types.edit', compact('unitType'));
+        return view('admin.unit_types.edit', compact('unitType'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -95,7 +96,7 @@ class UnitTypeController extends Controller
 
         $validator = Validator::make($request->all(), [
             'unit_type_name' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'unit_type_name.required' => 'Please enter Unit Type Name.',
             'status.required' => 'Please select Status.',
@@ -157,4 +158,3 @@ class UnitTypeController extends Controller
         }
     }
 }
-

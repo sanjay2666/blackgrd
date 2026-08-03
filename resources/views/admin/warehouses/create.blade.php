@@ -23,7 +23,7 @@
                             <div class="col-sm-4"><div class="form-group"><label>Supervisor Id</label><input type="number" name="supervisor_id" value="{{ old('supervisor_id') }}" class="form-control" step="any"></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Contact Number <span class="required">*</span></label><input type="text" name="contact_number" value="{{ old('contact_number') }}" class="form-control" required></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>&nbsp;</label><div class="checkbox"><label><input type="checkbox" name="process_type_id" value="1" @checked(old('process_type_id'))> Process Type Id</label></div></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status', 'Active') === 'Inactive')>Inactive</option></select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options')</select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.warehouses.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
                     </form>

@@ -20,7 +20,7 @@
                         <div class="row">
                             <div class="col-sm-6"><div class="form-group"><label>Department Name <span class="required">*</span></label><input type="text" name="department_name" value="{{ old('department_name') }}" class="form-control" required>@error('department_name')<span class="text-danger small">{{ $message }}</span>@enderror</div></div>
                             <div class="col-sm-3"><div class="form-group"><label>Financial Year</label><input type="text" name="financial_year" value="{{ old('financial_year') }}" class="form-control" maxlength="4"></div></div>
-                            <div class="col-sm-3"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status') === 'Inactive')>Inactive</option></select></div></div>
+                            <div class="col-sm-3"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options')</select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.departments.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
                     </form>

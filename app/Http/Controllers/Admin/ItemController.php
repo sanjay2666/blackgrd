@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Models\ItemType;
 use App\Models\ItemYarnRequirement;
 use App\Models\UnitType;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +21,7 @@ class ItemController extends Controller
     public function index(Request $request)
     {
         $query = Item::with('itemType', 'unitType');
-        $query->where('status', '!=', 'Deleted');
+        $query->notDeleted();
 
         $qsearch = trim($request->input('qsearch', ''));
         if ($qsearch == '' && $request->filled('search')) {
@@ -47,17 +49,17 @@ class ItemController extends Controller
         }
 
         $items = $query->orderBy('item_id', 'desc')->paginate(config('app.pagination_limit'))->withQueryString();
-        $itemTypes = ItemType::where('status', 'Active')->orderBy('item_type_id', 'asc')->get();
+        $itemTypes = ItemType::active()->orderBy('item_type_id', 'asc')->get();
 
         return view('admin.items.index', compact('items', 'itemTypes', 'qsearch', 'item_type_id', 'itemId'));
     }
 
     public function create()
     {
-        $itemTypes = ItemType::where('status', 'Active')->orderBy('item_type_id', 'asc')->get();
-        $unitTypes = UnitType::where('status', 'Active')->orderBy('unit_type_id', 'asc')->get();
+        $itemTypes = ItemType::active()->orderBy('item_type_id', 'asc')->get();
+        $unitTypes = UnitType::active()->orderBy('unit_type_id', 'asc')->get();
 
-        return view('admin.items.create', compact('itemTypes', 'unitTypes'));
+        return view('admin.items.create', compact('itemTypes', 'unitTypes'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function store(Request $request)
@@ -89,7 +91,7 @@ class ItemController extends Controller
             'is_outsourced' => 'nullable',
             'is_jobwork' => 'nullable',
             'is_lab_test_required' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'item_type_id.required' => 'Please select Item Type.',
             'unit_type_id.required' => 'Please select Unit Type.',
@@ -106,7 +108,7 @@ class ItemController extends Controller
 
         DB::beginTransaction();
         try {
-            $item = new Item();
+            $item = new Item;
             $item->item_name = $request->item_name;
             $item->item_code = $request->item_code;
             $item->internal_item_name = $request->internal_item_name;
@@ -162,10 +164,10 @@ class ItemController extends Controller
             abort(404);
         }
 
-        $itemTypes = ItemType::where('status', 'Active')->orderBy('item_type_id', 'asc')->get();
-        $unitTypes = UnitType::where('status', 'Active')->orderBy('unit_type_id', 'asc')->get();
+        $itemTypes = ItemType::active()->orderBy('item_type_id', 'asc')->get();
+        $unitTypes = UnitType::active()->orderBy('unit_type_id', 'asc')->get();
 
-        return view('admin.items.edit', compact('item', 'itemTypes', 'unitTypes'));
+        return view('admin.items.edit', compact('item', 'itemTypes', 'unitTypes'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -203,7 +205,7 @@ class ItemController extends Controller
             'is_outsourced' => 'nullable',
             'is_jobwork' => 'nullable',
             'is_lab_test_required' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'item_type_id.required' => 'Please select Item Type.',
             'unit_type_id.required' => 'Please select Unit Type.',
@@ -308,11 +310,11 @@ class ItemController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        $yarnTypeIds = ItemType::where('status', 'Active')
+        $yarnTypeIds = ItemType::active()
             ->where('item_type_name', 'like', '%Yarn%')
             ->pluck('item_type_id');
 
-        $yarnItems = Item::where('status', 'Active');
+        $yarnItems = Item::active();
 
         if ($yarnTypeIds->count() > 0) {
             $yarnItems->whereIn('item_type_id', $yarnTypeIds);
@@ -359,7 +361,7 @@ class ItemController extends Controller
                     continue;
                 }
 
-                $itemYarnRequirement = new ItemYarnRequirement();
+                $itemYarnRequirement = new ItemYarnRequirement;
                 $itemYarnRequirement->item_id = $request->item_id;
                 $itemYarnRequirement->process_id = $processId;
                 $itemYarnRequirement->yarn_id = $yarnIds[$key];
@@ -408,5 +410,3 @@ class ItemController extends Controller
         }
     }
 }
-
-

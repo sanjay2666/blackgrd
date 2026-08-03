@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Machine;
 use App\Models\ProcessItem;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +18,7 @@ class MachineController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Machine::with('processItem')->where('status', '!=', 'Deleted');
+        $query = Machine::with('processItem')->notDeleted();
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -34,9 +36,9 @@ class MachineController extends Controller
 
     public function create()
     {
-        $processItems = ProcessItem::where('status', 'Active')->orderBy('id', 'asc')->get();
+        $processItems = ProcessItem::active()->orderBy('id', 'asc')->get();
 
-        return view('admin.machines.create', compact('processItems'));
+        return view('admin.machines.create', compact('processItems'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function store(Request $request)
@@ -45,7 +47,7 @@ class MachineController extends Controller
             'name' => 'required|max:255',
             'process_wise' => 'required|integer|exists:process_items,id',
             'is_busy' => 'nullable|in:1,0',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'name.required' => 'Please enter Machine Name.',
             'name.max' => 'Machine Name should not be greater than 255 characters.',
@@ -65,7 +67,7 @@ class MachineController extends Controller
 
         DB::beginTransaction();
         try {
-            $machine = new Machine();
+            $machine = new Machine;
             $machine->name = $request->name;
             $machine->process_wise = $request->process_wise;
             $machine->is_busy = $request->is_busy ?? '0';
@@ -93,9 +95,9 @@ class MachineController extends Controller
     {
         abort_if($machine->status === 'Deleted', 404);
 
-        $processItems = ProcessItem::where('status', 'Active')->orderBy('id', 'asc')->get();
+        $processItems = ProcessItem::active()->orderBy('id', 'asc')->get();
 
-        return view('admin.machines.edit', compact('machine', 'processItems'));
+        return view('admin.machines.edit', compact('machine', 'processItems'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, Machine $machine)
@@ -106,7 +108,7 @@ class MachineController extends Controller
             'name' => 'required|max:255',
             'process_wise' => 'required|integer|exists:process_items,id',
             'is_busy' => 'nullable|in:1,0',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'name.required' => 'Please enter Machine Name.',
             'name.max' => 'Machine Name should not be greater than 255 characters.',

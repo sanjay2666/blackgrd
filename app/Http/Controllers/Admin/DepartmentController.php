@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +17,7 @@ class DepartmentController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Department::where('status', '!=', 'Deleted');
+        $query = Department::notDeleted();
 
         if ($request->filled('search')) {
             $query->where('department_name', 'like', '%'.$request->search.'%');
@@ -28,14 +30,14 @@ class DepartmentController extends Controller
 
     public function create()
     {
-        return view('admin.departments.create');
+        return view('admin.departments.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'department_name' => 'required|max:255',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'department_name.required' => 'Please enter Department Name.',
             'department_name.max' => 'Department Name should not be greater than 255 characters.',
@@ -52,7 +54,7 @@ class DepartmentController extends Controller
 
         DB::beginTransaction();
         try {
-            $department = new Department();
+            $department = new Department;
             $department->department_name = $request->department_name;
             $department->financial_year = currentFinancialYear();
             $department->created_by = Auth::guard('admin')->id();
@@ -80,6 +82,7 @@ class DepartmentController extends Controller
 
         return view('admin.departments.edit', [
             'department' => $department,
+            'statusOptions' => RecordStatus::formOptions(),
         ]);
     }
 
@@ -89,7 +92,7 @@ class DepartmentController extends Controller
 
         $validator = Validator::make($request->all(), [
             'department_name' => 'required|max:255',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'department_name.required' => 'Please enter Department Name.',
             'department_name.max' => 'Department Name should not be greater than 255 characters.',

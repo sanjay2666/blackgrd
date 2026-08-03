@@ -2,16 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Item extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordStatus;
 
     protected $table = 'items';
+
     protected $primaryKey = 'item_id';
+
     public $timestamps = false;
+
     protected $guarded = [];
 
     public function itemType()

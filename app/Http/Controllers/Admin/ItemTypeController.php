@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ItemType;
 use App\Models\UnitType;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +18,7 @@ class ItemTypeController extends Controller
     public function index(Request $request)
     {
         $query = ItemType::with('unitType');
-        $query->where('status', '!=', 'Deleted');
+        $query->notDeleted();
 
         if ($request->filled('search')) {
             $query->where(function ($query) use ($request) {
@@ -32,9 +33,9 @@ class ItemTypeController extends Controller
 
     public function create()
     {
-        $unitTypes = UnitType::where('status', 'Active')->orderBy('unit_type_id', 'asc')->get();
+        $unitTypes = UnitType::active()->orderBy('unit_type_id', 'asc')->get();
 
-        return view('admin.item_types.create', compact('unitTypes'));
+        return view('admin.item_types.create', compact('unitTypes'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function store(Request $request)
@@ -45,7 +46,7 @@ class ItemTypeController extends Controller
             'is_purchase' => 'required',
             'is_work' => 'required',
             'is_department' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'item_type_name.required' => 'Please enter Item Type Name.',
             'is_purchase.required' => 'Please enter Is Purchase.',
@@ -63,7 +64,7 @@ class ItemTypeController extends Controller
 
         DB::beginTransaction();
         try {
-            $itemType = new ItemType();
+            $itemType = new ItemType;
             $itemType->item_type_name = $request->item_type_name;
             $itemType->unit_type_id = $request->unit_type_id;
             $itemType->is_purchase = $request->is_purchase;
@@ -96,9 +97,9 @@ class ItemTypeController extends Controller
             abort(404);
         }
 
-        $unitTypes = UnitType::where('status', 'Active')->orderBy('unit_type_id', 'asc')->get();
+        $unitTypes = UnitType::active()->orderBy('unit_type_id', 'asc')->get();
 
-        return view('admin.item_types.edit', compact('itemType', 'unitTypes'));
+        return view('admin.item_types.edit', compact('itemType', 'unitTypes'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -115,7 +116,7 @@ class ItemTypeController extends Controller
             'is_purchase' => 'required',
             'is_work' => 'required',
             'is_department' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'item_type_name.required' => 'Please enter Item Type Name.',
             'is_purchase.required' => 'Please enter Is Purchase.',
@@ -184,5 +185,3 @@ class ItemTypeController extends Controller
         }
     }
 }
-
-

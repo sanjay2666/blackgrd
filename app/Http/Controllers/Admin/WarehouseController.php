@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Warehouse;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +18,7 @@ class WarehouseController extends Controller
     public function index(Request $request)
     {
         $query = Warehouse::query();
-        $query->where('status', '!=', 'Deleted');
+        $query->notDeleted();
 
         if ($request->filled('search')) {
             $query->where(function ($query) use ($request) {
@@ -34,7 +36,7 @@ class WarehouseController extends Controller
 
     public function create()
     {
-        return view('admin.warehouses.create');
+        return view('admin.warehouses.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
     public function store(Request $request)
@@ -46,7 +48,7 @@ class WarehouseController extends Controller
             'supervisor_id' => 'nullable',
             'contact_number' => 'required',
             'process_type_id' => 'nullable',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'warehouse_name.required' => 'Please enter Warehouse Name.',
             'location.required' => 'Please enter Location.',
@@ -64,7 +66,7 @@ class WarehouseController extends Controller
 
         DB::beginTransaction();
         try {
-            $warehouse = new Warehouse();
+            $warehouse = new Warehouse;
             $warehouse->warehouse_name = $request->warehouse_name;
             $warehouse->location = $request->location;
             $warehouse->capacity = $request->capacity;
@@ -101,7 +103,7 @@ class WarehouseController extends Controller
             abort(404);
         }
 
-        return view('admin.warehouses.edit', compact('warehouse'));
+        return view('admin.warehouses.edit', compact('warehouse'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -119,7 +121,7 @@ class WarehouseController extends Controller
             'supervisor_id' => 'nullable',
             'contact_number' => 'required',
             'process_type_id' => 'nullable',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'warehouse_name.required' => 'Please enter Warehouse Name.',
             'location.required' => 'Please enter Location.',
@@ -191,4 +193,3 @@ class WarehouseController extends Controller
         }
     }
 }
-

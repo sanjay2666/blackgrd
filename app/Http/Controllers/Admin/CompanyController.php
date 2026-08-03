@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\State;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,14 +18,14 @@ class CompanyController extends Controller
 {
     public function index(Request $request)
     {
-        $company = Company::where('status', '!=', 'Deleted')->orderBy('id', 'asc')->first();
+        $company = Company::notDeleted()->orderBy('id', 'asc')->first();
 
         return view('admin.companies.index', compact('company'));
     }
 
     public function create()
     {
-        $company = Company::where('status', '!=', 'Deleted')->orderBy('id', 'asc')->first();
+        $company = Company::notDeleted()->orderBy('id', 'asc')->first();
 
         if (! empty($company)) {
             return redirect()->route('admin.companies.edit', encrypt($company->id));
@@ -31,14 +33,14 @@ class CompanyController extends Controller
 
         $states = State::where('status', 'Active')->orderBy('id', 'asc')->get();
 
-        return view('admin.companies.create', compact('states'));
+        return view('admin.companies.create', compact('states'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'name.required' => 'Please enter Company Name.',
             'status.required' => 'Please select Status.',
@@ -53,7 +55,7 @@ class CompanyController extends Controller
 
         DB::beginTransaction();
         try {
-            $company = Company::where('status', '!=', 'Deleted')->orderBy('id', 'asc')->first();
+            $company = Company::notDeleted()->orderBy('id', 'asc')->first();
 
             if (empty($company)) {
                 $company = new Company;
@@ -162,7 +164,7 @@ class CompanyController extends Controller
 
         $states = State::where('status', 'Active')->orderBy('id', 'asc')->get();
 
-        return view('admin.companies.edit', compact('company', 'states'));
+        return view('admin.companies.edit', compact('company', 'states'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -176,7 +178,7 @@ class CompanyController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'name.required' => 'Please enter Company Name.',
             'status.required' => 'Please select Status.',
@@ -311,4 +313,3 @@ class CompanyController extends Controller
         }
     }
 }
-

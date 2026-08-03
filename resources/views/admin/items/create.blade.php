@@ -63,7 +63,7 @@
                             <div class="col-sm-4"><div class="form-group"><label>&nbsp;</label><div class="checkbox"><label><input type="checkbox" name="is_outsourced" value="1" @checked(old('is_outsourced'))> Is Outsourced</label></div></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>&nbsp;</label><div class="checkbox"><label><input type="checkbox" name="is_jobwork" value="1" @checked(old('is_jobwork'))> Is Jobwork</label></div></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Lab Test Required <span class="required">*</span></label><select name="is_lab_test_required" class="form-control" required><option value="Yes" @selected((string) old('is_lab_test_required', 'Yes') === 'Yes')>Yes</option><option value="No" @selected((string) old('is_lab_test_required', 'Yes') === 'No')>No</option></select></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status', 'Active') === 'Inactive')>Inactive</option></select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options')</select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.items.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
                     </form>

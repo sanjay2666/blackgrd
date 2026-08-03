@@ -64,8 +64,7 @@
 										</div>
 										<div class="col-sm-4">
 											<div class="form-group"><label>Status</label><select name="status" class="form-control">
-													<option value="Active" @selected(old('status', $itemType->status) === 'Active')>Active</option>
-													<option value="Inactive" @selected(old('status', $itemType->status) === 'Inactive')>Inactive</option>
+													@include('admin.common.status-options', ['selectedStatus' => $itemType->status])
 												</select></div>
 										</div>
 									</div>

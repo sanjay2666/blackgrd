@@ -21,7 +21,7 @@
 <div class="col-sm-6"><div class="form-group"><label>Process <span class="required">*</span></label><select name="process_wise" class="form-control" required><option value="">Select Process</option>@foreach ($processItems as $processItem)<option value="{{ $processItem->id }}" @selected((string) old('process_wise') === (string) $processItem->id)>{{ $processItem->process_name }}</option>@endforeach</select></div></div>
 <div class="col-sm-3"><div class="form-group"><label>Busy</label><select name="is_busy" class="form-control"><option value="0" @selected(old('is_busy', '0') === '0')>No</option><option value="1" @selected(old('is_busy') === '1')>Yes</option></select></div></div>
 
-<div class="col-sm-3"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status') === 'Inactive')>Inactive</option></select></div></div>
+<div class="col-sm-3"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options')</select></div></div>
 </div>
 <div class="reset-button"><a href="{{ route('admin.machines.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
 </form>

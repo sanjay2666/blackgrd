@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\WarehouseCompartment;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -16,7 +18,7 @@ class WareHouseCompartmentController extends Controller
     public function index(Request $request)
     {
         $query = WarehouseCompartment::query();
-        $query->where('status', '!=', 'Deleted');
+        $query->notDeleted();
 
         if ($request->filled('search')) {
             $query->where(function ($query) use ($request) {
@@ -33,7 +35,7 @@ class WareHouseCompartmentController extends Controller
 
     public function create()
     {
-        return view('admin.ware_house_compartments.create');
+        return view('admin.ware_house_compartments.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
     public function store(Request $request)
@@ -42,7 +44,7 @@ class WareHouseCompartmentController extends Controller
             'compartment_name' => 'required',
             'warehouse_id' => 'required',
             'ind_emp_id' => 'nullable',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'compartment_name.required' => 'Please enter Compartment Name.',
             'warehouse_id.required' => 'Please enter Warehouse Id.',
@@ -58,7 +60,7 @@ class WareHouseCompartmentController extends Controller
 
         DB::beginTransaction();
         try {
-            $wareHouseCompartment = new WarehouseCompartment();
+            $wareHouseCompartment = new WarehouseCompartment;
             $wareHouseCompartment->compartment_name = $request->compartment_name;
             $wareHouseCompartment->warehouse_id = $request->warehouse_id;
             $wareHouseCompartment->ind_emp_id = $request->ind_emp_id;
@@ -92,7 +94,8 @@ class WareHouseCompartmentController extends Controller
             abort(404);
         }
 
-        return view('admin.ware_house_compartments.edit', compact('wareHouseCompartment'));
+        return view('admin.ware_house_compartments.edit', compact('wareHouseCompartment'))
+            ->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -107,7 +110,7 @@ class WareHouseCompartmentController extends Controller
             'compartment_name' => 'required',
             'warehouse_id' => 'required',
             'ind_emp_id' => 'nullable',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'compartment_name.required' => 'Please enter Compartment Name.',
             'warehouse_id.required' => 'Please enter Warehouse Id.',
@@ -174,4 +177,3 @@ class WareHouseCompartmentController extends Controller
         }
     }
 }
-

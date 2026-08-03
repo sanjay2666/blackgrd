@@ -19,7 +19,7 @@
                         <div class="row">
                             <div class="col-sm-12"><div class="form-group"><label>Colour Name <span class="required">*</span></label><input type="text" name="name" value="{{ old('name') }}" class="form-control" required></div></div>
                             <div class="col-sm-12"><div class="form-group"><label>Colour Code</label><input type="text" name="code" value="{{ old('code') }}" class="form-control"></div></div>
-                            <div class="col-sm-12"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status', 'Active') === 'Inactive')>Inactive</option></select></div></div>
+                            <div class="col-sm-12"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options')</select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.colours.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
                     </form>

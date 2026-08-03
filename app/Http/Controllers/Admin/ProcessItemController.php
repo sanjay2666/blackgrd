@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\ProcessItem;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +16,7 @@ class ProcessItemController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ProcessItem::where('status', '!=', 'Deleted');
+        $query = ProcessItem::notDeleted();
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -31,7 +33,7 @@ class ProcessItemController extends Controller
 
     public function create()
     {
-        return view('admin.process_items.create');
+        return view('admin.process_items.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
     public function store(Request $request)
@@ -41,7 +43,7 @@ class ProcessItemController extends Controller
             'process_name' => 'required|max:255',
             'output_name' => 'required|max:255',
             'process_sl_no_last' => 'required|integer|min:0',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'entry_name.max' => 'Entry Name should not be greater than 255 characters.',
             'process_name.required' => 'Please enter Process Name.',
@@ -64,7 +66,7 @@ class ProcessItemController extends Controller
 
         DB::beginTransaction();
         try {
-            $processItem = new ProcessItem();
+            $processItem = new ProcessItem;
             $processItem->entry_name = $request->entry_name;
             $processItem->process_name = $request->process_name;
             $processItem->output_name = $request->output_name;
@@ -93,6 +95,7 @@ class ProcessItemController extends Controller
 
         return view('admin.process_items.edit', [
             'processItem' => $process_item,
+            'statusOptions' => RecordStatus::formOptions(),
         ]);
     }
 
@@ -105,7 +108,7 @@ class ProcessItemController extends Controller
             'process_name' => 'required|max:255',
             'output_name' => 'required|max:255',
             'process_sl_no_last' => 'required|integer|min:0',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'entry_name.max' => 'Entry Name should not be greater than 255 characters.',
             'process_name.required' => 'Please enter Process Name.',

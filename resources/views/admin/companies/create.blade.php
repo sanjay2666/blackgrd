@@ -114,7 +114,7 @@
                             <div class="col-sm-3"><div class="form-group"><label>Longitude</label><input type="text" name="longitude" value="{{ old('longitude') }}" class="form-control"></div></div>
                             <div class="col-sm-6"><div class="form-group"><label>Terms And Conditions</label><textarea name="terms_and_conditions" class="form-control" rows="3">{{ old('terms_and_conditions') }}</textarea></div></div>
                             <div class="col-sm-6"><div class="form-group"><label>Remarks</label><textarea name="remarks" class="form-control" rows="3">{{ old('remarks') }}</textarea></div></div>
-                            <div class="col-sm-3"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status', 'Active') === 'Inactive')>Inactive</option></select></div></div>
+                            <div class="col-sm-3"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options')</select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.companies.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
                     </form>

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Coting;
+use App\Rules\RecordStatusRule;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +17,7 @@ class CotingController extends Controller
     public function index(Request $request)
     {
         $query = Coting::query();
-        $query->where('status', '!=', 'Deleted');
+        $query->notDeleted();
 
         if ($request->filled('search')) {
             $query->where(function ($query) use ($request) {
@@ -32,7 +33,7 @@ class CotingController extends Controller
 
     public function create()
     {
-        return view('admin.cotings.create');
+        return view('admin.cotings.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
     public function store(Request $request)
@@ -40,7 +41,7 @@ class CotingController extends Controller
         $validator = Validator::make($request->all(), [
             'code' => 'required',
             'name' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'code.required' => 'Please enter Code.',
             'name.required' => 'Please enter Name.',
@@ -56,7 +57,7 @@ class CotingController extends Controller
 
         DB::beginTransaction();
         try {
-            $coting = new Coting();
+            $coting = new Coting;
             $coting->code = $request->code;
             $coting->name = $request->name;
             $coting->status = $request->status;
@@ -86,7 +87,7 @@ class CotingController extends Controller
             abort(404);
         }
 
-        return view('admin.cotings.edit', compact('coting'));
+        return view('admin.cotings.edit', compact('coting'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -100,7 +101,7 @@ class CotingController extends Controller
         $validator = Validator::make($request->all(), [
             'code' => 'required',
             'name' => 'required',
-            'status' => 'required|in:Active,Inactive',
+            'status' => ['required', new RecordStatusRule],
         ], [
             'code.required' => 'Please enter Code.',
             'name.required' => 'Please enter Name.',
@@ -164,4 +165,3 @@ class CotingController extends Controller
         }
     }
 }
-
