@@ -74,55 +74,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-/* ==================== 04. openLabRequestModal, confirmLabRequest ==================== */
-// Open Modal with Lot Info
-function openLabRequestModal(button)
-{
-    let id  = $(button).data("id");
-    let lot = $(button).data("lot");
-    let wo  = $(button).data("wo");
-
-    $("#modalLotId").val(id);
-    $("#modalLotNo").text(lot);
-    $("#modalWorkOrder").text(wo);
-
-	$('#labRequestModal').modal({
-		backdrop: 'static',
-		keyboard: false,
-		show: true
-	});
-
-}
-
-// Confirm Request
-function confirmLabRequest() {
-    var id      = $("#modalLotId").val();
-    var remarks = $("#labRemarks").val();
-    var meter   = $("#labMeter").val();
-
-    $.ajax({
-        url: "{{ route('lab-request.send') }}",
-        type: "GET",   // ✅ should be POST, not GET
-        data: {
-            _token: "{{ csrf_token() }}",
-            id: id,
-            remarks: remarks,
-            meter: meter
-        },
-        success: function(res) {
-            if (res.success) {
-                $("#lotCell" + id).html('<span class="label label-warning">Request Sent</span>');
-                $("#labRequestModal").modal("hide");
-                alert(res.message);
-            }
-        },
-        error: function(xhr) {
-            var msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : "Request failed.";
-            alert("Error: " + msg);
-        }
-    });
-}
-
 /* ==================== 05. openReasonModal ==================== */
 function openReasonModal(woId)
 	{

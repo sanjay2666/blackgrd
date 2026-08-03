@@ -28,9 +28,6 @@ use App\Http\Controllers\Admin\WareHouseCompartmentController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\CommonController;
-use App\Http\Controllers\LabColourFastnessController;
-use App\Http\Controllers\LabRequirementController;
-use App\Http\Controllers\LabTestController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -200,36 +197,6 @@ Route::middleware('auth:web')->group(function () {
 	
 	Route::get('/receive-work-item/{id}',[WorkOrderController::class,'receive_work_item'])->name('receive-work-item');
 
-	
-	/*
-	|--------------------------------------------------------------------------
-	| Lab Test Routes
-	|--------------------------------------------------------------------------
-	*/
-	Route::post('/labtests', [LabTestController::class, 'store'])->name('labtests.store');
-
-	Route::get('/lab-request/send', [LabTestController::class, 'sendLabRequest'])->name('lab-request.send');
-	
-	// Route::get('/show-lab-request', [LabTestController::class, 'showLabRequest'])->name('show-lab-request');
-	// Route::get('/show-lab-workorders', [LabTestController::class, 'showLabRequest'])->name('show-lab-workorders');
-	// Route::get('/lab-request/{id}/accept', [LabTestController::class, 'acceptRequest'])->name('lab-request.accept');
-	// Route::get('/lab-request/{id}/reject', [LabTestController::class, 'rejectRequest'])->name('lab-request.reject');
-	// Route::get('/lab-request/{id}/approve', [LabTestController::class, 'approveLabRequest'])->name('lab-request.approve');
-	// Route::get('/lab-request/{id}/reject-final', [LabTestController::class, 'rejectLabRequest'])->name('lab-request.rejectFinal');
-	// Route::get('/lab-request/{id}/form', [LabTestController::class, 'showRequirementForm'])->name('lab-request.form.show');
-	// Route::post('/lab-request/{id}/submit-form', [LabTestController::class, 'submitRequirementForm'])->name('labrequest.submitForm');	
-	// Route::get('/lab-test/{id}/result', [LabTestController::class, 'showResultForm'])->name('lab-test.result.show');
-	// Route::post('/lab-test/{id}/result', [LabTestController::class, 'submitResult'])->name('lab-test.submit');
-	// Route::get('/lab-test/{id}/report', [LabTestController::class, 'downloadReport'])->name('lab-test.report');
-	// Route::get('/check-lab-report/{id}', [LabTestController::class, 'check_lab_report'])->name('check-lab-report');
-	// Route::get('/print-lab-report/{id}', [LabTestController::class, 'print_lab_report'])->name('print-lab-report');
-	// Route::post('/labtest/result/change-status', [LabTestController::class, 'changeStatus'])->name('labtest.result.changeStatus');
-	
-	// Route::get('/lab-requirements/store', [LabRequirementController::class, 'store'])->name('lab-requirements.store');
-	
-	// Route::get('/lab-colour-fastness', [LabColourFastnessController::class, 'index'])->name('lab_colour_fastness.index');
-	// Route::post('/lab-colour-fastness/store-multiple', [LabColourFastnessController::class, 'storeMultiple'])->name('lab_colour_fastness.storeMultiple');
-	// Route::match(['get', 'post'], '/lab-colour-fastness/{id}/update', [LabColourFastnessController::class, 'update'])->name('lab_colour_fastness.update');
 	
 	/*
 	|--------------------------------------------------------------------------

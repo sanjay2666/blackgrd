@@ -1031,48 +1031,6 @@
       </div>
     </div>
   </div>
-  <!-- Lab Request Modal -->
-  <div class="modal fade" id="labRequestModal" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog modal-md">
-      <div class="modal-content ">
-        <!-- Header -->
-        <div class="modal-header wo-lab-header">
-          <h4 class="modal-title"> <i class="fa fa-flask"></i> Lab Test Request </h4>
-          <button type="button" class="close wo-modal-close-light" data-dismiss="modal">×</button>
-        </div>
-        <!-- Body -->
-        <div class="modal-body wo-lab-body">
-          <table class="table table-bordered table-condensed ">
-            <tbody>
-              <tr>
-                <th class="wo-lab-label wo-w-40">Lot Number</th>
-                <td><span id="modalLotNo" class="badge badge-info  "></span> </td>
-              </tr>
-              <tr>
-                <th class="wo-lab-label">Work Order ID</th>
-                <td><span id="modalWorkOrder" class="badge badge-primary  "></span> </td>
-              </tr>
-            </tbody>
-          </table>
-          <input type="hidden" id="modalLotId">
-          <div class="form-group">
-            <label for="labRemarks" class="control-label"> <i class="fa fa-commenting"></i> Remarks / Comments </label>
-            <textarea id="labRemarks" class="form-control" rows="3" placeholder="Enter remarks"></textarea>
-          </div>
-          <div class="form-group">
-            <label for="labMeter" class="control-label"> <i class="fa fa-ruler"></i> Total Meter </label>
-            <input type="number" id="labMeter" class="form-control" placeholder="Enter total meter">
-          </div>
-        </div>
-        <!-- Footer -->
-        <div class="modal-footer wo-lab-footer">
-          <button type="button" class="btn btn-default btn-sm" data-dismiss="modal"> <i class="fa fa-times"></i> Cancel </button>
-          <button type="button" class="btn btn-success btn-sm" onClick="confirmLabRequest()"> <i class="fa fa-check"></i> Confirm Request </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Modal -->
 	<div class="modal fade" id="beamReturnBeamModal" tabindex="-1" role="dialog" aria-labelledby="beamReturnModalLabel" aria-hidden="true">
 	  <div class="modal-dialog modal-lg" role="document">

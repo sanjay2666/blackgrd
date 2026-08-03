@@ -50,8 +50,6 @@ class CodeIntegritySnapshotTest extends TestCase
             'app/Http/Controllers/LabTestController.php -> html.labrequest.print_lab_report',
             'app/Http/Controllers/LabTestController.php -> html.labrequest.show-labrequest',
             'app/Http/Controllers/LabTestController.php -> pdf.lab-test-report',
-            'app/Http/Controllers/WorkOrderController.php -> frontend.workorders.show-dyed-workorders',
-            'app/Http/Controllers/WorkPurchaseRequirementController.php -> html.workpurchaserequirements.show-work-purchase-requirement',
         ];
 
         $this->assertSame($expected, $this->missingLiteralControllerViews());

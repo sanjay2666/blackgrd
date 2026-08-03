@@ -649,10 +649,10 @@ $userId 		= Auth::id();
 
 													&nbsp;
 
-													<?php if ($dataRow->lab_req_status == 'Pending' || $dataRow->lab_req_status == 'Rejected') { ?>
-														<button type="button" class="btn btn-info mini-btn btn-xs" data-id="<?= e($dataRow->id) ?>" data-lot="<?= e($dataRow->req_lot_no) ?>" data-wo="<?= e($Id) ?>" onclick="openLabRequestModal(this)">
-															<i class="fa fa-flask"></i>
-														</button>
+											<?php if ($dataRow->lab_req_status == 'Pending' || $dataRow->lab_req_status == 'Rejected') { ?>
+												<span class="label label-default" title="Lab Test module is not available">
+													<i class="fa fa-flask"></i> Lab unavailable
+												</span>
 													<?php } elseif ($dataRow->lab_req_status == 'Requested') { ?>
 														<span class="label label-warning">Request Sent</span>
 													<?php } elseif ($dataRow->lab_req_status == 'Approved') { ?>

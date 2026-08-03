@@ -4,10 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Models\ItemType;
 use App\Models\UnitType;
 use App\Models\User;
-use App\Models\Individual;
 use App\Models\PurchaseItem;
 use App\Models\Warehouse;
 use App\Models\WarehouseItem;
@@ -15,59 +13,12 @@ use App\Models\WarehouseCompartment;
 use App\Models\WorkOrder;
 use App\Models\WorkProcessRequirement;
 use App\Models\WorkPurchaseRequirement;
-use App\Models\Item;
-use App\Models\WorkOrderItem;
 use Validator, Auth, Session, Hash; 
 
 
 
 class WorkPurchaseRequirementController extends Controller
 { 
-
-	public function index(Request $request)
-	{ 
-		$qnamesearch     		= trim($request->qnamesearch);
-		$item_type    			= trim($request->item_type);
-		$qworkordersearch     	= trim($request->qworkordersearch);
-		$qsalesearch     		= trim($request->qsalesearch);
-		$qworkrequestsearch     = trim($request->qworkrequestsearch);		 
-		$first_character 		= substr($qworkordersearch, 0, 1);
-		 
-		$strlen = strlen($qworkordersearch);
-		$remaining_character = substr($qworkordersearch, 1, $strlen);
-		 
-		$dataIT     = ItemType::where('status', '=', '1')->get();
-		//$dataWPR = WorkPurchaseRequirement::where('status', '=', '1')->orderByDesc('id')->paginate(20);
-		$query = WorkPurchaseRequirement::where('status', '=', '1')->orderByDesc('id');
-		if (!empty($qnamesearch)) {
-			$itemIds = Item::where(DB::raw("CONCAT(item_name, ' ', internal_item_name)"), 'LIKE', '%' . $qnamesearch . '%')->where('status', '=', '1')->pluck('item_id')->implode(',');
-			$query->whereIn('item_id', explode(',', $itemIds));
-		}
-		if (!empty($item_type)) {
-			$itemType = explode(',', $item_type);
-			$query->whereIn('item_type_id', $itemType);
-		}
-		if (!empty($qworkordersearch)) {
-	 
-			$workOrderIds = WorkOrder::where(DB::raw("process_type"), 'LIKE', '%' . $first_character . '%')->where(DB::raw("process_sl_no"), 'LIKE', '%' . $remaining_character . '%')->where('status', '=', '1')->pluck('work_order_id')->implode(',');			 
-			$query->whereIn('work_order_id', explode(',', $workOrderIds));
-		}
-		if (!empty($qsalesearch)) {
-			$ordNumSearchArray = explode(',', $qsalesearch);
-			$workOrderIds = WorkOrderItem::whereIn('sale_order_id', $ordNumSearchArray)->pluck('work_order_id');
-			$query->whereIn('work_order_id', $workOrderIds);			 
-		}
-		if (!empty($qworkrequestsearch)) {
-		$individualIds = Individual::where(DB::raw("name"), 'LIKE', '%' . $qworkrequestsearch . '%')->where('status', '=', '1')->pluck('id')->implode(',');
-		$query->whereIn('purchase_req_send_by', explode(',', $individualIds));
-		}
-		 
-		//  echo "<pre>"; print_r($dataWPR); exit;
-		 
-		$dataWPR = $query->paginate(20);
-		 
-		return view('html.workpurchaserequirements.show-work-purchase-requirement', compact("dataWPR", "qnamesearch", "item_type", "qworkordersearch", "qsalesearch", "qworkrequestsearch", "dataIT"));
-	}
 	 
 	public function add_work_purchase_requisition(Request $request)
 	{
