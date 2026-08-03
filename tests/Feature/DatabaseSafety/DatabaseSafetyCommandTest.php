@@ -56,4 +56,14 @@ class DatabaseSafetyCommandTest extends TestCase
             new BufferedOutput,
         ));
     }
+
+    public function test_reviewed_live_migration_command_rejects_non_live_database(): void
+    {
+        $this->artisan('db:apply-reviewed-foreign-keys', [
+            '--execute' => true,
+            '--confirm-database' => 'blackgrd',
+        ])
+            ->expectsOutputToContain('BLOCKED')
+            ->assertExitCode(1);
+    }
 }

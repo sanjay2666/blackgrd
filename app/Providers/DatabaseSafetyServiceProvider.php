@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\ApplyReviewedForeignKeyMigrationsCommand;
 use App\Console\Commands\DatabaseSafetyCheckCommand;
 use App\Console\Commands\PrepareDisposableDatabaseCommand;
 use App\DatabaseSafety\DatabaseSafetyGuard;
@@ -54,6 +55,7 @@ class DatabaseSafetyServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
+                ApplyReviewedForeignKeyMigrationsCommand::class,
                 DatabaseSafetyCheckCommand::class,
                 PrepareDisposableDatabaseCommand::class,
             ]);
