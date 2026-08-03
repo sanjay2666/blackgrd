@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WarehouseOutItem extends Model
 {
@@ -80,9 +81,9 @@ class WarehouseOutItem extends Model
 	{
 		return $this->hasOne(User::class, 'id', 'receiver_id');
 	}	
-	public function Individual()
+	public function Individual(): BelongsTo
 	{
-		return $this->hasOne(Individual::class, 'id', 'ind_emp_id');
+		return $this->belongsTo(Individual::class, 'individual_id', 'id');
 	} 
 	public function Item()
     {

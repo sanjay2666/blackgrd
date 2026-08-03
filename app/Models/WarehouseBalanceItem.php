@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WarehouseBalanceItem extends Model
 { 
@@ -68,11 +69,9 @@ class WarehouseBalanceItem extends Model
 		return $this->hasOne(User::class, 'id', 'receiver_id');
 	}
 	
-	public function Individual(){
-		return $this->hasOne(Individual::class, 'id', 'ind_emp_id');
-	} 
-	public function ReceiverIndividual(){
-		return $this->hasOne(Individual::class, 'id', 'receiver_id');
+	public function ReceiverIndividual(): BelongsTo
+	{
+		return $this->belongsTo(Individual::class, 'receiver_id', 'id');
 	} 
 
 	public function ItemType()

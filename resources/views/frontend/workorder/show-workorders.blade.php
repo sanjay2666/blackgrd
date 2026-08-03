@@ -620,7 +620,7 @@ $userId 		= Auth::id();
 												<td id="beamWprCell<?= e($dataRow->id) ?>">
 													<?= e($dataRow->id) ?>
 
-													<?php if ($dataRow->process_type_id == '2' && empty($dataRow->WorkProcessRequirementChangeHistory)) { ?>
+											<?php if ($dataRow->process_type_id == '2') { ?>
 														<button type="button" class="btn btn-warning btn-xs mini-btn beam-return-btn" data-wpr-id="<?= e($dataRow->id) ?>" data-work-order-id="<?= e($Id) ?>" title="Beam/Yarn Return" data-toggle="tooltip">
 															<i class="fa fa-undo"></i>
 														</button>
@@ -638,7 +638,7 @@ $userId 		= Auth::id();
 													</span>
 
 													 
-													<?php if (in_array($dataRow->process_type_id, [3, 4]) && is_null($dataRow->WorkProcessRequirementChangeHistory)) { ?>
+											<?php if (in_array($dataRow->process_type_id, [3, 4])) { ?>
 														<button type="button" class="btn btn-warning mini-btn btn-xs open-lot-return-modal"
 																data-form-content='{"id":"<?= e($dataRow->id) ?>","req_lot_no":"<?= e($dataRow->req_lot_no) ?>","work_order_id":"<?= e($Id) ?>"}'
 																title="Item Return" data-toggle="tooltip"

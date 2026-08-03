@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class WorkProcessRequirement extends Model
 {
@@ -33,9 +34,10 @@ class WorkProcessRequirement extends Model
         return $this->belongsTo(WorkOrder::class, 'work_order_id', 'id');
     }
 
-    public function WorkOrderItem()
+    public function WorkOrderItem(): HasOne
     {
-        return $this->belongsTo(WorkOrderItem::class, 'work_order_item_id', 'id');
+        return $this->hasOne(WorkOrderItem::class, 'work_order_id', 'work_order_id')
+            ->where('status', 'Active');
     }
 
     public function CreatedBy()

@@ -37,10 +37,7 @@ class CodeIntegritySnapshotTest extends TestCase
 
     public function test_missing_relationship_targets_match_the_task_1_1_snapshot(): void
     {
-        $expected = [
-            'app/Models/SaleOrderItem.php::CwoReason -> App\\Models\\SaleOrderItemPendingReason',
-            'app/Models/WorkOrder.php::WorkOrderItemDetail -> App\\Models\\WorkOrderItemDetail',
-        ];
+        $expected = [];
 
         $this->assertSame($expected, $this->missingRelationshipTargets());
     }

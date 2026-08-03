@@ -921,7 +921,7 @@ class WarehouseItemController extends Controller
 		$query = WarehouseBalanceItem::where('status', '=', 'Active')
 			->where('balance_status', '=', 1)
 			->where('item_qty', '>', '0')
-			->with('WarehouseItem', 'WarehouseOutItem', 'Warehouse', 'WarehouseCompartment', 'User', 'Individual', 'ReceiverIndividual', 'Item', 'ItemType')
+			->with('WarehouseItem', 'WarehouseOutItem', 'Warehouse', 'WarehouseCompartment', 'User', 'ReceiverIndividual', 'Item', 'ItemType')
 			->orderByDesc('id');
 
 		
@@ -2347,7 +2347,7 @@ class WarehouseItemController extends Controller
 			->where('balance_status', '=', '1')
 			->whereIn('item_type_id', [1,2,3,4,5,6,8])
 			// ->where('item_qty', '>', '0')
-			->with('WarehouseItem', 'WarehouseOutItem', 'Warehouse', 'WarehouseCompartment', 'User', 'Individual', 'ReceiverIndividual', 'Item', 'ItemType') 
+			->with('WarehouseItem', 'WarehouseOutItem', 'Warehouse', 'WarehouseCompartment', 'User', 'ReceiverIndividual', 'Item', 'ItemType')
 			->orderByDesc('id');
 
 		

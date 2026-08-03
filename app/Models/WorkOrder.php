@@ -93,19 +93,9 @@ class WorkOrder extends Model
 		return $this->hasMany(WarehouseOutItem::class, 'work_order_id', 'id')->where('status', '!=', 'Deleted');
 	}	
 	
-	public function saleOrderItem()
-    {
-        return $this->belongsTo(SaleOrderItem::class, 'sale_order_item_id', 'id')->where('status', '!=', 'Deleted');
-    }
-	
-	
 	public function WorkOrderItem(){
 		return $this->hasMany(WorkOrderItem::class, 'work_order_id', 'id')->where('status', '!=', 'Deleted');
 	}
-	
-	public function WorkOrderItemDetail(){
-		return $this->hasMany(WorkOrderItemDetail::class, 'work_order_id', 'id');
-	}	
 	
 	
 	

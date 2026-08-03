@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SaleOrderItem extends Model
 {
@@ -59,8 +60,17 @@ class SaleOrderItem extends Model
         return $this->belongsTo(UnitType::class, 'unit_type_id', 'unit_type_id');
     }
 
-    public function CwoReason()
+    public function CwoReason(): HasMany
     {
-        return $this->hasMany(SaleOrderItemPendingReason::class, 'sale_order_item_id', 'id');
+        return $this->hasMany(Reason::class, 'sale_order_item_id', 'id')
+            ->where('reason_from_page', 'cwo')
+            ->where('status', 'Active')
+            ->orderByDesc('created_at');
+    }
+
+    public function WorkOrderItem(): HasMany
+    {
+        return $this->hasMany(WorkOrderItem::class, 'sale_order_item_id', 'id')
+            ->where('status', 'Active');
     }
 }
