@@ -71,23 +71,12 @@ Route::middleware('auth:web,admin')->group(function () {
 		Route::get('/find_saleDyeingColor',[CommonController::class,'find_saleDyeingColor'])->name('find_saleDyeingColor');
 		Route::get('/list_vendor',[CommonController::class,'list_vendor'])->name('list_vendor');
 		Route::get('/list_customerandvendor',[CommonController::class,'list_customerandvendor'])->name('list_customerandvendor');
-		Route::get('/list_dyeing',[CommonController::class,'list_dyeing'])->name('list_dyeing'); 
 		Route::get('/list_employee',[CommonController::class,'list_employee'])->name('list_employee');
-		Route::get('/list_transport',[CommonController::class,'list_transport'])->name('list_transport');
 		Route::get('/list_item',[CommonController::class,'list_item'])->name('list_item');
-		Route::get('/list_color_item',[CommonController::class,'list_color_item'])->name('list_color_item');
-		Route::get('/list_item_type',[CommonController::class,'list_item_type'])->name('list_item_type'); 
-		Route::get('/list_purchase_items',[CommonController::class,'list_purchase_items'])->name('list_purchase_items');
-		Route::get('/ajax_script/search_vendor_address', [CommonController::class,'search_vendor_address']);
 		Route::get('/ajax_script/search_customer_ship_address', [CommonController::class,'search_customer_ship_address']);
-		Route::get('/ajax_script/search_item_type', [CommonController::class,'search_item_type']);
 		Route::get('/list_warehouse_compartment',[CommonController::class,'list_warehouse_compartment'])->name('list_warehouse_compartment');
 		Route::get('/list_saleOrderNumer',[CommonController::class,'list_saleOrderNumer'])->name('list_saleOrderNumer');
-		Route::get('/ajax_script/search_customer_addressBilling', [CommonController::class,'search_customer_addressBilling']);
-		Route::get('/ajax_script/search_customer_addressShipping', [CommonController::class,'search_customer_addressShipping']);
 		Route::get('/ajax_script/search_customer_bill_address', [CommonController::class,'search_customer_bill_address']);
-		Route::get('/ajax_script/search_customer_address', [CommonController::class,'search_customer_address']);
-		Route::get('/find_saleOrderNumerByCustomer',[CommonController::class,'find_saleOrderNumerByCustomer'])->name('find_saleOrderNumerByCustomer');
 		Route::get('/list_master_color',[CommonController::class,'list_master_color'])->name('list_master_color'); 
 });
 
@@ -128,7 +117,7 @@ Route::middleware('auth:web')->group(function () {
     Route::get('/sale-orders', [SaleOrderController::class, 'index'])->name('sale-orders.index');
     Route::get('/sale-orders/create', [SaleOrderController::class, 'create'])->name('sale-orders.create');
     Route::get('/sale-orders/{id}/edit', [SaleOrderController::class, 'edit'])->name('sale-orders.edit');    
-    Route::get('/show-saleorder-workorder-details/{id}', [SaleOrderController::class, 'showSaleOrderWorkOrderDetails'])->name('saleorders.workorder-details');
+    Route::get('/show-saleorder-workorder-details/{id}', [SaleOrderController::class, 'showSaleOrderWorkOrderDetails'])->name('show-saleorder-workorder-details');
     Route::get('/print-saleorder/{id}', [SaleOrderController::class, 'printSaleOrder'])->name('saleorders.print');
 	Route::get('/sale-order/ajax-details/{id}', [SaleOrderController::class, 'ajaxSaleOrderDetails']);
     Route::get('/show-saleorder-reports',[SaleOrderController::class,'show_sale_order_reports'])->name('show-saleorder-reports');
@@ -179,7 +168,6 @@ Route::middleware('auth:web')->group(function () {
 
 	Route::post('/update_coating_print_inspec_process',[WorkOrderController::class,'updateCoatingPrintInspecProcess'])->name('update_coating_print_inspec_process');
 	
-	Route::get('/show-saleorder-workorder-details/{id}',[SaleOrderController::class,'show_saleorder_work_order_details'])->name('show-saleorder-workorder-details');
     Route::get('/start-requisition-process/{id}',[WorkOrderController::class,'start_requisition_process'])->name('start-requisition-process');
 	
 	Route::post('/add_work_requisition',[WorkOrderController::class,'add_work_requisition'])->name('add_work_requisition');

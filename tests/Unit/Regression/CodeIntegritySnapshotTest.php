@@ -11,25 +11,7 @@ class CodeIntegritySnapshotTest extends TestCase
 {
     public function test_active_route_target_failures_match_the_task_1_1_snapshot(): void
     {
-        $expected = [
-            'GET ajax_script/search_customer_address -> App\\Http\\Controllers\\CommonController@search_customer_address (missing method)',
-            'GET ajax_script/search_customer_addressBilling -> App\\Http\\Controllers\\CommonController@search_customer_addressBilling (missing method)',
-            'GET ajax_script/search_customer_addressShipping -> App\\Http\\Controllers\\CommonController@search_customer_addressShipping (missing method)',
-            'GET ajax_script/search_customer_bill_address -> App\\Http\\Controllers\\CommonController@search_customer_bill_address (missing method)',
-            'GET ajax_script/search_customer_ship_address -> App\\Http\\Controllers\\CommonController@search_customer_ship_address (missing method)',
-            'GET ajax_script/search_item_type -> App\\Http\\Controllers\\CommonController@search_item_type (missing method)',
-            'GET ajax_script/search_vendor_address -> App\\Http\\Controllers\\CommonController@search_vendor_address (missing method)',
-            'GET find_saleOrderNumerByCustomer -> App\\Http\\Controllers\\CommonController@find_saleOrderNumerByCustomer (missing method)',
-            'GET list_color_item -> App\\Http\\Controllers\\CommonController@list_color_item (missing method)',
-            'GET list_dyeing -> App\\Http\\Controllers\\CommonController@list_dyeing (missing method)',
-            'GET list_employee -> App\\Http\\Controllers\\CommonController@list_employee (missing method)',
-            'GET list_item -> App\\Http\\Controllers\\CommonController@list_item (missing method)',
-            'GET list_item_type -> App\\Http\\Controllers\\CommonController@list_item_type (missing method)',
-            'GET list_purchase_items -> App\\Http\\Controllers\\CommonController@list_purchase_items (missing method)',
-            'GET list_saleOrderNumer -> App\\Http\\Controllers\\CommonController@list_saleOrderNumer (missing method)',
-            'GET list_transport -> App\\Http\\Controllers\\CommonController@list_transport (missing method)',
-            'GET show-saleorder-workorder-details/{id} -> App\\Http\\Controllers\\SaleOrderController@show_saleorder_work_order_details (missing method)',
-        ];
+        $expected = [];
 
         $this->assertSame($expected, $this->activeRouteTargetFailures());
     }

@@ -58,6 +58,135 @@ class CommonController extends Controller
 
 		return response()->json($saleOrders);
 	}
+
+	public function list_employee(Request $request)
+	{
+		$qsearch = trim($request->input('term', ''));
+
+		$query = Individual::query()
+			->where('type', 'employee')
+			->where('status', 'Active');
+
+		if ($qsearch !== '') {
+			$query->where(function ($query) use ($qsearch) {
+				$query->where('name', 'like', '%'.$qsearch.'%')
+					->orWhere('email', 'like', '%'.$qsearch.'%')
+					->orWhere('gstin', 'like', '%'.$qsearch.'%');
+			});
+		}
+
+		return response()->json(
+			$query->orderBy('name')->orderBy('id')->limit(10)->get(['id', 'name', 'gstin'])
+		);
+	}
+
+	public function list_item(Request $request)
+	{
+		$qsearch = trim($request->input('term', ''));
+
+		$query = Item::query()->where('status', 'Active');
+
+		if ($qsearch !== '') {
+			$query->where(function ($query) use ($qsearch) {
+				$query->where('item_name', 'like', '%'.$qsearch.'%')
+					->orWhere('item_code', 'like', '%'.$qsearch.'%')
+					->orWhere('internal_item_name', 'like', '%'.$qsearch.'%')
+					->orWhere('hsncode', 'like', '%'.$qsearch.'%');
+			});
+		}
+
+		return response()->json(
+			$query->orderBy('item_name')->orderBy('item_id')->limit(20)
+				->get(['item_id', 'item_name', 'item_code'])
+		);
+	}
+
+	public function list_saleOrderNumer(Request $request)
+	{
+		$qsearch = trim($request->input('term', ''));
+
+		$query = DB::table('sale_orders')
+			->where('status', 'Active')
+			->whereNotNull('sale_order_number');
+
+		if ($qsearch !== '') {
+			$query->where(function ($query) use ($qsearch) {
+				$query->where('sale_order_number', 'like', '%'.$qsearch.'%')
+					->orWhere('id', 'like', '%'.$qsearch.'%');
+			});
+		}
+
+		return response()->json(
+			$query->orderByDesc('id')->limit(10)
+				->get(['id as sale_order_id', 'sale_order_number'])
+		);
+	}
+
+	public function search_customer_bill_address(Request $request)
+	{
+		return $this->customerAddressResponse($request, 'b');
+	}
+
+	public function search_customer_ship_address(Request $request)
+	{
+		return $this->customerAddressResponse($request, 's');
+	}
+
+	private function customerAddressResponse(Request $request, string $addressType)
+	{
+		$validated = $request->validate([
+			'individualId' => ['required', 'integer', 'min:1'],
+		]);
+
+		$addresses = DB::table('individual_address as address')
+			->leftJoin('states as state', 'state.id', '=', 'address.state_id')
+			->where('address.individual_id', $validated['individualId'])
+			->where('address.address_type', $addressType)
+			->where('address.status', 'Active')
+			->orderByDesc('address.default_address')
+			->orderBy('address.ind_add_id')
+			->get([
+				'address.ind_add_id',
+				'address.address_1',
+				'address.address_2',
+				'address.state_id',
+				'address.city',
+				'address.zip_code',
+				'address.default_address',
+				'state.name as state_name',
+			]);
+
+		$html = '';
+		if ($addressType === 'b') {
+			$companyStateId = DB::table('companies')
+				->where('status', 'Active')
+				->orderBy('id')
+				->value('state_id');
+			$html .= '<input type="hidden" required name="state" id="state" value="'.e($companyStateId).'">';
+		}
+
+		foreach ($addresses as $address) {
+			$addressText = collect([
+				$address->address_1,
+				$address->address_2,
+				$address->state_name,
+				$address->city,
+				$address->zip_code,
+			])->filter(fn ($value) => $value !== null && $value !== '')->implode(' ');
+			$checked = $address->default_address ? ' checked' : '';
+			$stateId = (int) $address->state_id;
+
+			if ($addressType === 'b') {
+				$html .= '<input type="radio"'.$checked.' onClick="calcAddress('.$stateId.')" required name="ind_add_id" value="'.e($address->ind_add_id).'"> '.e($addressText).'<br/>';
+				$html .= '<input type="hidden" required name="address" value="'.e($addressText).'">';
+			} else {
+				$html .= '<input type="radio"'.$checked.' onClick="calcAddresss('.$stateId.')" required name="ind_add_id_ship" value="'.e($address->ind_add_id).'"> '.e($addressText).'<br/>';
+				$html .= '<input type="hidden" required name="shiping_address" value="'.e($addressText).'">';
+			}
+		}
+
+		return response($html, 200)->header('Content-Type', 'text/html; charset=UTF-8');
+	}
   
     public function list_customer(Request $request)
     {
