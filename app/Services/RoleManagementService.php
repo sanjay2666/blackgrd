@@ -67,6 +67,9 @@ final class RoleManagementService
             app(AuditLogger::class)->record(['module' => 'security', 'action' => 'deny', 'event' => 'reserved_role_assignment_attempt', 'auditable_type' => $role->getMorphClass(), 'auditable_id' => $role->id, 'description' => 'Attempt to assign the reserved Super Admin role through Company Admin RBAC.']);
             throw ValidationException::withMessages(['role' => 'The reserved system role cannot be assigned here.']);
         }
+        if ((int) $role->company_id !== $companyId) {
+            throw ValidationException::withMessages(['role' => 'The role is not available in the current company.']);
+        }
         $expectedPanel = $user->user_type === 'Admin' ? 'Admin' : 'Frontend';
         if ($role->panel !== $expectedPanel) {
             throw ValidationException::withMessages(['role' => 'This role belongs to the other login panel.']);

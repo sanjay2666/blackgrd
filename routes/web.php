@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\UnitTypeController;
 use App\Http\Controllers\Admin\UserActivityLogController;
 use App\Http\Controllers\Admin\UserPermissionController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserWebPageController;
 use App\Http\Controllers\Admin\WareHouseCompartmentController;
 use App\Http\Controllers\Admin\WarehouseController;
@@ -382,6 +383,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
             Route::get('/users/{user}/permissions', [UserPermissionController::class, 'index'])->name('users.permissions.edit');
             Route::put('/users/{user}/permissions', [UserPermissionController::class, 'update'])->name('users.permissions.update');
         });
+        Route::middleware('permission:users.manage')->get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::middleware('permission:users.manage')->group(function (): void {
+            Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+            Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        });
+        Route::middleware('permission:users.manage')->group(function (): void {
+            Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+            Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        });
+        Route::patch('/users/{user}/activate', [UserController::class, 'activate'])->middleware('permission:users.manage')->name('users.activate');
+        Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate'])->middleware('permission:users.manage')->name('users.deactivate');
+        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->middleware('permission:users.manage')->name('users.reset-password');
         Route::middleware('permission:audit-logs.view')->group(function (): void {
             Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
             Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
