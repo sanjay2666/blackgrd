@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\GstRateController;
+use App\Http\Controllers\Admin\FinancialYearController;
 use App\Http\Controllers\Admin\IndividualController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ItemTypeController;
@@ -347,6 +348,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('notifications', NotificationController::class)->except(['show']);
         Route::resource('packaging-types', PackagingTypeController::class)->except(['show']);
         Route::resource('unit-types', UnitTypeController::class)->except(['show']);
+        Route::resource('financial-years', FinancialYearController::class)->except(['show']);
+        Route::post('/financial-years/{financial_year}/set-current', [FinancialYearController::class, 'setCurrent'])->name('financial-years.set-current');
         Route::resource('user-web-pages', UserWebPageController::class)->except(['show']);
         Route::resource('warehouses', WarehouseController::class)->except(['show']);
         Route::resource('ware-house-compartments', WareHouseCompartmentController::class)->except(['show']);

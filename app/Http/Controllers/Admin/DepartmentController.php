@@ -110,7 +110,7 @@ class DepartmentController extends Controller
         DB::beginTransaction();
         try {
             $department->department_name = $request->department_name;
-            $department->financial_year = $request->financial_year;
+            $department->financial_year = currentFinancialYear();
             $department->modified_by = Auth::guard('admin')->id();
             $department->updated_at = now();
             $department->status = $request->status;

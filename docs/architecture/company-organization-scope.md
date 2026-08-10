@@ -230,12 +230,13 @@ Sale Order may use different snapshots.
 
 ## 11. Financial year and number series
 
-Financial Year is a global calendar definition, but activation and current-year
-selection are company-specific. Branch/factory may have an operational period
-within the company's active year, not a separate accounting year. Resolution is
-`CurrentOrganizationContext -> company active financial year`; historical rows
-retain an immutable `financial_year_id`/snapshot and must not change when the
-current year changes. Implementation is deferred to Task 1.5.
+Financial Year is a company-owned accounting-period master. Branch/factory may
+have an operational period within the company's active year, not a separate
+accounting year. Resolution is `CurrentOrganizationContext -> company active
+financial year`; historical rows retain an immutable `financial_year_id` and
+legacy string snapshot and must not change when the current year changes. Task
+1.5 implements this compatibility-first foundation with canonical four-digit
+codes such as `2627` and display labels such as `2026-27`.
 
 Number series are company + document type + financial year scoped, with optional
 branch/factory partition only where the business requires local numbering. The

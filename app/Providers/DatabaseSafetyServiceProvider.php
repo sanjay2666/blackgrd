@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\ApplyReviewedFinancialYearMigrationCommand;
 use App\Console\Commands\ApplyReviewedForeignKeyMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOperationalStatusMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOrganizationScopeMigrationCommand;
@@ -62,6 +63,7 @@ class DatabaseSafetyServiceProvider extends ServiceProvider
                 ApplyReviewedForeignKeyMigrationsCommand::class,
                 ApplyReviewedOperationalStatusMigrationsCommand::class,
                 ApplyReviewedOrganizationScopeMigrationCommand::class,
+                ApplyReviewedFinancialYearMigrationCommand::class,
                 DatabaseSafetyCheckCommand::class,
                 PrepareDisposableDatabaseCommand::class,
                 VerifyOperationalStatusMigrationsCommand::class,

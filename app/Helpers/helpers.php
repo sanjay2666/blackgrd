@@ -26,12 +26,7 @@ if (! function_exists('remove_message')) {
 if (! function_exists('currentFinancialYear')) {
     function currentFinancialYear()
     {
-        $year = (int) date('Y');
-        $month = (int) date('n');
-        $startYear = $month >= 4 ? $year : $year - 1;
-        $endYear = $startYear + 1;
-
-        return substr((string) $startYear, -2) . substr((string) $endYear, -2);
+        return app(\App\Services\FinancialYearResolver::class)->code();
     }
 }
 
