@@ -2,7 +2,7 @@
 
 return [
     'admin_resources' => [
-        'companies' => 'companies', 'financial-years' => 'financial-years', 'departments' => 'departments',
+        'companies' => 'companies', 'branches' => 'branches', 'factories' => 'branches', 'financial-years' => 'financial-years', 'departments' => 'departments',
         'states' => 'masters', 'all-pages' => 'settings', 'colours' => 'masters', 'cotings' => 'masters',
         'couriers' => 'masters', 'gst-rates' => 'masters', 'item-types' => 'masters', 'items' => 'masters',
         'item-yarn-requirements' => 'masters', 'notifications' => 'settings', 'packaging-types' => 'masters',
@@ -26,6 +26,8 @@ return [
         'admin.users.reset-password' => 'users.manage',
         'admin.audit-logs.index' => 'audit-logs.view', 'admin.audit-logs.show' => 'audit-logs.view',
         'admin.number-series.index' => 'number-series.view', 'admin.number-series.update' => 'number-series.manage',
+        'admin.branches.create' => 'branches.create', 'admin.branches.store' => 'branches.create', 'admin.branches.edit' => 'branches.update', 'admin.branches.update' => 'branches.update', 'admin.branches.activate' => 'branches.activate', 'admin.branches.deactivate' => 'branches.deactivate',
+        'admin.factories.create' => 'branches.create', 'admin.factories.store' => 'branches.create', 'admin.factories.edit' => 'branches.update', 'admin.factories.update' => 'branches.update', 'admin.factories.activate' => 'branches.activate', 'admin.factories.deactivate' => 'branches.deactivate',
     ],
     'frontend_named' => [
         'dashboard' => 'dashboard.view',

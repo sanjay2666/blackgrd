@@ -34,6 +34,7 @@ final class AdminNavigation
             ]],
             ['label' => 'Organization', 'icon' => 'fa-building', 'items' => [
                 self::item('Company Profile', 'admin.companies.index', 'companies.view', 'admin.companies.*'),
+                self::item('Branches / Factories', 'admin.branches.index', 'branches.view', 'admin.branches.*'),
                 self::item('Departments', 'admin.departments.index', 'departments.view', 'admin.departments.*'),
                 self::item('Financial Years', 'admin.financial-years.index', 'financial-years.view', 'admin.financial-years.*'),
             ]],

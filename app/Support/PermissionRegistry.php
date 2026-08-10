@@ -17,7 +17,7 @@ final class PermissionRegistry
     {
         $groups = [
             'dashboard' => ['view'], 'organization' => ['view', 'access-manage'],
-            'companies' => ['view', 'update', 'configure'],
+            'companies' => ['view', 'update', 'configure'], 'branches' => ['view', 'create', 'update', 'activate', 'deactivate'],
             'financial-years' => ['view', 'create', 'update', 'delete', 'set-current', 'configure'],
             'departments' => ['view', 'create', 'update', 'delete', 'operate', 'configure'],
             'employees' => ['view', 'create', 'update', 'delete', 'export', 'manage'],
