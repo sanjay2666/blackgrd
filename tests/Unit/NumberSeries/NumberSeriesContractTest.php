@@ -16,12 +16,15 @@ final class NumberSeriesContractTest extends TestCase
         $migration = file_get_contents(base_path('database/migrations/2026_08_12_000001_create_number_series_table.php'));
         $bootstrap = file_get_contents(base_path('database/migrations/2026_08_12_000002_seed_number_series.php'));
         $service = file_get_contents(base_path('app/Services/NumberSeriesService.php'));
+        $reviewedApply = file_get_contents(base_path('app/Console/Commands/ApplyReviewedNumberSeriesMigrationCommand.php'));
 
         $this->assertStringContainsString("Schema::create('number_series'", $migration);
         $this->assertStringContainsString('lockForUpdate()', $service);
         $this->assertStringContainsString('next_number', $bootstrap);
         $this->assertStringContainsString('MAX(CAST', $bootstrap);
         $this->assertStringContainsString('number_series_key_year_unique', $migration);
+        $this->assertStringNotContainsString('REPLACE_', $reviewedApply);
+        $this->assertStringContainsString('backup-manifest', $reviewedApply);
     }
 
     public function test_number_series_permissions_are_admin_only(): void

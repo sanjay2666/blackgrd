@@ -34,6 +34,12 @@ the disposable database and preflighted against live data before any live apply.
 database change, fake business document, or maintenance-mode change was performed by
 this repository change.
 
+Live application is restricted to `db:apply-reviewed-number-series`, which pins both
+migration SHA-256 values, requires a verified full/affected-table/migration-ledger
+backup manifest, maintenance mode, and an explicit writes-stopped confirmation. It
+rechecks the live maxima and protected historical rows before and after applying only
+the two Task 1.9 migrations.
+
 ## Administration and audit
 
 The Bootstrap 3.3.7 admin page exposes format, padding, next counter, reset policy, and
