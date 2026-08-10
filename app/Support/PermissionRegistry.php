@@ -19,7 +19,7 @@ final class PermissionRegistry
             'dashboard' => ['view'], 'organization' => ['view', 'access-manage'],
             'companies' => ['view', 'update', 'configure'], 'branches' => ['view', 'create', 'update', 'activate', 'deactivate'],
             'financial-years' => ['view', 'create', 'update', 'delete', 'set-current', 'configure'],
-            'departments' => ['view', 'create', 'update', 'delete', 'operate', 'configure'],
+            'departments' => ['view', 'create', 'update', 'delete', 'activate', 'deactivate'],
             'employees' => ['view', 'create', 'update', 'delete', 'export', 'manage'],
             'masters' => ['view', 'create', 'update', 'delete', 'export', 'configure', 'manage-yarn'],
             'sale-orders' => ['view', 'create', 'update', 'cancel', 'submit', 'print', 'export'],

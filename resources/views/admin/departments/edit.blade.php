@@ -35,6 +35,9 @@
 											<div class="form-group"><label>Department Name <span class="required">*</span></label><input type="text" name="department_name" value="{{ old('department_name', $department->department_name) }}" class="form-control" required>@error('department_name')<span class="text-danger small">{{ $message }}</span>@enderror</div>
 										</div>
 										<div class="col-sm-3">
+											<div class="form-group"><label>Branch / Factory</label><select name="factory_id" class="form-control"><option value="">Company-level</option>@foreach ($factories as $factory)<option value="{{ $factory->id }}" @selected((string) old('factory_id', $department->factory_id) === (string) $factory->id)>{{ $factory->name }}</option>@endforeach</select>@error('factory_id')<span class="text-danger small">{{ $message }}</span>@enderror</div>
+										</div>
+										<div class="col-sm-3">
 											<div class="form-group"><label>Financial Year</label><input type="text" name="financial_year" value="{{ old('financial_year', $department->financial_year) }}" class="form-control" maxlength="4"></div>
 										</div>
 										<div class="col-sm-3">

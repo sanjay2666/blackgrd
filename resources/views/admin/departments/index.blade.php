@@ -32,7 +32,9 @@
 							<div class="panel-body">
 								<div class="row" style="margin-bottom:5px">
 									<form action="{{ route('admin.departments.index') }}" method="GET">
-										<div class="col-sm-4"><input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search department"></div>
+										<div class="col-sm-3"><input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search department"></div>
+										<div class="col-sm-3"><select name="factory_id" class="form-control"><option value="">All locations</option>@foreach ($factories as $factory)<option value="{{ $factory->id }}" @selected((string) request('factory_id') === (string) $factory->id)>{{ $factory->name }}</option>@endforeach</select></div>
+										<div class="col-sm-2"><select name="status" class="form-control"><option value="">All statuses</option>@foreach ($statusOptions as $value => $label)<option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>@endforeach</select></div>
 										<div class="col-sm-2"><button class="btn btn-add">Search</button></div>
 									</form>
 									<div class="col-sm-3"><a href="{{ route('admin.departments.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Department</a></div>
@@ -40,26 +42,26 @@
 								<div class="table-responsive">
 									<table class="table table-bordered table-striped table-hover">
 										<thead>
-											<tr class="info">
-												<th>Department Name</th>
-												<th>Financial Year</th>
-												<th>Status</th>
-												<th>Action</th>
-												<th>Delete</th>
+													<tr class="info">
+														<th>Department Name</th>
+														<th>Code</th>
+														<th>Branch / Factory</th>
+														<th>Status</th>
+														<th>Action</th>
 											</tr>
 										</thead>
 										<tbody>
 											@forelse ($departments as $department)
 											<tr id="department-row-{{ $department->id }}">
-												<td>{{ $department->department_name }}</td>
-												<td>{{ $department->financial_year ?? '-' }}</td>
-												<td>{{ $department->status }}</td>
-												<td><a href="{{ route('admin.departments.edit', enc($department->id)) }}"><i class="fa fa-pencil"></i></a></td>
-												<td><button type="button" class="btn btn-danger btn-xs" onclick="deleteDepartment('{{ enc($department->id) }}', {{ $department->id }})"><i class="fa fa-trash-o"></i></button></td>
+														<td>{{ $department->department_name }}</td>
+														<td>-</td>
+														<td>{{ $department->factory?->name ?? 'Company-level' }}</td>
+														<td>{{ $department->status }}</td>
+														<td><a href="{{ route('admin.departments.edit', enc($department->id)) }}"><i class="fa fa-pencil"></i></a></td>
 											</tr>
 											@empty
 											<tr>
-												<td colspan="5" class="text-center">No records found.</td>
+													<td colspan="5" class="text-center">No records found.</td>
 											</tr>
 											@endforelse
 										</tbody>
@@ -75,27 +77,6 @@
 		@include('admin.common.footer')
 	</div>
 	@include('admin.common.formfooterscript')
-	<script>
-		function deleteDepartment(id, rowId) {
-			if (!confirm('Do you really want to delete this record?')) {
-				return;
-			}
-			$.ajax({
-				type: 'DELETE'
-				, url: '{{ url(' / admin / departments ') }}/' + encodeURIComponent(id)
-				, data: {
-					_token: '{{ csrf_token() }}'
-				}
-				, success: function() {
-					$('#department-row-' + rowId).hide();
-				}
-				, error: function() {
-					alert('Record delete nahi ho paya. Please try again.');
-				}
-			});
-		}
-
-	</script>
 </body>
 
 </html>

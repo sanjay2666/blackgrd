@@ -378,6 +378,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         // Admin production/organization routes.
         Route::resource('departments', DepartmentController::class)->except(['show']);
+        Route::patch('/departments/{department}/activate', [DepartmentController::class, 'activate'])->name('departments.activate');
+        Route::patch('/departments/{department}/deactivate', [DepartmentController::class, 'deactivate'])->name('departments.deactivate');
         Route::resource('machines', MachineController::class)->except(['show']);
         Route::resource('office-ips', OfficeIpController::class)->except(['show']);
         Route::resource('process-items', ProcessItemController::class)->except(['show']);
