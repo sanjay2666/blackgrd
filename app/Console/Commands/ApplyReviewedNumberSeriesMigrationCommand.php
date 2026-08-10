@@ -20,7 +20,7 @@ final class ApplyReviewedNumberSeriesMigrationCommand extends Command
     ];
 
     private const HASHES = [
-        '2026_08_12_000001_create_number_series_table' => 'dec4e03efc8294a85970d9eed05beff0b3de4d30df31341834497fe9c088ccae2b',
+        '2026_08_12_000001_create_number_series_table' => 'dec4e03cf8294a85970d9eed05bef0b3de4d30df31341834497fe9c088ccae2b',
         '2026_08_12_000002_seed_number_series' => 'ce3c13f9335e1257cb1f55e1efa534d517f77ea7596855f276cbd4da651ec8a5',
     ];
 
