@@ -32,6 +32,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use App\Models\WorkProcessRequirement;
 use App\Services\CurrentOrganizationContext;
+use App\Services\NumberSeriesService;
 use Carbon\Carbon;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -549,13 +550,7 @@ class WorkOrderController extends Controller
                     })
                     ->first();
 
-                $processSlNo = 1;
-                if (! empty($processItem)) {
-                    $processItem->process_sl_no_last = ((int) $processItem->process_sl_no_last) + 1;
-                    $processItem->modified = now();
-                    $processItem->save();
-                    $processSlNo = (int) $processItem->process_sl_no_last;
-                }
+                $processSlNo = app(NumberSeriesService::class)->nextInteger('work-order-'.($processItem->id ?? $fallbackProcessId));
 
                 $workOrder = new WorkOrder;
                 $workOrder->process_type = $processCode;
@@ -746,9 +741,7 @@ class WorkOrderController extends Controller
                 return response()->json(['success' => false, 'message' => 'Warping process not found'], 404);
             }
 
-            $processItem->process_sl_no_last = ((int) $processItem->process_sl_no_last) + 1;
-            $processItem->modified = now();
-            $processItem->save();
+            $nextProcessSerial = app(NumberSeriesService::class)->nextInteger('work-order-'.$processType);
 
             $itemId = $workData->item_id;
             $itemName = Item::where('item_id', $itemId)->value('item_name') ?? $workData->item_name ?? '';
@@ -756,7 +749,7 @@ class WorkOrderController extends Controller
             $newWorkOrder = new WorkOrder;
             $newWorkOrder->parent_work_order_id = $workData->id;
             $newWorkOrder->process_type = $processCode;
-            $newWorkOrder->process_sl_no = (int) $processItem->process_sl_no_last;
+            $newWorkOrder->process_sl_no = $nextProcessSerial;
             $newWorkOrder->item_id = $itemId;
             $newWorkOrder->item_name = $itemName;
             $newWorkOrder->pcs = (int) ($workData->pcs ?? 0);
@@ -1333,13 +1326,10 @@ class WorkOrderController extends Controller
                 ];
 
                 if ($itemTypeId == '3' && $hasReqLotNo) {
-                    $maxReqLotNoData = DB::table('work_process_requirements')->select(DB::raw('MAX(CAST(req_lot_no AS UNSIGNED)) as max_req_lot_no'))->where('item_type_id', '=', '3')->where('is_accept', '!=', '2')->where('status', 'Active')->first();
-                    $maxReqLotNo = $maxReqLotNoData ? $maxReqLotNoData->max_req_lot_no : 0;
-
                     if (! empty($request->req_lot_no)) {
                         $dataWPR2['req_lot_no'] = $request->req_lot_no;
                     } else {
-                        $dataWPR2['req_lot_no'] = $maxReqLotNo ? $maxReqLotNo + 1 : 1;
+                        $dataWPR2['req_lot_no'] = app(NumberSeriesService::class)->nextInteger('wpr-lot');
                     }
                 }
 
@@ -4755,20 +4745,10 @@ class WorkOrderController extends Controller
                 'status' => 'Active',
             ];
             if ($itemTypeId == '3') {
-                $maxReqLotNoData = DB::table('work_process_requirements')
-                    ->select(DB::raw('MAX(CAST(req_lot_no AS UNSIGNED)) as max_req_lot_no'))
-                    ->where('item_type_id', '=', '3')
-                    ->where('is_accept', '!=', '2')
-                    ->where('req_fabric_type', '=', $reqFabricType)
-                    ->where('status', '=', 'Active')
-                    ->first();
-
-                $maxReqLotNo = $maxReqLotNoData ? $maxReqLotNoData->max_req_lot_no : 0;
-
                 if (! empty($request->req_lot_no)) {
                     $dataWPR2['req_lot_no'] = $request->req_lot_no;
                 } else {
-                    $dataWPR2['req_lot_no'] = $maxReqLotNo ? $maxReqLotNo + 1 : 1;
+                    $dataWPR2['req_lot_no'] = app(NumberSeriesService::class)->nextInteger('wpr-lot');
                 }
             }
 

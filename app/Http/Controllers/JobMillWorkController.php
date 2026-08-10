@@ -21,6 +21,7 @@ use App\Models\WarehouseItemStockFile;
 use App\Models\WarehouseOutItem;
 use App\Models\WorkOrder;
 use App\Models\WorkProcessRequirement;
+use App\Services\NumberSeriesService;
 use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -175,15 +176,13 @@ class JobMillWorkController extends Controller
             $voucherExists = StockMillDispatch::where('voucher_number', $voucherNumber)->where('status', 'Active')->exists();
 
             if (! empty($voucherExists)) {
-                $lastVoucherNumber = StockMillDispatch::where('status', 'Active')->selectRaw('MAX(CAST(voucher_number AS UNSIGNED)) as last_no')->value('last_no');
-                $voucherNumber = (string) (((int) $lastVoucherNumber) + 1);
+                $voucherNumber = app(NumberSeriesService::class)->next('job-work-voucher');
             }
 
             $chalanExists = StockMillDispatch::where('chalan_no', $chalanNumber)->where('status', 'Active')->exists();
 
             if (! empty($chalanExists)) {
-                $lastChalanNumber = StockMillDispatch::where('status', 'Active')->selectRaw('MAX(CAST(chalan_no AS UNSIGNED)) as last_no')->value('last_no');
-                $chalanNumber = (string) (((int) $lastChalanNumber) + 1);
+                $chalanNumber = app(NumberSeriesService::class)->next('job-work-challan');
             }
 
             $alreadyDispatchedWis = StockMillDispatchItem::whereIn('wis_id', $wisIds)

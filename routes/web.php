@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AllPageController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ColourController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CotingController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\Admin\LoginAttemptController;
 use App\Http\Controllers\Admin\LoginOtpController;
 use App\Http\Controllers\Admin\MachineController;
 use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\NumberSeriesController;
 use App\Http\Controllers\Admin\OfficeIpController;
 use App\Http\Controllers\Admin\PackagingTypeController;
 use App\Http\Controllers\Admin\ProcessItemController;
@@ -25,7 +27,6 @@ use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\UnitTypeController;
 use App\Http\Controllers\Admin\UserActivityLogController;
 use App\Http\Controllers\Admin\UserPermissionController;
-use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserWebPageController;
 use App\Http\Controllers\Admin\WareHouseCompartmentController;
 use App\Http\Controllers\Admin\WarehouseController;
@@ -345,6 +346,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('unit-types', UnitTypeController::class)->except(['show']);
         Route::resource('financial-years', FinancialYearController::class)->except(['show']);
         Route::post('/financial-years/{financial_year}/set-current', [FinancialYearController::class, 'setCurrent'])->name('financial-years.set-current');
+        Route::get('/number-series', [NumberSeriesController::class, 'index'])->middleware('permission:number-series.view')->name('number-series.index');
+        Route::put('/number-series/{number_series}', [NumberSeriesController::class, 'update'])->middleware('permission:number-series.manage')->name('number-series.update');
         Route::resource('user-web-pages', UserWebPageController::class)->except(['show']);
         Route::resource('warehouses', WarehouseController::class)->except(['show']);
         Route::resource('ware-house-compartments', WareHouseCompartmentController::class)->except(['show']);

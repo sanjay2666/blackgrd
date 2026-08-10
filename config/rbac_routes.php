@@ -21,6 +21,7 @@ return [
         'admin.roles.assign.store' => 'roles.assign', 'admin.roles.assignments.revoke' => 'roles.assign',
         'admin.users.permissions.edit' => 'users.manage', 'admin.users.permissions.update' => 'users.manage',
         'admin.audit-logs.index' => 'audit-logs.view', 'admin.audit-logs.show' => 'audit-logs.view',
+        'admin.number-series.index' => 'number-series.view', 'admin.number-series.update' => 'number-series.manage',
     ],
     'frontend_named' => [
         'dashboard' => 'dashboard.view', 'organization.switch' => 'organization.switch',

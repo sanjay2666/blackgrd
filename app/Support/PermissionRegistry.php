@@ -26,6 +26,7 @@ final class PermissionRegistry
             'settings' => ['view', 'create', 'update', 'delete', 'configure'],
             'security' => ['view', 'delete', 'export', 'manage'], 'users' => ['view', 'manage'], 'audit-logs' => ['view', 'export'],
             'roles' => ['view', 'create', 'update', 'delete', 'assign'],
+            'number-series' => ['view', 'manage'],
         ];
         $critical = ['organization.access-manage', 'financial-years.set-current', 'roles.assign', 'warehouse.adjust', 'work-orders.complete', 'inspection.override', 'gate-pass.issue', 'gate-pass.cancel'];
         $result = [];
