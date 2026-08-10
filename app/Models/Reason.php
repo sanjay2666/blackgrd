@@ -2,14 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model; 
+use Illuminate\Database\Eloquent\Model;
 
 class Reason extends Model
 {
-	use HasFactory;
-    public $timestamps 	= false;
-    protected $table 	= 'reasons'; 
-	protected $guarded = [];
-	
+    use BelongsToCompany, HasFactory;
+
+    public $timestamps = false;
+
+    protected $table = 'reasons';
+
+    protected $guarded = [];
 }

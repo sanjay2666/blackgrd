@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\InspectionStatus;
 use App\Enums\WorkOrderExecutionStatus;
+use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class WorkOrder extends Model
 {
-    use HasFactory, HasRecordStatus;
+    use BelongsToCompany, HasFactory, HasRecordStatus;
 
     protected $table = 'work_orders';
 

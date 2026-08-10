@@ -37,6 +37,7 @@ use App\Http\Controllers\WorkProcessRequirementController;
 use App\Http\Controllers\WarehouseItemController;
 use App\Http\Controllers\JobMillWorkController;
 use App\Http\Controllers\WorkPurchaseRequirementController;
+use App\Http\Controllers\OrganizationContextController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -56,7 +57,7 @@ Route::get('/', [PageController::class, 'home'])->name('home');
 | autocomplete inputs, address lookup, and common list data.
 |
 */
-Route::middleware('auth:web,admin')->group(function () {
+Route::middleware(['auth:web,admin', 'organization'])->group(function () {
 		Route::get('/list_customer', [CommonController::class, 'list_customer'])->name('list_customer');
 		Route::get('/fabric_list_item', [CommonController::class, 'fabric_list_item'])->name('fabric_list_item');
 		Route::get('/list_warehouse_item_type', [CommonController::class, 'list_warehouse_item_type'])->name('list_warehouse_item_type');
@@ -76,6 +77,8 @@ Route::middleware('auth:web,admin')->group(function () {
 		Route::get('/ajax_script/search_customer_bill_address', [CommonController::class,'search_customer_bill_address']);
 		Route::get('/list_master_color',[CommonController::class,'list_master_color'])->name('list_master_color'); 
 });
+
+Route::middleware('auth:web,admin')->post('/organization/switch', [OrganizationContextController::class, 'switch'])->name('organization.switch');
 
 /*
 |--------------------------------------------------------------------------
@@ -98,7 +101,7 @@ Route::middleware('guest:web')->group(function () {
 | Frontend Authenticated User Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware('auth:web')->group(function () {
+Route::middleware(['auth:web', 'organization'])->group(function () {
 	/*
 	|--------------------------------------------------------------------------
 	| Dashboard
@@ -320,7 +323,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 
     // Admin logged-in routes.
-    Route::middleware('auth:admin')->group(function () {
+    Route::middleware(['auth:admin', 'organization'])->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
 
         // Admin master routes.

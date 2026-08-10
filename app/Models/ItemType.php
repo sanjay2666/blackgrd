@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ItemType extends Model
 {
-    use HasFactory, HasRecordStatus;
+    use BelongsToCompany, HasFactory, HasRecordStatus;
 
     protected $table = 'item_type';
 

@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Console\Commands\ApplyReviewedForeignKeyMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOperationalStatusMigrationsCommand;
+use App\Console\Commands\ApplyReviewedOrganizationScopeMigrationCommand;
 use App\Console\Commands\DatabaseSafetyCheckCommand;
 use App\Console\Commands\PrepareDisposableDatabaseCommand;
 use App\Console\Commands\VerifyOperationalStatusBackfillCommand;
@@ -60,6 +61,7 @@ class DatabaseSafetyServiceProvider extends ServiceProvider
             $this->commands([
                 ApplyReviewedForeignKeyMigrationsCommand::class,
                 ApplyReviewedOperationalStatusMigrationsCommand::class,
+                ApplyReviewedOrganizationScopeMigrationCommand::class,
                 DatabaseSafetyCheckCommand::class,
                 PrepareDisposableDatabaseCommand::class,
                 VerifyOperationalStatusMigrationsCommand::class,

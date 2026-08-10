@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class FabricFaultReason extends Model
 {
-    use HasFactory;
-	protected $table   = 'fabric_fault_reasons';
-	public $timestamps = false;
-	protected $guarded = [];
+    use BelongsToCompany, HasFactory;
+
+    protected $table = 'fabric_fault_reasons';
+
+    public $timestamps = false;
+
+    protected $guarded = [];
 }

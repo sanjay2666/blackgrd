@@ -8,7 +8,6 @@ use App\Enums\GatePassStatus;
 use App\Enums\InspectionStatus;
 use App\Enums\SaleOrderDocumentStatus;
 use App\Enums\WorkOrderExecutionStatus;
-use App\Models\Company;
 use App\Models\FabricFaultReason;
 use App\Models\GatePass;
 use App\Models\Individual;
@@ -32,6 +31,7 @@ use App\Models\WorkInspectionDetail;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use App\Models\WorkProcessRequirement;
+use App\Services\CurrentOrganizationContext;
 use Carbon\Carbon;
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -4449,7 +4449,7 @@ class WorkOrderController extends Controller
             ? Individual::where('id', $individualId)->where('status', 'Active')->first()
             : null;
         $currentDate = now();
-        $compData = Company::find(1);
+        $compData = app(CurrentOrganizationContext::class)->company();
         $dataGp = GatePass::whereKey($GpId)->where('status', '!=', 'Deleted')->first();
         if (! $dataGp) {
             $dataGp = GatePass::where('work_order_id', $GpId)

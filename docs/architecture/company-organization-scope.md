@@ -1,6 +1,13 @@
 # Company and Organization Scope Architecture
 
-Status: design source of truth for Task 1.4A (2026-08-10)
+Status: design source of truth and implemented foundation for Task 1.4B (2026-08-10)
+
+Task 1.4B implementation note: the additive organization migration is applied to
+the live development database through the hash-pinned reviewed command. Branch
+and factory rows remain empty because the 1.4A audit found no deterministic site
+mapping; assigning a factory requires an explicit business decision. The current
+company/access backfill is deterministic and preserves existing business IDs,
+quantities and statuses.
 
 ## 1. Executive decision
 

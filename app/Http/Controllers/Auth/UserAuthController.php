@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\User;
+use App\Models\UserOrganizationAccess;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class UserAuthController extends Controller
 {
@@ -50,6 +52,18 @@ class UserAuthController extends Controller
             'password' => Hash::make($request->password),
             'financial_year' => currentFinancialYear(),
         ]);
+
+        $companyId = Company::query()->where('status', 'Active')->orderBy('id')->value('id');
+        if ($companyId !== null) {
+            UserOrganizationAccess::create([
+                'user_id' => $user->id,
+                'company_id' => $companyId,
+                'is_default' => true,
+                'status' => 'Active',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         Auth::guard('web')->login($user);
         $request->session()->regenerate();

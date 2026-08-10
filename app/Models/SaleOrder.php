@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\SaleOrderDocumentStatus;
+use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SaleOrder extends Model
 {
-    use HasFactory, HasRecordStatus;
+    use BelongsToCompany, HasFactory, HasRecordStatus;
 
     protected $table = 'sale_orders';
 

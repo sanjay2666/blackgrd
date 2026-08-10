@@ -4,9 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Domain\OperationalStatus\Actions\TransitionWorkRequirement;
 use App\Enums\WorkRequirementStatus;
-use App\Models\Company;
-use App\Models\DepartmentReturnRequest;
 use App\Models\DyeingPlanningItem;
+use App\Models\DepartmentReturnRequest;
 use App\Models\Individual;
 use App\Models\Item;
 use App\Models\ItemType;
@@ -27,6 +26,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use App\Models\WorkPrintProcessRequirement;
 use App\Models\WorkProcessRequirement;
+use App\Services\CurrentOrganizationContext;
 use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -425,7 +425,7 @@ class WorkProcessRequirementController extends Controller
         $IndividualId = $userD->individual_id ?? Auth::id();
         $dataInd = Individual::where('id', '=', $IndividualId)->where('status', '!=', 'Deleted')->first();
         $currentDate = date('Y-m-d');
-        $compData = Company::find(1);
+        $compData = app(CurrentOrganizationContext::class)->company();
         $data = WorkOrder::whereKey($workOrderId)->with('WarehouseItem')->first();
 
         if (! $data) {
@@ -478,7 +478,7 @@ class WorkProcessRequirementController extends Controller
         $individualId = $user->individual_id ?? null;
         $individual = Individual::where('id', $individualId)->where('status', 'Active')->first();
         $currentDate = date('Y-m-d');
-        $compData = Company::find(1);
+        $compData = app(CurrentOrganizationContext::class)->company();
         $wprId = dec($id);
 
         $dataRow = WorkProcessRequirement::where('id', $wprId)->where('status', 'Active')->where('is_accept', '1')->first();
@@ -564,7 +564,7 @@ class WorkProcessRequirementController extends Controller
         $individualId = $user->individual_id;
         $individual = Individual::where('id', $individualId)->where('status', 'Active')->first();
         $currentDate = date('Y-m-d');
-        $compData = Company::find(1);
+        $compData = app(CurrentOrganizationContext::class)->company();
         $wprId = dec($id);
 
         $dataRow = WorkProcessRequirement::where('id', $wprId)->where('status', 'Active')->where('is_accept', '1')->first();
