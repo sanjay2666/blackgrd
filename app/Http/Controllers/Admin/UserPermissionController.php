@@ -5,16 +5,17 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Permission;
 use App\Models\User;
+use App\Services\CurrentOrganizationContext;
 use App\Services\UserPermissionManagementService;
 use App\Support\FrontendPermissionCatalog;
 use Illuminate\Http\Request;
 
 final class UserPermissionController extends Controller
 {
-    public function index(User $user)
+    public function index(User $user, CurrentOrganizationContext $organization)
     {
         $this->assertFrontendUser($user);
-        $assignments = $user->roleAssignments()->where('status', 'Active')->with('role.permissions')->get();
+        $assignments = $user->roleAssignments()->where('company_id', $organization->companyId())->where('status', 'Active')->with('role.permissions')->get();
         $overrides = $user->permissionOverrides()->where('status', 'Active')->with('permission')->get();
         $permissions = Permission::query()->whereIn('permission_key', FrontendPermissionCatalog::keys())->where('status', 'Active')->orderBy('resource')->orderBy('action')->get()->groupBy('resource');
         $roles = $assignments->pluck('role')->filter()->unique('id');

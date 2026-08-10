@@ -40,6 +40,7 @@ final class UserPermissionManagementService
             throw ValidationException::withMessages(['permissions' => 'One or more permissions are inactive or unavailable.']);
         }
 
+        $before = UserPermissionOverride::query()->where('user_id', $user->id)->where('status', 'Active')->with('permission')->get()->mapWithKeys(fn (UserPermissionOverride $override): array => [$override->permission->permission_key => $override->effect])->all();
         DB::transaction(function () use ($user, $requested, $permissionIds): void {
             foreach ($requested as $key => $effect) {
                 UserPermissionOverride::updateOrCreate(
@@ -50,7 +51,7 @@ final class UserPermissionManagementService
             UserPermissionOverride::query()->where('user_id', $user->id)->whereNotIn('permission_id', $permissionIds->values())->update(['status' => 'Inactive', 'revoked_by' => auth('admin')->id(), 'revoked_at' => now()]);
         });
         app(AuthorizationService::class)->forget();
-        app(AuditLogger::class)->record(['module' => 'users', 'action' => 'manage', 'event' => 'user_permission_overrides_changed', 'auditable_type' => $user->getMorphClass(), 'auditable_id' => $user->id, 'description' => 'Individual Frontend User permission overrides changed.', 'new_values' => ['permissions' => $requested]]);
+        app(AuditLogger::class)->record(['module' => 'users', 'action' => 'manage', 'event' => 'user_permission_overrides_changed', 'auditable_type' => $user->getMorphClass(), 'auditable_id' => $user->id, 'description' => 'Individual Frontend User permission overrides changed.', 'old_values' => ['permissions' => $before], 'new_values' => ['permissions' => $requested]]);
     }
 
     private function assertFrontendUser(User $user): void

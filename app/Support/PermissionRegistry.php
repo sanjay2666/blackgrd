@@ -9,6 +9,9 @@ final class PermissionRegistry
 
     private const SUPER_ADMIN_RESERVED_KEYS = ['organization.access-manage'];
 
+    /** Resources which belong only to the Admin security/configuration panel. */
+    private const ADMIN_ONLY_RESOURCES = ['companies', 'roles', 'users', 'security', 'settings', 'audit-logs', 'number-series'];
+
     /** @return list<array{key:string,resource:string,action:string,category:string,description:string,critical:bool}> */
     public static function all(): array
     {
@@ -59,6 +62,27 @@ final class PermissionRegistry
     public static function companyAdminAssignable(): array
     {
         return array_values(array_diff(array_column(self::all(), 'key'), self::superAdminReserved()));
+    }
+
+    /** @return list<string> */
+    public static function frontendAssignable(): array
+    {
+        return array_values(array_filter(
+            self::companyAdminAssignable(),
+            static fn (string $key): bool => ! in_array(strtok($key, '.'), self::ADMIN_ONLY_RESOURCES, true)
+                && $key !== 'organization.access-manage'
+        ));
+    }
+
+    /** @return list<string> */
+    public static function assignableForPanel(string $panel): array
+    {
+        return $panel === 'Frontend' ? self::frontendAssignable() : self::companyAdminAssignable();
+    }
+
+    public static function isAdminOnly(string $permission): bool
+    {
+        return in_array(strtok($permission, '.'), self::ADMIN_ONLY_RESOURCES, true);
     }
 
     public static function isSuperAdminReserved(string $permission): bool

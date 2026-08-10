@@ -7,10 +7,6 @@ final class FrontendPermissionCatalog
     /** Admin-only permissions never appear in Frontend User customization. */
     public static function keys(): array
     {
-        return array_values(array_filter(
-            PermissionRegistry::companyAdminAssignable(),
-            static fn (string $key): bool => ! in_array(strtok($key, '.'), ['companies', 'roles', 'users', 'security', 'settings', 'audit-logs', 'number-series'], true)
-                && $key !== 'organization.access-manage'
-        ));
+        return PermissionRegistry::frontendAssignable();
     }
 }

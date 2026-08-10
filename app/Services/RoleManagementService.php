@@ -26,9 +26,16 @@ final class RoleManagementService
             throw ValidationException::withMessages(['role' => 'The role is not available in the current company.']);
         }
         $permissionKeys = array_values(array_unique($data['permissions'] ?? []));
+        $panel = $data['panel'] ?? ($role?->panel ?? 'Admin');
+        if (! in_array($panel, ['Admin', 'Frontend'], true)) {
+            throw ValidationException::withMessages(['panel' => 'The role panel is invalid.']);
+        }
         $allowed = Permission::query()->where('status', 'Active')->whereIn('permission_key', $permissionKeys)->pluck('permission_key')->all();
         if (count($allowed) !== count($permissionKeys)) {
             throw ValidationException::withMessages(['permissions' => 'One or more permissions are invalid or inactive.']);
+        }
+        if (array_diff($allowed, PermissionRegistry::assignableForPanel($panel)) !== []) {
+            throw ValidationException::withMessages(['permissions' => 'One or more permissions are not assignable to this role panel.']);
         }
         if (! app(AuthorizationService::class)->isSuperAdmin() && array_intersect($allowed, PermissionRegistry::superAdminReserved()) !== []) {
             app(AuditLogger::class)->record([
@@ -43,7 +50,7 @@ final class RoleManagementService
             throw ValidationException::withMessages(['permissions' => 'A role manager cannot grant permissions they do not possess.']);
         }
         $role ??= new Role();
-        $role->fill(['company_id' => $companyId, 'role_key' => $data['role_key'] ?? str()->slug($data['name']), 'name' => $data['name'], 'scope' => 'Company', 'panel' => $data['panel'] ?? ($role->panel ?? 'Admin'), 'description' => $data['description'] ?? null, 'status' => $data['status'] ?? 'Active', 'updated_by' => auth()->id()]);
+        $role->fill(['company_id' => $companyId, 'role_key' => $data['role_key'] ?? str()->slug($data['name']), 'name' => $data['name'], 'scope' => 'Company', 'panel' => $panel, 'description' => $data['description'] ?? null, 'status' => $data['status'] ?? 'Active', 'updated_by' => auth()->id()]);
         if (! $role->exists) {
             $role->created_by = auth()->id();
         }
@@ -90,7 +97,7 @@ final class RoleManagementService
 
     public function revoke(UserRoleAssignment $assignment): void
     {
-        if ($assignment->role?->scope !== 'Company') {
+        if ($assignment->role?->scope !== 'Company' || (int) $assignment->company_id !== app(CurrentOrganizationContext::class)->companyId()) {
             abort(403);
         }
         $assignment->update(['status' => 'Inactive', 'revoked_by' => auth()->id(), 'revoked_at' => now()]);
