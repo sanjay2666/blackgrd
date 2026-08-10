@@ -62,8 +62,8 @@ ID 2 `unsanjay4@gmail.com`, and no active Admin account named
 Admin and User #2 to Frontend Administrator. The reserved Super Admin role
 remains unassigned; no account was created for that email.
 
-All 291 authenticated current routes are now covered by the exact central
-registry: 289 require a permission and two logout routes are explicitly
+All 293 authenticated current routes are now covered by the exact central
+registry: 291 require a permission and two logout routes are explicitly
 allowlisted. Unknown authenticated routes fail closed. The map distinguishes
 view/create/update/delete/cancel, operational, print and report permissions;
 AJAX and unusual GET actions are listed explicitly rather than classified from
@@ -74,6 +74,24 @@ Mapping examples: `saleorders.delete` → `sale-orders.cancel`,
 `admin.financial-years.set-current` → `financial-years.set-current`,
 `admin.roles.assign.store` → `roles.assign`, and
 `admin.login-attempts.destroy` → `security.delete`.
+
+## Individual Frontend User permissions
+
+Task 1.7B now includes Admin-side User Permission Management. The controller
+loads an active Frontend User's active role assignments, inherited role
+permissions, active user-specific overrides and computed final permissions;
+Blade performs no queries. The Admin can set each assignable canonical
+permission to Inherit, Allow for this User, or Deny for this User.
+
+The additive live table is `user_permission_overrides`. It is keyed by
+`user_id + permission_id`, stores Allow/Deny and audit/effective status, and
+does not create permanent roles for one-off customization. Final resolution is
+role permissions plus Allow overrides minus Deny overrides. Admin-only
+companies/roles/users/security/settings permissions are excluded from the
+Frontend catalog, and the service requires an authenticated Admin, active
+Frontend User, active company access, `users.manage`, and manager possession
+of each requested permission. Cache invalidation occurs immediately after a
+successful save.
 
 ## Bootstrap and rollout safety
 

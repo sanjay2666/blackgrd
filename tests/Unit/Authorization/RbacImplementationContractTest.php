@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Authorization;
 
+use App\Support\FrontendPermissionCatalog;
 use App\Support\PermissionRegistry;
 use App\Support\RoleTemplateCatalog;
 use Tests\TestCase;
@@ -85,5 +86,27 @@ class RbacImplementationContractTest extends TestCase
         $this->assertStringContainsString('unsanjay4@gmail.com', $command);
         $this->assertStringContainsString("principal_type' => 'Admin'", $command);
         $this->assertStringContainsString("principal_type' => 'User'", $command);
+    }
+
+    public function test_user_specific_permission_customization_is_additive_and_frontend_only(): void
+    {
+        $migration = file_get_contents(base_path('database/migrations/2026_08_10_000004_create_user_permission_overrides_table.php'));
+        $service = file_get_contents(base_path('app/Services/UserPermissionManagementService.php'));
+        $this->assertStringContainsString("Schema::create('user_permission_overrides'", $migration);
+        $this->assertStringContainsString("enum('effect', ['Allow', 'Deny'])", $migration);
+        $this->assertStringContainsString('FrontendPermissionCatalog::keys()', $service);
+        $this->assertStringContainsString('array_merge($rolePermissions, $allows)', file_get_contents(base_path('app/Services/AuthorizationService.php')));
+        $this->assertStringContainsString('auth(\'admin\')->check()', $service);
+        $this->assertStringNotContainsString('super-admin', $service);
+    }
+
+    public function test_frontend_catalog_excludes_admin_only_permissions(): void
+    {
+        $keys = FrontendPermissionCatalog::keys();
+        $this->assertNotContains('roles.assign', $keys);
+        $this->assertNotContains('users.manage', $keys);
+        $this->assertNotContains('security.manage', $keys);
+        $this->assertContains('sale-orders.cancel', $keys);
+        $this->assertContains('warehouse.adjust', $keys);
     }
 }

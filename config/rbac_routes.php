@@ -19,6 +19,7 @@ return [
         'admin.roles.index' => 'roles.view', 'admin.roles.create' => 'roles.create', 'admin.roles.store' => 'roles.create',
         'admin.roles.edit' => 'roles.update', 'admin.roles.update' => 'roles.update', 'admin.roles.assign' => 'roles.assign',
         'admin.roles.assign.store' => 'roles.assign', 'admin.roles.assignments.revoke' => 'roles.assign',
+        'admin.users.permissions.edit' => 'users.manage', 'admin.users.permissions.update' => 'users.manage',
     ],
     'frontend_named' => [
         'dashboard' => 'dashboard.view', 'organization.switch' => 'organization.switch',

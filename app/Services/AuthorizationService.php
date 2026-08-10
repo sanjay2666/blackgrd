@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Models\UserPermissionOverride;
 use App\Models\UserRoleAssignment;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Auth;
@@ -49,7 +50,7 @@ final class AuthorizationService
         if (! $user instanceof User) {
             return $this->permissionCache = [];
         }
-        $this->permissionCache = UserRoleAssignment::query()
+        $rolePermissions = UserRoleAssignment::query()
             ->join('roles', 'roles.id', '=', 'user_role_assignments.role_id')
             ->join('role_permissions', 'role_permissions.role_id', '=', 'roles.id')
             ->join('permissions', 'permissions.id', '=', 'role_permissions.permission_id')
@@ -71,6 +72,26 @@ final class AuthorizationService
                 $q->whereNull('user_role_assignments.ends_at')->orWhere('user_role_assignments.ends_at', '>=', now());
             })
             ->pluck('permissions.permission_key')->unique()->values()->all();
+
+        if ($user->user_type !== 'User') {
+            return $this->permissionCache = $rolePermissions;
+        }
+
+        $overrides = UserPermissionOverride::query()
+            ->join('permissions', 'permissions.id', '=', 'user_permission_overrides.permission_id')
+            ->where('user_permission_overrides.user_id', $user->getAuthIdentifier())
+            ->where('user_permission_overrides.status', 'Active')
+            ->where('permissions.status', 'Active')
+            ->where(function ($q): void {
+                $q->whereNull('user_permission_overrides.starts_at')->orWhere('user_permission_overrides.starts_at', '<=', now());
+            })
+            ->where(function ($q): void {
+                $q->whereNull('user_permission_overrides.ends_at')->orWhere('user_permission_overrides.ends_at', '>=', now());
+            })
+            ->get(['permissions.permission_key', 'user_permission_overrides.effect']);
+        $allows = $overrides->where('effect', 'Allow')->pluck('permission_key')->all();
+        $denies = $overrides->where('effect', 'Deny')->pluck('permission_key')->all();
+        $this->permissionCache = array_values(array_unique(array_diff(array_merge($rolePermissions, $allows), $denies)));
 
         return $this->permissionCache;
     }

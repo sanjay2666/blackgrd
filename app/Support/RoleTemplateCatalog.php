@@ -7,11 +7,7 @@ final class RoleTemplateCatalog
     /** @return array<string, list<string>> */
     public static function all(): array
     {
-        $frontendAdministrator = array_values(array_filter(
-            array_column(PermissionRegistry::all(), 'key'),
-            static fn (string $key): bool => ! in_array(strtok($key, '.'), ['companies', 'roles', 'users', 'security', 'settings'], true)
-                && $key !== 'organization.access-manage'
-        ));
+        $frontendAdministrator = FrontendPermissionCatalog::keys();
         $admin = array_values(array_filter(
             array_column(PermissionRegistry::all(), 'key'),
             static fn (string $key): bool => $key !== 'organization.switch'

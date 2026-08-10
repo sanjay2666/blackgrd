@@ -223,8 +223,8 @@ inventory ledger, branch/factory creation and employee membership redesign.
 ## Current route/action mapping report
 
 `config/rbac_routes.php` is the central source, resolved by
-`App\Support\RoutePermissionRegistry`. The current inventory contains 291
-authenticated routes: 289 RBAC-protected routes and two explicit logout
+`App\Support\RoutePermissionRegistry`. The current inventory contains 293
+authenticated routes: 291 RBAC-protected routes and two explicit logout
 exclusions. `RoutePermissionMappingTest` detects new authenticated routes that
 lack a permission decision.
 
@@ -243,3 +243,21 @@ lack a permission decision.
 Print, export, download and AJAX endpoints use the same server-side registry.
 Unknown authenticated routes fail closed; logout is the only explicit
 authenticated allowlist.
+
+## Frontend User-specific permission customization
+
+Admins manage an individual Frontend User at `admin/users/{user}/permissions`.
+The page is grouped by canonical permission resource/action and shows assigned
+roles, role-inherited permissions, active user-specific Allow/Deny changes and
+the final effective state. Blade only renders controller-provided data; all
+authorization remains server-side.
+
+The additive `user_permission_overrides` table stores one active `Allow` or
+`Deny` per User/permission, with effective dates and audit actor. Effective
+permissions are role grants plus active user Allows minus active user Denies.
+Only active `User` principals are accepted, only the FrontendPermissionCatalog
+is assignable, ordinary Admins cannot grant permissions outside their own
+effective set, and Admin-only security/RBAC permissions never appear in the
+Frontend User UI. Writes invalidate the request authorization cache and future
+requests resolve the change immediately. Frontend Users cannot reach the
+Admin-only routes or modify their own overrides.

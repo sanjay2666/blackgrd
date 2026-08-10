@@ -48,4 +48,9 @@ class User extends Authenticatable
         return $this->hasMany(UserRoleAssignment::class, 'principal_id')
             ->where('principal_type', $this->user_type);
     }
+
+    public function permissionOverrides(): HasMany
+    {
+        return $this->hasMany(UserPermissionOverride::class);
+    }
 }
