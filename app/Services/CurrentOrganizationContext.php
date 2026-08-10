@@ -17,7 +17,7 @@ class CurrentOrganizationContext
 
     public function resolve(Request $request): self
     {
-        $user = Auth::guard('web')->user() ?? Auth::guard('admin')->user();
+        $user = $this->authenticatedPrincipal();
         if (! $user instanceof Authenticatable) {
             throw new RuntimeException('An authenticated organization identity is required.');
         }
@@ -107,7 +107,7 @@ class CurrentOrganizationContext
 
     public function switch(Request $request, int $companyId, ?int $factoryId = null): void
     {
-        $user = Auth::guard('web')->user() ?? Auth::guard('admin')->user();
+        $user = $this->authenticatedPrincipal();
         if (! $user instanceof Authenticatable) {
             throw new RuntimeException('An authenticated organization identity is required.');
         }
@@ -132,5 +132,12 @@ class CurrentOrganizationContext
     {
         $attributes['company_id'] = $this->companyId();
         unset($attributes['companyId']);
+    }
+
+    private function authenticatedPrincipal(): ?Authenticatable
+    {
+        $guard = request()->is('admin') || request()->is('admin/*') ? 'admin' : 'web';
+
+        return Auth::guard($guard)->user();
     }
 }

@@ -26,6 +26,7 @@ use App\Http\Controllers\Admin\UserActivityLogController;
 use App\Http\Controllers\Admin\UserWebPageController;
 use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Admin\WareHouseCompartmentController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\CommonController;
@@ -58,7 +59,7 @@ Route::get('/', [PageController::class, 'home'])->name('home');
 | autocomplete inputs, address lookup, and common list data.
 |
 */
-Route::middleware(['auth:web,admin', 'organization'])->group(function () {
+Route::middleware(['auth:web,admin', 'organization', 'rbac'])->group(function () {
 		Route::get('/list_customer', [CommonController::class, 'list_customer'])->name('list_customer');
 		Route::get('/fabric_list_item', [CommonController::class, 'fabric_list_item'])->name('fabric_list_item');
 		Route::get('/list_warehouse_item_type', [CommonController::class, 'list_warehouse_item_type'])->name('list_warehouse_item_type');
@@ -102,7 +103,7 @@ Route::middleware('guest:web')->group(function () {
 | Frontend Authenticated User Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:web', 'organization'])->group(function () {
+Route::middleware(['auth:web', 'organization', 'rbac'])->group(function () {
 	/*
 	|--------------------------------------------------------------------------
 	| Dashboard
@@ -324,7 +325,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 
     // Admin logged-in routes.
-    Route::middleware(['auth:admin', 'organization'])->group(function () {
+    Route::middleware(['auth:admin', 'organization', 'rbac'])->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
 
         // Admin master routes.
@@ -368,6 +369,18 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('office-ips', OfficeIpController::class)->except(['show']);
         Route::resource('process-items', ProcessItemController::class)->except(['show']);
         Route::resource('individuals', IndividualController::class)->except(['show']);
+
+        // Company-scoped RBAC administration. System roles are deliberately absent.
+        Route::middleware('permission:roles.view')->group(function (): void {
+            Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+            Route::get('/roles/create', [RoleController::class, 'create'])->middleware('permission:roles.create')->name('roles.create');
+            Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:roles.create')->name('roles.store');
+            Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:roles.update')->name('roles.edit');
+            Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.update')->name('roles.update');
+            Route::get('/roles/{role}/assign', [RoleController::class, 'assignForm'])->middleware('permission:roles.assign')->name('roles.assign');
+            Route::post('/roles/{role}/assign', [RoleController::class, 'assign'])->middleware('permission:roles.assign')->name('roles.assign.store');
+            Route::delete('/role-assignments/{assignment}', [RoleController::class, 'revoke'])->middleware('permission:roles.assign')->name('roles.assignments.revoke');
+        });
 
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });

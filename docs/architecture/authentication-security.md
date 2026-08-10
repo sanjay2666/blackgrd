@@ -4,13 +4,14 @@ Status: implemented hardening for Task 1.6 (2026-08-10)
 
 ## Architecture
 
-The application uses one `App\Models\User` identity model with two session
-guards, `web` and `admin`, backed by the same Eloquent provider. The
-`user_type` and canonical `status` values are included in credential checks:
-frontend login accepts only `User` and admin login accepts only `Admin`, both
-with `status = Active`. `Deleted` and `Inactive` identities therefore cannot
-authenticate. Passwords use Laravel's `hashed` cast and are never returned by
-the model.
+The application has two intentional login panels. The frontend uses the `web`
+guard and `User` model; the Admin Panel uses the `admin` guard and the
+Admin-panel `Admin` model view over the existing Admin-discriminated account
+records. Both retain the existing `users` storage and `user_type` protection,
+but their providers and session guards are separate. Frontend login accepts
+only `User` and Admin login only `Admin`, both with `status = Active`.
+`Deleted` and `Inactive` identities therefore cannot authenticate. Passwords
+use Laravel's `hashed` cast and are never returned by either model.
 
 ## Login and logout
 
@@ -54,9 +55,10 @@ identity; a selected factory must be active and belong to that company. Invalid
 or stale values are cleared and the request fails closed. Login clears stale
 organization values before establishing a fresh session context.
 
-This task does not add roles or permissions. Super Admin behavior remains
-explicitly deferred to the RBAC work; the existing `User`/`Admin` guard split
-is preserved.
+RBAC uses the existing guard split. Admin and User principals have separate
+panel-tagged role assignments; an Admin assignment cannot collide with a User
+assignment that happens to have the same numeric record ID. No identity-linking
+between a person's Admin and User records is introduced.
 
 ## OTP and logging status
 

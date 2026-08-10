@@ -42,4 +42,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserOrganizationAccess::class);
     }
+
+    public function roleAssignments(): HasMany
+    {
+        return $this->hasMany(UserRoleAssignment::class, 'principal_id')
+            ->where('principal_type', $this->user_type);
+    }
 }

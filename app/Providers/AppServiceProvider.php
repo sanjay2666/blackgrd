@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Services\CurrentOrganizationContext;
 use App\Services\FinancialYearResolver;
+use App\Services\AuthorizationService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -11,6 +12,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,7 +21,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(AuthorizationService::class, fn () => new AuthorizationService);
     }
 
     /**
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Gate::before(fn ($user, string $ability) => app(AuthorizationService::class)->can($ability) ? true : null);
         RateLimiter::for('auth-login', function (Request $request): array {
             $email = Str::lower(trim((string) $request->input('email')));
 

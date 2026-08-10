@@ -3,6 +3,7 @@
 namespace Tests\Feature\Status;
 
 use App\Exceptions\InvalidRecordStatusTransition;
+use App\Http\Middleware\EnforceMappedPermission;
 use App\Models\UnitType;
 use App\Models\User;
 use Illuminate\Database\Schema\Blueprint;
@@ -16,6 +17,7 @@ class MasterStatusRequestTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->withoutMiddleware(EnforceMappedPermission::class);
 
         Schema::create('unit_type', function (Blueprint $table): void {
             $table->increments('unit_type_id');

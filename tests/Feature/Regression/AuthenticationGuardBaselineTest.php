@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Regression;
 
+use App\Http\Middleware\EnforceMappedPermission;
 use App\Models\User;
 use Tests\TestCase;
 
@@ -28,6 +29,7 @@ class AuthenticationGuardBaselineTest extends TestCase
 
     public function test_admin_guard_does_not_authenticate_the_user_dashboard(): void
     {
+        $this->withoutMiddleware(EnforceMappedPermission::class);
         $admin = $this->transientUser('Admin', 900001);
 
         $this->actingAs($admin, 'admin');
@@ -38,6 +40,7 @@ class AuthenticationGuardBaselineTest extends TestCase
 
     public function test_user_guard_does_not_authenticate_the_admin_dashboard(): void
     {
+        $this->withoutMiddleware(EnforceMappedPermission::class);
         $user = $this->transientUser('User', 900002);
 
         $this->actingAs($user, 'web');
@@ -55,12 +58,12 @@ class AuthenticationGuardBaselineTest extends TestCase
 
     private function transientUser(string $type, int $id): User
     {
-        $user = new User();
+        $user = new User;
         $user->forceFill([
             'id' => $id,
             'user_type' => $type,
             'name' => "Regression {$type}",
-            'email' => strtolower($type)."-regression@example.test",
+            'email' => strtolower($type).'-regression@example.test',
             'status' => 'Active',
         ]);
         $user->exists = true;

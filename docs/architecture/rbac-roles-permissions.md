@@ -1,14 +1,24 @@
-# Company-Aware RBAC, Roles and Permissions
+# Single-Company RBAC, Roles and Permissions
 
-Status: implementation-ready design for Task 1.7A (2026-08-10)
+Status: implemented core/live schema, registry, approved account bootstrap and exact fail-closed route/action enforcement for Task 1.7B (2026-08-10)
 
-This is the source of truth for Prompt 12. Authentication and organization access remain separate foundations.
+This is the source of truth for Prompt 12. The ERP is one textile manufacturing
+business, not a SaaS or multi-company ERP. Existing company, branch, factory
+and department fields remain ownership/configuration metadata and organization
+context; RBAC does not create tenant role copies or cross-company operations.
+
+Authentication remains intentionally split: `admin` guard + Admin-panel Admin
+accounts serve the Admin Panel, while `web` guard + User accounts serve the
+frontend ERP. RBAC reuses one permission catalog but assignments include the
+principal type and role panel, so the two login systems cannot collide.
 
 ## Current access-control state
 
 The application has one User identity model, web and admin session guards using the same Eloquent provider, User/Admin account types, canonical account status, user_organization_access, CurrentOrganizationContext, and ResolveOrganizationContext.
 
-There is no roles table, permissions table, role pivot, Gate, Policy, permission middleware, role UI, or user-role assignment. user_web_pages is a legacy page/customization table, not authorization. The admin sidebar is presentation only. Login-attempt and dormant-OTP tables are not RBAC.
+The RBAC schema, canonical registry, centralized authorization service,
+permission middleware, role UI and user-role assignment model are implemented.
+`user_web_pages` remains a legacy page/customization table, not authorization.
 
 ## Boundary
 
@@ -23,27 +33,37 @@ Authenticate identity
   -> Execute action
 ```
 
-Authentication answers who. Organization access answers which company and optional units. RBAC answers what capability. A permission never grants company access. Every route, query, model binding, AJAX endpoint, print/download, export, job and service must retain the company boundary.
+Authentication answers who. Organization context answers which branch/factory/
+department data is in scope. RBAC answers what capability. Every route, query,
+model binding, AJAX endpoint, print/download, export, job and service must retain
+the existing organization boundary.
 
 ## Role model
 
 Use multiple roles per user:
 
 ```text
-User -> user_role_assignments -> Role -> role_permissions -> Permission
+Admin/User principal -> panel-tagged role assignment -> Role -> role_permissions -> Permission
 ```
 
 Permissions are additive across active roles. Do not implement direct user-permission overrides initially; exceptions require a later audited, expiring design.
 
-System roles are global and outside tenant management, for example super-admin. Company roles belong to one company, for example company-admin or sales. Company role names may repeat between companies. Inactive/deleted roles and assignments are ignored.
+The reserved System role is Admin-panel-only and outside ordinary role management, for example
+Super Admin. Ordinary roles such as Admin, Sales and Warehouse Operator belong
+to this ERP and are not duplicated per company. Inactive/deleted roles and
+assignments are ignored.
 
-## Super Admin and Company Admin
+## Super Admin and Admin
 
 Super Admin is an active assignment to reserved system role super-admin. It is never inferred from user ID, email, user_type, request input, session values, or scattered role-name checks. A centralized AuthorizationContext/RBAC service owns this decision.
 
-Super Admin still needs a resolved company context for company data operations. Cross-company work requires explicit AllCompaniesContext and distinct critical permissions such as system.cross-company.read or system.cross-company.manage. Ordinary company routes never silently bypass scopes. System roles cannot be edited, deleted, or assigned by Company Admin.
+Super Admin still needs the resolved organization context for company data
+operations. There is no cross-company operation in this ERP. System roles
+cannot be edited, deleted, or assigned by the ordinary Admin role.
 
-Company Admin is the company-scoped company-admin role, not Super Admin. It may manage company users, roles, assignments, masters and configuration only where its permissions allow. It cannot access another company, create/assign system roles, widen organization access without the separate capability, or grant permissions it does not possess.
+Admin may manage users, roles, assignments, masters and configuration only
+where its permissions allow. It cannot create or assign Super Admin or grant
+permissions it does not possess.
 
 ## Permission convention
 
@@ -60,7 +80,7 @@ warehouse.receive
 warehouse.adjust
 financial-years.set-current
 roles.assign
-system.cross-company.read
+users.manage
 ```
 
 update never implies cancel, approve, reject, complete, adjust, or set-current. Use view when list/detail share a boundary; use view-detail only for materially different sensitivity. manage is limited configuration, not everything. Future namespaces approvals.*, workflow.*, number-series.*, and audit-log.* are reserved but not seeded.
@@ -71,7 +91,7 @@ Current parent types: users.id is unsigned bigint and companies.id is unsigned i
 
 roles:
 - id unsigned bigint primary key
-- company_id unsigned integer nullable; null only for System roles; FK companies restrict
+- company_id unsigned integer nullable ownership metadata; FK companies restrict
 - role_key varchar(120) unique immutable; name varchar(120)
 - scope System or Company; description nullable
 - canonical status; created_by/updated_by unsigned bigint nullable FKs to users
@@ -96,7 +116,7 @@ role_permissions:
 user_role_assignments:
 - id unsigned bigint primary key
 - user_id and role_id unsigned bigint FKs
-- company_id unsigned integer nullable; required for Company roles, null for System roles
+- company_id unsigned integer nullable ownership metadata; null for System roles
 - future nullable branch_id, factory_id, department_id with restrict FKs
 - starts_at, ends_at, canonical status, assigned_by, revoked_by, revoked_at, timestamps
 - indexes user/status, company/status, role/status and unit scope
@@ -142,7 +162,7 @@ This covers 18 current capability groups; a dash means no distinct verified acti
 | Settings/notifications/pages | yes | yes | yes | delete | — | — | — | — | configure |
 | Security/user activity | yes | — | — | delete | — | — | — | export | manage |
 
-Critical keys: roles.assign, organization.access-manage, financial-years.set-current, cancel/approve/reject actions, warehouse adjust/reversal, work-order complete, inspection override, gate-pass issue/cancel, sensitive report export, and system cross-company actions.
+Critical keys: roles.assign, organization.access-manage, financial-years.set-current, cancel/approve/reject actions, warehouse adjust/reversal, work-order complete, inspection override, gate-pass issue/cancel, and sensitive report export.
 
 ## Route/action mapping and templates
 
@@ -160,17 +180,23 @@ Capability families map to route groups, not individual permission IDs:
 - Security/settings: user pages, activity logs, login history, notifications, office IPs
 - Organization switch: POST organization/switch
 
-Templates: Company Admin; Sales; Purchase; Production Manager; Production Operator; Warehouse Manager; Warehouse Operator; Quality/Inspection; Accounts/Management Viewer. Templates are optional company starting points, never mandatory global grants.
+Templates: Admin; Frontend Administrator; Sales; Purchase; Production Manager; Production Operator; Warehouse Manager; Warehouse Operator; Quality/Inspection; Accounts/Management Viewer. Templates are starting points for this ERP, never mandatory grants.
+
+Admin-panel templates are Super Admin (reserved) and Admin. Frontend templates
+are Sales, Purchase, Production Manager, Production Operator, Warehouse
+Manager, Warehouse Operator, Quality/Inspection, and Accounts/Management
+Viewer. The permission catalog is shared; roles are panel-tagged rather than
+duplicated per company.
 
 ## Existing-user bootstrap
 
 Live evidence is one active frontend user, one active admin, one active company, two active default access mappings, zero branches and factories. No role intent is stored.
 
-Prompt 12 preserves IDs, passwords and organization access. It must not assign broad permissions from user_type alone. Require a documented owner decision for the current Admin: if confirmed as platform owner, assign super-admin through reviewed one-time bootstrap; otherwise assign no system role. Assign the current User only after documented company-role choice, with least-privilege viewer as safe fallback. Fail with a manual-decision report rather than guessing or locking users out.
+The approved bootstrap assigns Admin #1 (`admin@blackgrd.test`) to ordinary Admin and User #2 (`unsanjay4@gmail.com`) to Frontend Administrator. Frontend Administrator aggregates current frontend/business permissions while excluding Admin-only account, security, settings and RBAC controls. Super Admin remains unassigned. Future users require explicit assignments; there is no identity bypass. A future active Admin can be assigned the reserved role only through `php artisan rbac:assign-super-admin <exact-email>` after exact lookup and confirmation.
 
 ## Security, caching and rollout
 
-Deny by default; backend authorization is mandatory; client role/permission and organization IDs are validated; Company Admin cannot grant outside its effective set or assign system roles; inactive/deleted roles and assignments are ignored; organization access precedes RBAC; no hard-coded identity/session bypass; critical actions have distinct keys and domain checks; company scopes and cache keys are separated; cross-company access requires explicit system capability/context.
+Deny by default; backend authorization is mandatory; client role/permission and organization IDs are validated; Admin cannot grant outside its effective set or assign system roles; inactive/deleted roles and assignments are ignored; organization context precedes RBAC; no hard-coded identity/session bypass; critical actions have distinct keys and domain checks. Permission resolution is user/assignment/role based; organization context only limits branch/factory/department data access.
 
 Resolve effective permissions once per request. A short-lived cache may key by user, company, unit scope and role-assignment version. Do not persist grants in session. Role/permission/assignment writes invalidate affected versions. Revocation applies next request; cache failure fails closed for critical actions.
 
@@ -193,3 +219,27 @@ Prompt 12 sequence:
 
 Deferred: Audit Log, Number Series, Workflow, Approval, MFA/OTP activation,
 inventory ledger, branch/factory creation and employee membership redesign.
+
+## Current route/action mapping report
+
+`config/rbac_routes.php` is the central source, resolved by
+`App\Support\RoutePermissionRegistry`. The current inventory contains 291
+authenticated routes: 289 RBAC-protected routes and two explicit logout
+exclusions. `RoutePermissionMappingTest` detects new authenticated routes that
+lack a permission decision.
+
+| Guard | Route/action | Permission | Notes |
+| --- | --- | --- | --- |
+| Admin | `admin.{resource}.index/show` | `{resource}.view` | List/detail |
+| Admin | `admin.{resource}.store/create` | `{resource}.create` | Create |
+| Admin | `admin.{resource}.update/edit` | `{resource}.update` | Update |
+| Admin | `admin.{resource}.destroy` | `{resource}.delete` | Destructive |
+| Admin | `admin.financial-years.set-current` | `financial-years.set-current` | Critical FY action |
+| Admin | `admin.roles.*` | `roles.view/create/update/assign` | Super Admin excluded |
+| Frontend | Sale/Purchase/Work Order | Module-specific action | Cancel/start/complete/print remain distinct |
+| Frontend | Warehouse/WPR/Inspection/Job Work | Operation-specific action | Receive/issue/allot/return/adjust/inspect distinct |
+| Both | Shared lookup/AJAX | Read/module permission | Data exposure is checked |
+
+Print, export, download and AJAX endpoints use the same server-side registry.
+Unknown authenticated routes fail closed; logout is the only explicit
+authenticated allowlist.

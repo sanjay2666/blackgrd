@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Middleware\EnforceMappedPermission;
+use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\ResolveOrganizationContext;
 use App\Http\Middleware\SwitchOrganizationContext;
 use Illuminate\Foundation\Application;
@@ -17,6 +19,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'organization' => ResolveOrganizationContext::class,
             'organization.switch' => SwitchOrganizationContext::class,
+            'permission' => EnsurePermission::class,
+            'rbac' => EnforceMappedPermission::class,
         ]);
 
         $middleware->redirectGuestsTo(function (Request $request) {
