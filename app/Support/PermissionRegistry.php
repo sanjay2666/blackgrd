@@ -4,6 +4,11 @@ namespace App\Support;
 
 final class PermissionRegistry
 {
+    /** Permissions which must never be granted by a Company Admin. */
+    private const SUPER_ADMIN_RESERVED_PREFIXES = ['companies.', 'security.', 'audit-logs.', 'settings.'];
+
+    private const SUPER_ADMIN_RESERVED_KEYS = ['organization.access-manage'];
+
     /** @return list<array{key:string,resource:string,action:string,category:string,description:string,critical:bool}> */
     public static function all(): array
     {
@@ -38,5 +43,26 @@ final class PermissionRegistry
         }
 
         return $result;
+    }
+
+    /** @return list<string> */
+    public static function superAdminReserved(): array
+    {
+        return array_values(array_filter(
+            array_column(self::all(), 'key'),
+            static fn (string $key): bool => in_array($key, self::SUPER_ADMIN_RESERVED_KEYS, true)
+                || collect(self::SUPER_ADMIN_RESERVED_PREFIXES)->contains(fn (string $prefix): bool => str_starts_with($key, $prefix))
+        ));
+    }
+
+    /** @return list<string> */
+    public static function companyAdminAssignable(): array
+    {
+        return array_values(array_diff(array_column(self::all(), 'key'), self::superAdminReserved()));
+    }
+
+    public static function isSuperAdminReserved(string $permission): bool
+    {
+        return in_array($permission, self::superAdminReserved(), true);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\User;
 use App\Models\UserPermissionOverride;
 use App\Models\UserRoleAssignment;
+use App\Support\PermissionRegistry;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Support\Facades\Auth;
 
@@ -72,6 +73,12 @@ final class AuthorizationService
                 $q->whereNull('user_role_assignments.ends_at')->orWhere('user_role_assignments.ends_at', '>=', now());
             })
             ->pluck('permissions.permission_key')->unique()->values()->all();
+
+        if ($this->isSuperAdmin()) {
+            return $this->permissionCache = $rolePermissions;
+        }
+
+        $rolePermissions = array_values(array_diff($rolePermissions, PermissionRegistry::superAdminReserved()));
 
         if ($user->user_type !== 'User') {
             return $this->permissionCache = $rolePermissions;

@@ -7,6 +7,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserOrganizationAccess;
 use App\Models\UserRoleAssignment;
+use App\Support\PermissionRegistry;
 use Illuminate\Validation\ValidationException;
 
 final class RoleManagementService
@@ -18,25 +19,35 @@ final class RoleManagementService
         $context = app(CurrentOrganizationContext::class);
         $companyId = $context->companyId();
         if ($role && $role->scope !== 'Company') {
+            app(AuditLogger::class)->record(['module' => 'security', 'action' => 'deny', 'event' => 'reserved_role_update_attempt', 'auditable_type' => $role->getMorphClass(), 'auditable_id' => $role->id, 'description' => 'Attempt to modify the reserved Super Admin role through Company Admin RBAC.']);
             throw ValidationException::withMessages(['role' => 'The reserved system role cannot be edited.']);
         }
-        $role ??= new Role;
-        $role->fill(['company_id' => $companyId, 'role_key' => $data['role_key'] ?? str()->slug($data['name']), 'name' => $data['name'], 'scope' => 'Company', 'panel' => $data['panel'] ?? ($role->panel ?? 'Admin'), 'description' => $data['description'] ?? null, 'status' => $data['status'] ?? 'Active', 'updated_by' => auth()->id()]);
-        if (! $role->exists) {
-            $role->created_by = auth()->id();
+        if ($role && (int) $role->company_id !== $companyId) {
+            throw ValidationException::withMessages(['role' => 'The role is not available in the current company.']);
         }
-        $role->save();
         $permissionKeys = array_values(array_unique($data['permissions'] ?? []));
         $allowed = Permission::query()->where('status', 'Active')->whereIn('permission_key', $permissionKeys)->pluck('permission_key')->all();
         if (count($allowed) !== count($permissionKeys)) {
             throw ValidationException::withMessages(['permissions' => 'One or more permissions are invalid or inactive.']);
         }
-        if (! app(AuthorizationService::class)->isSuperAdmin()) {
-            $granted = app(AuthorizationService::class)->permissions();
-            if (array_diff($allowed, $granted) !== []) {
-                throw ValidationException::withMessages(['permissions' => 'A role manager cannot grant permissions they do not possess.']);
-            }
+        if (! app(AuthorizationService::class)->isSuperAdmin() && array_intersect($allowed, PermissionRegistry::superAdminReserved()) !== []) {
+            app(AuditLogger::class)->record([
+                'module' => 'security', 'action' => 'deny', 'event' => 'reserved_permission_grant_attempt',
+                'auditable_type' => Role::class, 'auditable_id' => $role?->id,
+                'description' => 'Company Admin attempted to grant a Super Admin-reserved permission.',
+                'new_values' => ['permissions' => array_values(array_intersect($allowed, PermissionRegistry::superAdminReserved()))],
+            ]);
+            throw ValidationException::withMessages(['permissions' => 'Reserved system/security permissions cannot be granted by a Company Admin.']);
         }
+        if (! app(AuthorizationService::class)->isSuperAdmin() && array_diff($allowed, app(AuthorizationService::class)->permissions()) !== []) {
+            throw ValidationException::withMessages(['permissions' => 'A role manager cannot grant permissions they do not possess.']);
+        }
+        $role ??= new Role();
+        $role->fill(['company_id' => $companyId, 'role_key' => $data['role_key'] ?? str()->slug($data['name']), 'name' => $data['name'], 'scope' => 'Company', 'panel' => $data['panel'] ?? ($role->panel ?? 'Admin'), 'description' => $data['description'] ?? null, 'status' => $data['status'] ?? 'Active', 'updated_by' => auth()->id()]);
+        if (! $role->exists) {
+            $role->created_by = auth()->id();
+        }
+        $role->save();
         $role->permissions()->sync(Permission::whereIn('permission_key', $allowed)->pluck('id')->mapWithKeys(fn ($id) => [$id => ['assigned_by' => auth()->id()]])->all());
         app(AuthorizationService::class)->forget();
         app(AuditLogger::class)->record([
@@ -53,6 +64,7 @@ final class RoleManagementService
     {
         $companyId = app(CurrentOrganizationContext::class)->companyId();
         if ($role->scope !== 'Company') {
+            app(AuditLogger::class)->record(['module' => 'security', 'action' => 'deny', 'event' => 'reserved_role_assignment_attempt', 'auditable_type' => $role->getMorphClass(), 'auditable_id' => $role->id, 'description' => 'Attempt to assign the reserved Super Admin role through Company Admin RBAC.']);
             throw ValidationException::withMessages(['role' => 'The reserved system role cannot be assigned here.']);
         }
         $expectedPanel = $user->user_type === 'Admin' ? 'Admin' : 'Frontend';

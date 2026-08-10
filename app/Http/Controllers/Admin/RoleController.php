@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\UserRoleAssignment;
 use App\Services\RoleManagementService;
+use App\Support\PermissionRegistry;
 use Illuminate\Http\Request;
 
 class RoleController extends Controller
@@ -21,7 +22,7 @@ class RoleController extends Controller
 
     public function create()
     {
-        $permissions = Permission::where('status', 'Active')->orderBy('resource')->orderBy('action')->get()->groupBy('resource');
+        $permissions = Permission::where('status', 'Active')->whereIn('permission_key', PermissionRegistry::companyAdminAssignable())->orderBy('resource')->orderBy('action')->get()->groupBy('resource');
 
         return view('admin.roles.form', ['role' => new Role, 'permissions' => $permissions]);
     }
@@ -37,7 +38,7 @@ class RoleController extends Controller
     public function edit(Role $role)
     {
         $this->assertEditableRole($role);
-        $permissions = Permission::where('status', 'Active')->orderBy('resource')->orderBy('action')->get()->groupBy('resource');
+        $permissions = Permission::where('status', 'Active')->whereIn('permission_key', PermissionRegistry::companyAdminAssignable())->orderBy('resource')->orderBy('action')->get()->groupBy('resource');
 
         return view('admin.roles.form', compact('role', 'permissions'));
     }
@@ -78,6 +79,9 @@ class RoleController extends Controller
 
     private function assertEditableRole(Role $role): void
     {
+        if ($role->scope !== 'Company') {
+            app(\App\Services\AuditLogger::class)->record(['module' => 'security', 'action' => 'deny', 'event' => 'reserved_role_ui_access_attempt', 'auditable_type' => $role->getMorphClass(), 'auditable_id' => $role->id, 'description' => 'Attempt to access the reserved Super Admin role through Company Admin UI.']);
+        }
         abort_unless($role->scope === 'Company', 404);
     }
 }

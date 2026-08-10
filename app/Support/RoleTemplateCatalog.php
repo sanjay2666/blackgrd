@@ -9,7 +9,7 @@ final class RoleTemplateCatalog
     {
         $frontendAdministrator = FrontendPermissionCatalog::keys();
         $admin = array_values(array_filter(
-            array_column(PermissionRegistry::all(), 'key'),
+            PermissionRegistry::companyAdminAssignable(),
             static fn (string $key): bool => $key !== 'organization.switch'
         ));
 
