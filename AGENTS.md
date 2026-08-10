@@ -11,3 +11,4 @@
 - Keep architecture and audit documentation under `docs/architecture` and `docs/audits`; architecture documents are the source of truth.
 - Preserve company isolation, canonical statuses, and Sale Order Item-specific/versioned printing routes; Coating Master never decides printing order.
 - AI and later roadmap tasks are out of scope unless explicitly requested.
+- Before finalizing meaningful changes, run `php artisan quality:check`; use `--quick` only for interim feedback, never as the final gate.
