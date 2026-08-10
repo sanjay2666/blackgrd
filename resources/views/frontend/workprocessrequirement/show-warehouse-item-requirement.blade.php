@@ -1,5 +1,7 @@
 <?php
-	use \App\Http\Controllers\CommonController;  
+use App\Enums\WorkRequirementStatus;
+use App\Http\Controllers\CommonController;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -27,19 +29,19 @@
 				<div class="row warehouse-requirement-filter-row">
 
 					<div class="col-sm-2 col-xs-12">
-						<input type="text" class="form-control" name="qsearch" id="qsearch" value="<?=$qsearch;?>" placeholder="Customer Name">
+						<input type="text" class="form-control" name="qsearch" id="qsearch" value="<?= $qsearch; ?>" placeholder="Customer Name">
 					</div>
 					
 					<div class="col-sm-1 col-xs-12">
-						<input type="text" class="form-control" name="itemName" id="itemName" value="<?=$itemName;?>" placeholder="Item Name">
+						<input type="text" class="form-control" name="itemName" id="itemName" value="<?= $itemName; ?>" placeholder="Item Name">
 					</div>
 					
 					<div class="col-sm-1 col-xs-12">
-						<input type="text" class="form-control" name="lotno" id="lotno" value="<?=$lotno;?>" placeholder="Lot Number">
+						<input type="text" class="form-control" name="lotno" id="lotno" value="<?= $lotno; ?>" placeholder="Lot Number">
 					</div>	
 					
 					<div class="col-sm-1 col-xs-12">
-						<input type="text" class="form-control" name="dyeing_color" id="dyeing_color" value="<?=$dyeingColor;?>" placeholder="Color">
+						<input type="text" class="form-control" name="dyeing_color" id="dyeing_color" value="<?= $dyeingColor; ?>" placeholder="Color">
 					</div>		
 					
 					<div class="col-sm-1 col-xs-12">
@@ -58,18 +60,18 @@
 							</button>
 							<ul class="dropdown-menu" role="menu" aria-labelledby="processDropdown">
 								<?php
-								$search_process_id = is_array($search_process_id) ? array_map('intval', $search_process_id) : [];
-								foreach ($processI as $process) {
-								?>
+                                $search_process_id = is_array($search_process_id) ? array_map('intval', $search_process_id) : [];
+foreach ($processI as $process) {
+    ?>
 								<li role="presentation">
 									<label>
-										<input type="checkbox" name="search_process_id[]" value="<?php echo $process->id; ?>" <?php echo (!empty($search_process_id) && in_array($process->id, $search_process_id)) ? 'checked' : ''; ?>>
+										<input type="checkbox" name="search_process_id[]" value="<?php echo $process->id; ?>" <?php echo (! empty($search_process_id) && in_array($process->id, $search_process_id)) ? 'checked' : ''; ?>>
 										<?php echo $process->process_name; ?>
 									</label>
 								</li>
 								<?php
-								}
-								?>
+}
+?>
 							</ul>
 
 						</div>				 
@@ -117,20 +119,20 @@
 					<tbody>
 						@foreach($dataWPR as $data)
 							<?php
-								   // echo "<pre>"; print_r($data);  
-								$wprId              	= $data->id;
-								$reqLotNo               = $data->req_lot_no;
-							    $woId               	= $data->work_order_id;
-								$isAccept 				= $data->is_accept;
-							    $itemId               	= $data->item_id;
-								$process_accepted_by   	= $data->process_accepted_by;
-								$process_deny_by       	= $data->process_deny_by;
-								$isProAccByWarehouse   	= $data->is_pro_acc_by_warehouse;
-								$processTypeId   		= $data->process_type_id;
-								$processAcceptedBy     	= $data->ModifiedBy->name ?? '';
-								$processDenyBy         	= $data->ModifiedBy->name ?? ''; 
-								$Itembalance            = CommonController::WorkProcessItemBalanceById($wprId,$isAccept); 	
-							?>
+   // echo "<pre>"; print_r($data);
+$wprId = $data->id;
+$reqLotNo = $data->req_lot_no;
+$woId = $data->work_order_id;
+$isAccept = $data->is_accept;
+$itemId = $data->item_id;
+$process_accepted_by = $data->process_accepted_by;
+$process_deny_by = $data->process_deny_by;
+$isProAccByWarehouse = $data->is_pro_acc_by_warehouse;
+$processTypeId = $data->process_type_id;
+$processAcceptedBy = $data->ModifiedBy->name ?? '';
+$processDenyBy = $data->ModifiedBy->name ?? '';
+$Itembalance = CommonController::WorkProcessItemBalanceById($wprId, $isAccept);
+?>
 							
 							<tr id="Mid{{ $data->id }}">
 								<td>{{ $wprId }} </td>
@@ -143,24 +145,24 @@
 								<td>
 									{{ $data->Item->item_name ?? '' }}
 									<div> 
-										<?php if (!empty($data->dyeing_color)) { ?>
+										<?php if (! empty($data->dyeing_color)) { ?>
 										<small>
 										🎨 <?= htmlspecialchars($data->dyeing_color); ?>    
 										</small>
 										<?php } ?> 
-										<?php if (!empty($data->coated_pvc)) { ?>
+										<?php if (! empty($data->coated_pvc)) { ?>
 										<hr />
 										<small>
 										🧪 <?= htmlspecialchars($data->coated_pvc); ?>   
 										</small>
 										<?php } ?> 
-										<?php if (!empty($data->extra_job)) { ?>
+										<?php if (! empty($data->extra_job)) { ?>
 										<hr />
 										<small>
 										➕ <?= htmlspecialchars($data->extra_job); ?>  
 										</small>
 										<?php } ?> 
-										<?php if (!empty($data->print_job)) { ?>
+										<?php if (! empty($data->print_job)) { ?>
 										<hr />
 										<small>
 										<i class="fa fa-print"></i>  <?= htmlspecialchars($data->print_job); ?>    
@@ -173,12 +175,14 @@
 								<td>{{ $data->ItemType->item_type_name ?? '' }}</td>	
 								<td>{{ $data->required_quantity }} {{ $data->UnitType->unit_type_name ?? '' }}</td>
 								<td>{{ $data->issued_quantity }} {{ $data->UnitType->unit_type_name ?? '' }}</td>	
-								<td><?=$Itembalance;?>  </td>
+								<td><?= $Itembalance; ?>  </td>
 								<td>{{ $data->created_at }}</td>
 								<td class="center" id="Waccepted{{ $data->id }}">
-									<?php if(empty($isProAccByWarehouse)) { ?>
+									<p><span class="label label-info">{{ $data->requirement_status?->label() ?? 'Unmapped' }}</span></p>
+									<p><small>Allocation: {{ $data->allocation_status?->label() ?? 'Unmapped' }}</small></p>
+									<?php if ($data->requirement_status === WorkRequirementStatus::Pending) { ?>
 										<p>
-										<?php if($processTypeId =='7') { ?>
+										<?php if ($processTypeId == '7') { ?>
 										<p><a href="<?php echo route('accept-warehouse-item-requirement-for-printing', enc($wprId)); ?>" class="btn btn-success btn-xs">Accept</a>
 										<a href="javascript:void(0);" onclick="DenyWarehouseReq(<?php echo $wprId; ?>)"  class="btn btn-danger btn-xs"> Deny </a>
 										
@@ -189,10 +193,10 @@
 										<?php } ?>
 										
 										
-									<?php } else if($isProAccByWarehouse == 'Yes') { ?>
+									<?php } elseif ($isProAccByWarehouse == 'Yes') { ?>
 										<a href="javascript:void(0);" class="btn btn-success btn-xs">Accepted</a>
 										<p>Accepted By <?= $processAcceptedBy; ?></p>
-									<?php } else if($isProAccByWarehouse == 'No') { ?>
+									<?php } elseif ($isProAccByWarehouse == 'No') { ?>
 										<a href="javascript:void(0);" class="btn btn-success btn-xs">Denied</a>
 										<p>Denied By <?= $processDenyBy; ?></p>
 									<?php } ?>
@@ -200,17 +204,17 @@
 								
 								<td>
 									<?php
-									// && $data->process_type_id == 3
-									if($isProAccByWarehouse == 'Yes') { ?>
+        // && $data->process_type_id == 3
+        if ($isProAccByWarehouse == 'Yes') { ?>
 										<!--- <a href="javascript:void(0);" onClick="ViewWarehouseReq({{ $woId }})" class="btn btn-info btn-xs">View</a> --->
 										<a target="_blank" href="{{ route('print-warehouse-item-requirement-gatepass', enc($wprId)) }}" class="btn btn-success btn-xs">Gatepass</a>
-										<?php if(!empty($reqLotNo)) { ?>
+										<?php if (! empty($reqLotNo)) { ?>
 										<a target="_blank" href="{{ route('print-warehouse-item-requirement-gatepass-by-lot', enc($wprId)) }}" class="btn btn-success btn-xs">Lot Gatepass</a>
 										
 										 
-										<?php if($data->is_all_item_returned == 'No') { ?>
+										<?php if ($data->is_all_item_returned == 'No') { ?>
 										<a target="_blank" href="{{ route('print-job-card-gatepass', enc($wprId)) }}" class="btn btn-success btn-xs">Job Card</a>
-										<?php } else if($data->is_all_item_returned == 'Yes') { ?>
+										<?php } elseif ($data->is_all_item_returned == 'Yes') { ?>
 										<a class="btn btn-danger btn-xs">All Item Returnd</a>
 										<?php } ?>
 										

@@ -2,17 +2,21 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SaleOrderItem extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordStatus;
 
     protected $table = 'sale_order_items';
+
     protected $primaryKey = 'id';
+
     public $timestamps = false;
+
     protected $guarded = [];
 
     public function getSaleOrderItemIdAttribute()

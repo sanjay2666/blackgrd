@@ -2,16 +2,24 @@
 
 namespace App\Models;
 
+use App\Enums\InventoryAllocationStatus;
+use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WarehouseItemStock extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordStatus;
 
     protected $table = 'warehouse_item_stocks';
+
     public $timestamps = false;
+
     protected $guarded = [];
+
+    protected $casts = [
+        'allocation_status' => InventoryAllocationStatus::class,
+    ];
 
     public function getCoatedPvcAttribute()
     {
@@ -38,13 +46,14 @@ class WarehouseItemStock extends Model
         $this->attributes['updated_at'] = $value;
     }
 
-    public function setIsDeletedAttribute($value): void
-    {
-    }
+    public function setIsDeletedAttribute($value): void {}
 
-    public function setStatusAttribute($value): void
+    public function setIsAllottedStockAttribute($value): void
     {
-        $this->attributes['status'] = in_array($value, [1, '1'], true) ? 'Active' : $value;
+        $this->attributes['is_allotted_stock'] = $value;
+        $this->attributes['allocation_status'] = $value === 'Yes'
+            ? InventoryAllocationStatus::Allocated->value
+            : InventoryAllocationStatus::Unallocated->value;
     }
 
     public function Item()

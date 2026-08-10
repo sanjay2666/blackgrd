@@ -2,17 +2,46 @@
 
 namespace App\Models;
 
+use App\Domain\OperationalStatus\LegacyOperationalStatusMapper;
+use App\Enums\InventoryAllocationStatus;
+use App\Enums\WorkRequirementStatus;
+use App\Models\Concerns\HasRecordStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class WorkProcessRequirement extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordStatus;
 
     protected $table = 'work_process_requirements';
+
     public $timestamps = false;
+
     protected $guarded = [];
+
+    protected $casts = [
+        'requirement_status' => WorkRequirementStatus::class,
+        'allocation_status' => InventoryAllocationStatus::class,
+    ];
+
+    public function scopeWithRequirementStatus(Builder $query, WorkRequirementStatus|string $status): Builder
+    {
+        return $query->where('requirement_status', $status instanceof WorkRequirementStatus ? $status->value : $status);
+    }
+
+    public function setIsAcceptAttribute($value): void
+    {
+        $decision = (int) $value;
+        $this->attributes['is_accept'] = $decision;
+
+        $mapper = app(LegacyOperationalStatusMapper::class);
+        $required = (float) ($this->attributes['quantity'] ?? 0);
+        $allotted = (float) ($this->attributes['alloted_quantity'] ?? 0);
+        $this->attributes['requirement_status'] = $mapper->workRequirement($decision, $required, $allotted)->value;
+        $this->attributes['allocation_status'] = $mapper->allocation($required, $allotted, $decision)->value;
+    }
 
     public function Item()
     {

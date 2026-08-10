@@ -87,6 +87,7 @@
 										<th>#</th>
 										<th><span class="glyphicon glyphicon-file"></span> S.O. Number</th>
 										<th><span class="glyphicon glyphicon-user"></span> Customer</th>
+										<th>Lifecycle</th>
 										<th><span class="glyphicon glyphicon-info-sign"></span> Order Details</th>
 										<th><span class="glyphicon glyphicon-list-alt"></span> Order Item Details</th>
 										<th>Action</th>
@@ -130,6 +131,9 @@
 												@else
 													<span class="text-muted">-</span>
 												@endif
+											</td>
+											<td>
+												<span class="label label-info">{{ $data->document_status?->label() ?? 'Unmapped' }}</span>
 											</td>
 
 

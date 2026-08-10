@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Console\Commands\ApplyReviewedForeignKeyMigrationsCommand;
+use App\Console\Commands\ApplyReviewedOperationalStatusMigrationsCommand;
 use App\Console\Commands\DatabaseSafetyCheckCommand;
 use App\Console\Commands\PrepareDisposableDatabaseCommand;
+use App\Console\Commands\VerifyOperationalStatusBackfillCommand;
+use App\Console\Commands\VerifyOperationalStatusMigrationsCommand;
 use App\DatabaseSafety\DatabaseSafetyGuard;
 use App\DatabaseSafety\DisposableDatabaseManager;
 use Illuminate\Console\Events\CommandFinished;
@@ -56,8 +59,11 @@ class DatabaseSafetyServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ApplyReviewedForeignKeyMigrationsCommand::class,
+                ApplyReviewedOperationalStatusMigrationsCommand::class,
                 DatabaseSafetyCheckCommand::class,
                 PrepareDisposableDatabaseCommand::class,
+                VerifyOperationalStatusMigrationsCommand::class,
+                VerifyOperationalStatusBackfillCommand::class,
             ]);
         }
     }

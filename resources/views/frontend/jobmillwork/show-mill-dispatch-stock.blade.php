@@ -1,5 +1,6 @@
 <?php
-	use \App\Http\Controllers\CommonController;
+use App\Http\Controllers\CommonController;
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -61,7 +62,7 @@
                       <th>Received</th>
                       <th>Shortage</th>
                       <th>Remaining</th>
-                      <?php if (!empty($extraReceivedMeter)) { ?> <th>Extra Received</th> <?php } ?>
+                      <?php if (! empty($extraReceivedMeter)) { ?> <th>Extra Received</th> <?php } ?>
                     </tr>
                   </thead>
                   <tbody>
@@ -70,7 +71,7 @@
                       <td class="summary-received" style="color: #28a745;"><?php echo number_format($totalReceivedMeter, 2); ?> Meter</td>
                       <td class="summary-shortage" style="color: #c05621;"><?php echo number_format($totalShortageMeter, 2); ?> Meter</td>
                       <td class="summary-remaining" style="color: #000000;"><?php echo number_format($remainingMeter ?? 0, 2); ?> Meter</td>
-                      <?php if (!empty($extraReceivedMeter)) { ?>
+                      <?php if (! empty($extraReceivedMeter)) { ?>
                         <td class="summary-extra" style="color: #c0392b;"><?php echo number_format($extraReceivedMeter, 2); ?> Meter (Excess Received)</td>
                       <?php } ?>
                     </tr>
@@ -86,6 +87,7 @@
 						<th>Work</th>
 						<th>Item</th>
 						<th>Process</th>
+						<th>Status</th>
 						<th>Total </th>
 						<th>Received </th>
 						<th>Balance </th>
@@ -97,15 +99,13 @@
                   </thead>
                   <tbody>
                   
-			<?php 
-			foreach ($dataWI as $data) 
-			{ 	
-				
-				$getProcessName = CommonController::getProcessName($data->process_type);
-				$remainingMeter = max(0, $data->tot_meter - $data->tot_receive_mtr);
-				
-				
-			?>
+			<?php
+            foreach ($dataWI as $data) {
+
+                $getProcessName = CommonController::getProcessName($data->process_type);
+                $remainingMeter = max(0, $data->tot_meter - $data->tot_receive_mtr);
+
+                ?>
 				<tr id="Mid<?php echo $data->id; ?>">
 					<td><?php echo $data->voucher_number; ?> <?php echo $data->id; ?></td>
 					<td><?php echo $data->chalan_no; ?></td>
@@ -126,6 +126,7 @@
 					<td><?php echo $data->work_name; ?></td>
 					<td><?php echo CommonController::getItemName($data->item_id); ?></td>
 					<td><?php echo $getProcessName; ?></td>
+					<td><span class="label label-info"><?php echo e($data->job_work_status?->label() ?? 'Unmapped'); ?></span></td>
 					<td><?php echo $data->tot_meter; ?></td>
 					<td><?php echo $data->tot_receive_mtr; ?></td>
 					<td><?php echo number_format($remainingMeter, 2); ?></td>

@@ -2,17 +2,29 @@
 
 namespace App\Models;
 
+use App\Domain\OperationalStatus\LegacyOperationalStatusMapper;
+use App\Enums\InspectionResult;
+use App\Enums\InspectionStatus;
+use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkInspection extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordStatus;
 
     protected $table = 'work_inspections';
+
     protected $primaryKey = 'id';
+
     public $timestamps = false;
+
     protected $guarded = [];
+
+    protected $casts = [
+        'inspection_status' => InspectionStatus::class,
+        'inspection_result' => InspectionResult::class,
+    ];
 
     public function getCreatedAttribute()
     {
@@ -29,9 +41,23 @@ class WorkInspection extends Model
         $this->attributes['created_at'] = $value;
     }
 
-    public function setStatusAttribute($value): void
+    public function setInspWorkStatusAttribute($value): void
     {
-        $this->attributes['status'] = in_array($value, [1, '1'], true) ? 'Active' : $value;
+        $this->attributes['insp_work_status'] = $value;
+        if (! array_key_exists('inspection_result', $this->attributes)) {
+            $this->attributes['inspection_result'] = app(LegacyOperationalStatusMapper::class)
+                ->inspectionResult($value)?->value;
+        }
+    }
+
+    public function setInspStatusAttribute($value): void
+    {
+        $this->attributes['insp_status'] = $value;
+        if (! array_key_exists('inspection_status', $this->attributes)) {
+            $this->attributes['inspection_status'] = $value === 'Complete'
+                ? InspectionStatus::Completed->value
+                : InspectionStatus::Pending->value;
+        }
     }
 
     public function WorkOrder()

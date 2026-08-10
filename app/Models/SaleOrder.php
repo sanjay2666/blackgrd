@@ -2,17 +2,32 @@
 
 namespace App\Models;
 
+use App\Enums\SaleOrderDocumentStatus;
+use App\Models\Concerns\HasRecordStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class SaleOrder extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordStatus;
 
     protected $table = 'sale_orders';
+
     protected $primaryKey = 'id';
+
     public $timestamps = false;
+
     protected $guarded = [];
+
+    protected $casts = [
+        'document_status' => SaleOrderDocumentStatus::class,
+    ];
+
+    public function scopeWithDocumentStatus(Builder $query, SaleOrderDocumentStatus|string $status): Builder
+    {
+        return $query->where('document_status', $status instanceof SaleOrderDocumentStatus ? $status->value : $status);
+    }
 
     public function getSaleOrderIdAttribute()
     {

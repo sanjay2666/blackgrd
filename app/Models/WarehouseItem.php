@@ -2,16 +2,26 @@
 
 namespace App\Models;
 
+use App\Enums\InventoryMovementStatus;
+use App\Enums\InventoryReceiptStatus;
+use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WarehouseItem extends Model
 {
-    use HasFactory;
+    use HasFactory, HasRecordStatus;
 
     protected $table = 'warehouse_in_items';
+
     public $timestamps = false;
+
     protected $guarded = [];
+
+    protected $casts = [
+        'movement_status' => InventoryMovementStatus::class,
+        'receipt_status' => InventoryReceiptStatus::class,
+    ];
 
     public function getCoatedPvcAttribute()
     {
@@ -36,11 +46,6 @@ class WarehouseItem extends Model
     public function setModifiedAttribute($value): void
     {
         $this->attributes['updated_at'] = $value;
-    }
-
-    public function setStatusAttribute($value): void
-    {
-        $this->attributes['status'] = in_array($value, [1, '1'], true) ? 'Active' : $value;
     }
 
     public function Item()

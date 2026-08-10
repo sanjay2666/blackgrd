@@ -65,11 +65,7 @@
 										<td>{{ $row->PurchaseOrderItem->count() }}</td>
 										<td>{{ number_format((float) $row->subtotal, 2) }}</td>
 										<td>
-											@if ($row->is_item_received_in_warehouse === 'Yes')
-												<span class="label label-success">Received</span>
-											@else
-												<span class="label label-default">Pending</span>
-											@endif
+											<span class="label label-info">{{ $row->document_status?->label() ?? 'Unmapped' }}</span>
 										</td>
 										<td>
 											<a href="{{ route('edit-purchaseorder', enc($row->id)) }}" class="btn btn-primary btn-xs" title="Edit"><i class="fa fa-pencil"></i></a>

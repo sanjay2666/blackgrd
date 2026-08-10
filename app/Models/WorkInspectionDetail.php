@@ -2,56 +2,67 @@
 
 namespace App\Models;
 
+use App\Domain\OperationalStatus\LegacyOperationalStatusMapper;
+use App\Enums\InspectionResult;
+use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WorkInspectionDetail extends Model
 {
-	use HasFactory;
-	protected $table   = 'work_inspection_details';
-	public $timestamps = false;
-	protected $guarded = [];
-	
-	public function setInsItemIdAttribute($value): void
-	{
-		$this->attributes['item_id'] = $value;
-	}
+    use HasFactory, HasRecordStatus;
 
-	public function setInsWorkOrderIdAttribute($value): void
-	{
-		$this->attributes['work_order_id'] = $value;
-	}
+    protected $table = 'work_inspection_details';
 
-	public function setOutputQuanSizeAttribute($value): void
-	{
-		$this->attributes['output_quantity'] = $value;
-	}
+    public $timestamps = false;
 
-	public function setShrinkageQuanSizeAttribute($value): void
-	{
-		$this->attributes['shrinkage_quantity'] = $value;
-	}
+    protected $guarded = [];
 
-	public function setInspecCommentAttribute($value): void
-	{
-		$this->attributes['inspection_comment'] = $value;
-	}
+    protected $casts = [
+        'inspection_result' => InspectionResult::class,
+    ];
 
-	public function setCreatedAttribute($value): void
-	{
-		$this->attributes['created_at'] = $value;
-	}
+    public function setInsItemIdAttribute($value): void
+    {
+        $this->attributes['item_id'] = $value;
+    }
 
-	public function setStatusAttribute($value): void
-	{
-		$this->attributes['status'] = in_array($value, [1, '1'], true) ? 'Active' : $value;
-	}
+    public function setInsWorkOrderIdAttribute($value): void
+    {
+        $this->attributes['work_order_id'] = $value;
+    }
 
-	
-	 
-	public function FabricFaultReason()
+    public function setOutputQuanSizeAttribute($value): void
+    {
+        $this->attributes['output_quantity'] = $value;
+    }
+
+    public function setShrinkageQuanSizeAttribute($value): void
+    {
+        $this->attributes['shrinkage_quantity'] = $value;
+    }
+
+    public function setInspecCommentAttribute($value): void
+    {
+        $this->attributes['inspection_comment'] = $value;
+    }
+
+    public function setCreatedAttribute($value): void
+    {
+        $this->attributes['created_at'] = $value;
+    }
+
+    public function setWorkStatusAttribute($value): void
+    {
+        $this->attributes['work_status'] = $value;
+        if (! array_key_exists('inspection_result', $this->attributes)) {
+            $this->attributes['inspection_result'] = app(LegacyOperationalStatusMapper::class)
+                ->inspectionResult($value)?->value;
+        }
+    }
+
+    public function FabricFaultReason()
     {
         return $this->hasOne(FabricFaultReason::class, 'id', 'fabric_fault_reason_id');
     }
-	 
 }
