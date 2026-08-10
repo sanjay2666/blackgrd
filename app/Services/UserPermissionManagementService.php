@@ -50,6 +50,7 @@ final class UserPermissionManagementService
             UserPermissionOverride::query()->where('user_id', $user->id)->whereNotIn('permission_id', $permissionIds->values())->update(['status' => 'Inactive', 'revoked_by' => auth('admin')->id(), 'revoked_at' => now()]);
         });
         app(AuthorizationService::class)->forget();
+        app(AuditLogger::class)->record(['module' => 'users', 'action' => 'manage', 'event' => 'user_permission_overrides_changed', 'auditable_type' => $user->getMorphClass(), 'auditable_id' => $user->id, 'description' => 'Individual Frontend User permission overrides changed.', 'new_values' => ['permissions' => $requested]]);
     }
 
     private function assertFrontendUser(User $user): void

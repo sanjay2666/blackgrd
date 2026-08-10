@@ -20,6 +20,7 @@ return [
         'admin.roles.edit' => 'roles.update', 'admin.roles.update' => 'roles.update', 'admin.roles.assign' => 'roles.assign',
         'admin.roles.assign.store' => 'roles.assign', 'admin.roles.assignments.revoke' => 'roles.assign',
         'admin.users.permissions.edit' => 'users.manage', 'admin.users.permissions.update' => 'users.manage',
+        'admin.audit-logs.index' => 'audit-logs.view', 'admin.audit-logs.show' => 'audit-logs.view',
     ],
     'frontend_named' => [
         'dashboard' => 'dashboard.view', 'organization.switch' => 'organization.switch',

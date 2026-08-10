@@ -13,6 +13,8 @@ final class RoleManagementService
 {
     public function saveRole(array $data, ?Role $role = null): Role
     {
+        $wasExisting = $role?->exists;
+        $oldPermissions = $role?->permissions()->pluck('permission_key')->all() ?? [];
         $context = app(CurrentOrganizationContext::class);
         $companyId = $context->companyId();
         if ($role && $role->scope !== 'Company') {
@@ -37,6 +39,12 @@ final class RoleManagementService
         }
         $role->permissions()->sync(Permission::whereIn('permission_key', $allowed)->pluck('id')->mapWithKeys(fn ($id) => [$id => ['assigned_by' => auth()->id()]])->all());
         app(AuthorizationService::class)->forget();
+        app(AuditLogger::class)->record([
+            'module' => 'roles', 'action' => $wasExisting ? 'update' : 'create', 'event' => 'role_saved',
+            'auditable_type' => $role->getMorphClass(), 'auditable_id' => $role->id,
+            'description' => 'Role and permissions changed.',
+            'old_values' => ['permissions' => $oldPermissions], 'new_values' => ['permissions' => $allowed],
+        ]);
 
         return $role;
     }
@@ -60,6 +68,7 @@ final class RoleManagementService
 
         $assignment = UserRoleAssignment::firstOrCreate(['principal_type' => $user->user_type, 'principal_id' => $user->id, 'role_id' => $role->id], ['company_id' => $companyId, 'status' => 'Active', 'assigned_by' => auth()->id()]);
         app(AuthorizationService::class)->forget();
+        app(AuditLogger::class)->record(['module' => 'roles', 'action' => 'assign', 'event' => 'role_assigned', 'auditable_type' => $user->getMorphClass(), 'auditable_id' => $user->id, 'description' => 'Role assigned to principal.', 'new_values' => ['role_id' => $role->id, 'principal_type' => $user->user_type]]);
 
         return $assignment;
     }
@@ -71,5 +80,6 @@ final class RoleManagementService
         }
         $assignment->update(['status' => 'Inactive', 'revoked_by' => auth()->id(), 'revoked_at' => now()]);
         app(AuthorizationService::class)->forget();
+        app(AuditLogger::class)->record(['module' => 'roles', 'action' => 'revoke', 'event' => 'role_revoked', 'auditable_type' => User::class, 'auditable_id' => $assignment->principal_id, 'description' => 'Role assignment revoked.', 'old_values' => ['role_id' => $assignment->role_id, 'principal_type' => $assignment->principal_type], 'new_values' => ['status' => 'Inactive']]);
     }
 }

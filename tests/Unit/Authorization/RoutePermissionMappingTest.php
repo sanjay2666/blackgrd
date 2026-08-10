@@ -44,9 +44,9 @@ final class RoutePermissionMappingTest extends TestCase
     public function test_route_groups_apply_server_side_rbac_after_organization_scope(): void
     {
         $routes = file_get_contents(base_path('routes/web.php'));
-        $this->assertStringContainsString("['auth:web,admin', 'organization', 'rbac']", $routes);
-        $this->assertStringContainsString("['auth:web', 'organization', 'rbac']", $routes);
-        $this->assertStringContainsString("['auth:admin', 'organization', 'rbac']", $routes);
+        $this->assertStringContainsString("['auth:web,admin', 'organization', 'rbac', 'audit']", $routes);
+        $this->assertStringContainsString("['auth:web', 'organization', 'rbac', 'audit']", $routes);
+        $this->assertStringContainsString("['auth:admin', 'organization', 'rbac', 'audit']", $routes);
     }
 
     private function permission(string $name): ?string

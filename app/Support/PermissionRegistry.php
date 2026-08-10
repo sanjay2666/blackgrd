@@ -24,7 +24,7 @@ final class PermissionRegistry
             'job-work' => ['view', 'create', 'update', 'cancel', 'dispatch', 'receive', 'close', 'print', 'export'],
             'reports' => ['view', 'print', 'export', 'configure'],
             'settings' => ['view', 'create', 'update', 'delete', 'configure'],
-            'security' => ['view', 'delete', 'export', 'manage'], 'users' => ['view', 'manage'],
+            'security' => ['view', 'delete', 'export', 'manage'], 'users' => ['view', 'manage'], 'audit-logs' => ['view', 'export'],
             'roles' => ['view', 'create', 'update', 'delete', 'assign'],
         ];
         $critical = ['organization.access-manage', 'financial-years.set-current', 'roles.assign', 'warehouse.adjust', 'work-orders.complete', 'inspection.override', 'gate-pass.issue', 'gate-pass.cancel'];

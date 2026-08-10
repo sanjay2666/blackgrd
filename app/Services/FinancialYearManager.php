@@ -57,6 +57,8 @@ class FinancialYearManager
                 $this->setCurrent($financialYear);
             }
 
+            app(AuditLogger::class)->recordAfterCommit(['module' => 'financial-years', 'action' => $financialYear->wasRecentlyCreated ? 'create' : 'update', 'event' => 'financial_year_saved', 'auditable_type' => $financialYear->getMorphClass(), 'auditable_id' => $financialYear->id, 'description' => 'Financial year saved.', 'new_values' => $financialYear->only(['code', 'start_date', 'end_date', 'status', 'is_current'])]);
+
             return $financialYear->fresh();
         });
     }
@@ -73,6 +75,8 @@ class FinancialYearManager
             FinancialYear::query()->where('company_id', $companyId)->update(['is_current' => false]);
             $financialYear->is_current = true;
             $financialYear->save();
+
+            app(AuditLogger::class)->recordAfterCommit(['module' => 'financial-years', 'action' => 'set-current', 'event' => 'financial_year_current_changed', 'auditable_type' => $financialYear->getMorphClass(), 'auditable_id' => $financialYear->id, 'description' => 'Current financial year changed.', 'new_values' => ['is_current' => true]]);
 
             return $financialYear->fresh();
         });

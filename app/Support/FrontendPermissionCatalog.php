@@ -9,7 +9,7 @@ final class FrontendPermissionCatalog
     {
         return array_values(array_filter(
             array_column(PermissionRegistry::all(), 'key'),
-            static fn (string $key): bool => ! in_array(strtok($key, '.'), ['companies', 'roles', 'users', 'security', 'settings'], true)
+            static fn (string $key): bool => ! in_array(strtok($key, '.'), ['companies', 'roles', 'users', 'security', 'settings', 'audit-logs'], true)
                 && $key !== 'organization.access-manage'
         ));
     }

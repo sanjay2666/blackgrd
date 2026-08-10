@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Admin;
 use App\Models\Role;
 use App\Models\UserRoleAssignment;
+use App\Services\AuditLogger;
 use Illuminate\Console\Command;
 
 final class AssignSuperAdminCommand extends Command
@@ -37,6 +38,7 @@ final class AssignSuperAdminCommand extends Command
             ['principal_type' => 'Admin', 'principal_id' => $admin->getAuthIdentifier(), 'role_id' => $role->getKey()],
             ['status' => 'Active', 'company_id' => null, 'assigned_by' => null, 'revoked_at' => null]
         );
+        app(AuditLogger::class)->record(['module' => 'security', 'action' => 'manage', 'event' => 'super_admin_assigned', 'auditable_type' => $admin->getMorphClass(), 'auditable_id' => $admin->id, 'description' => 'Reserved Super Admin role assigned through explicit command.']);
         $this->info('Super Admin assignment is active for Admin #'.$admin->getKey().'.');
 
         return self::SUCCESS;

@@ -223,7 +223,7 @@ inventory ledger, branch/factory creation and employee membership redesign.
 ## Current route/action mapping report
 
 `config/rbac_routes.php` is the central source, resolved by
-`App\Support\RoutePermissionRegistry`. The current inventory contains 293
+`App\Support\RoutePermissionRegistry`. The current inventory contains 295
 authenticated routes: 291 RBAC-protected routes and two explicit logout
 exclusions. `RoutePermissionMappingTest` detects new authenticated routes that
 lack a permission decision.

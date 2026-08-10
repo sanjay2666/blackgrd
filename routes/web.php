@@ -25,6 +25,7 @@ use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\UnitTypeController;
 use App\Http\Controllers\Admin\UserActivityLogController;
 use App\Http\Controllers\Admin\UserPermissionController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\UserWebPageController;
 use App\Http\Controllers\Admin\WareHouseCompartmentController;
 use App\Http\Controllers\Admin\WarehouseController;
@@ -60,7 +61,7 @@ Route::get('/', [PageController::class, 'home'])->name('home');
 | autocomplete inputs, address lookup, and common list data.
 |
 */
-Route::middleware(['auth:web,admin', 'organization', 'rbac'])->group(function () {
+Route::middleware(['auth:web,admin', 'organization', 'rbac', 'audit'])->group(function () {
     Route::get('/list_customer', [CommonController::class, 'list_customer'])->name('list_customer');
     Route::get('/fabric_list_item', [CommonController::class, 'fabric_list_item'])->name('fabric_list_item');
     Route::get('/list_warehouse_item_type', [CommonController::class, 'list_warehouse_item_type'])->name('list_warehouse_item_type');
@@ -81,7 +82,7 @@ Route::middleware(['auth:web,admin', 'organization', 'rbac'])->group(function ()
     Route::get('/list_master_color', [CommonController::class, 'list_master_color'])->name('list_master_color');
 });
 
-Route::middleware('auth:web,admin')->post('/organization/switch', [OrganizationContextController::class, 'switch'])->name('organization.switch');
+Route::middleware(['auth:web,admin', 'audit'])->post('/organization/switch', [OrganizationContextController::class, 'switch'])->name('organization.switch');
 
 /*
 |--------------------------------------------------------------------------
@@ -104,7 +105,7 @@ Route::middleware('guest:web')->group(function () {
 | Frontend Authenticated User Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:web', 'organization', 'rbac'])->group(function () {
+Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Dashboard
@@ -318,7 +319,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 
     // Admin logged-in routes.
-    Route::middleware(['auth:admin', 'organization', 'rbac'])->group(function () {
+    Route::middleware(['auth:admin', 'organization', 'rbac', 'audit'])->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
 
         // Admin master routes.
@@ -377,6 +378,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::middleware('permission:users.manage')->group(function (): void {
             Route::get('/users/{user}/permissions', [UserPermissionController::class, 'index'])->name('users.permissions.edit');
             Route::put('/users/{user}/permissions', [UserPermissionController::class, 'update'])->name('users.permissions.update');
+        });
+        Route::middleware('permission:audit-logs.view')->group(function (): void {
+            Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+            Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
         });
 
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');

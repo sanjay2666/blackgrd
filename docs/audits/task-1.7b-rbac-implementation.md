@@ -44,7 +44,7 @@ is a reserved Admin-panel role.
 
 The reviewed hash-pinned migration was applied to `blackgrd` while maintenance
 mode was active, with the preservation snapshot unchanged. `rbac:sync` then
-created 125 active permissions and the ten ordinary templates plus the
+created 127 active permissions and the ten ordinary templates plus the
 reserved Super Admin role. Maintenance mode was turned OFF and caches were
 cleared afterward.
 
