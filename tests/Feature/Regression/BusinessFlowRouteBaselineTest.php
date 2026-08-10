@@ -76,7 +76,6 @@ class BusinessFlowRouteBaselineTest extends TestCase
             'states',
             'all-pages',
             'colours',
-            'companies',
             'cotings',
             'couriers',
             'gst-rates',

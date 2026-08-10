@@ -17,7 +17,8 @@ class OrganizationScopeContractTest extends TestCase
         $this->assertStringContainsString("Schema::create('user_organization_access'", $migration);
         $this->assertStringContainsString("\$request->session()->get('organization.company_id')", $context);
         $this->assertStringContainsString("where('company_id', \$requestedCompany)", $context);
-        $this->assertStringContainsString('organization.switch', $routes);
+        $this->assertStringNotContainsString('organization.switch', $routes);
+        $this->assertStringContainsString('Company::canonical()', $context);
     }
 
     public function test_active_print_paths_do_not_use_company_one(): void

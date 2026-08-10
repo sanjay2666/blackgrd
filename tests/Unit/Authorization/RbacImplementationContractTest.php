@@ -25,7 +25,7 @@ class RbacImplementationContractTest extends TestCase
 
     public function test_registry_is_version_controlled_and_sensitive_actions_are_distinct(): void
     {
-        $this->assertCount(129, PermissionRegistry::all());
+        $this->assertCount(126, PermissionRegistry::all());
         $registry = file_get_contents(base_path('app/Support/PermissionRegistry.php'));
         $this->assertStringContainsString("'sale-orders' =>", $registry);
         $this->assertStringContainsString("'warehouse' =>", $registry);

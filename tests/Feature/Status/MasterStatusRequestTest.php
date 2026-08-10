@@ -27,7 +27,7 @@ class MasterStatusRequestTest extends TestCase
             $table->string('status')->default('Active');
         });
 
-        $admin = new User;
+        $admin = new User();
         $admin->forceFill([
             'id' => 990013,
             'user_type' => 'Admin',
@@ -96,7 +96,7 @@ class MasterStatusRequestTest extends TestCase
     public function test_selected_master_crud_routes_still_resolve(): void
     {
         foreach ([
-            'companies', 'departments', 'process-items', 'machines', 'items', 'colours',
+            'departments', 'process-items', 'machines', 'items', 'colours',
             'warehouses', 'ware-house-compartments', 'unit-types', 'item-types', 'cotings',
         ] as $resource) {
             $this->assertTrue(Route::has("admin.{$resource}.index"));

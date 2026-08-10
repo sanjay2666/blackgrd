@@ -33,7 +33,7 @@ final class AdminNavigation
                 self::item('Roles', 'admin.roles.index', 'roles.view', 'admin.roles.*'),
             ]],
             ['label' => 'Organization', 'icon' => 'fa-building', 'items' => [
-                self::item('Companies', 'admin.companies.index', 'companies.view', 'admin.companies.*'),
+                self::item('Company Profile', 'admin.companies.index', 'companies.view', 'admin.companies.*'),
                 self::item('Departments', 'admin.departments.index', 'departments.view', 'admin.departments.*'),
                 self::item('Financial Years', 'admin.financial-years.index', 'financial-years.view', 'admin.financial-years.*'),
             ]],

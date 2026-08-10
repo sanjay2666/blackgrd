@@ -38,13 +38,14 @@ class AuthenticationSecurityContractTest extends TestCase
         $this->assertStringNotContainsString("Route::post('/login-otp", $routes);
     }
 
-    public function test_organization_switch_clears_invalid_context_and_validates_factory_ownership(): void
+    public function test_organization_context_is_single_company_and_validates_active_access(): void
     {
         $middleware = file_get_contents(base_path('app/Http/Middleware/ResolveOrganizationContext.php'));
         $context = file_get_contents(base_path('app/Services/CurrentOrganizationContext.php'));
 
         $this->assertStringContainsString("forget(['organization.company_id', 'organization.factory_id'])", $middleware);
-        $this->assertStringContainsString("where('company_id', \$companyId)", $context);
+        $this->assertStringContainsString('Company::canonical()', $context);
+        $this->assertStringContainsString('Company switching is not available', $context);
         $this->assertStringContainsString("where('status', 'Active')", $context);
     }
 }

@@ -32,7 +32,14 @@ class CurrentOrganizationContext
                 $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
             });
 
+        $canonicalCompanyId = Company::canonical()->value('id');
+        if ($canonicalCompanyId === null) {
+            throw new RuntimeException('No canonical active company is configured.');
+        }
         $requestedCompany = $request->session()->get('organization.company_id');
+        if ($requestedCompany !== null && (int) $requestedCompany !== (int) $canonicalCompanyId) {
+            throw new RuntimeException('Company switching is not available in this installation.');
+        }
         $requestedFactory = $request->session()->get('organization.factory_id');
         if ($requestedFactory !== null && $requestedCompany === null) {
             throw new RuntimeException('A factory context requires a company context.');
@@ -40,7 +47,7 @@ class CurrentOrganizationContext
         if ($requestedCompany !== null) {
             $accessQuery->where('company_id', $requestedCompany);
         } else {
-            $accessQuery->orderByDesc('is_default')->orderBy('id');
+            $accessQuery->where('company_id', $canonicalCompanyId)->orderBy('id');
         }
         if ($requestedFactory !== null) {
             $accessQuery->where(function ($query) use ($requestedFactory): void {
@@ -103,29 +110,6 @@ class CurrentOrganizationContext
     public function canUseCompany(int $companyId): bool
     {
         return $this->companyId() === $companyId;
-    }
-
-    public function switch(Request $request, int $companyId, ?int $factoryId = null): void
-    {
-        $user = $this->authenticatedPrincipal();
-        if (! $user instanceof Authenticatable) {
-            throw new RuntimeException('An authenticated organization identity is required.');
-        }
-
-        $allowed = UserOrganizationAccess::query()->where('user_id', $user->getAuthIdentifier())
-            ->where('company_id', $companyId)->where('status', 'Active')
-            ->when($factoryId !== null, fn ($query) => $query->where(function ($nested) use ($factoryId): void {
-                $nested->whereNull('factory_id')->orWhere('factory_id', $factoryId);
-            }))->exists();
-        if ($factoryId !== null && ! Factory::query()->whereKey($factoryId)->where('company_id', $companyId)->where('status', 'Active')->exists()) {
-            $allowed = false;
-        }
-        if (! $allowed) {
-            throw new RuntimeException('The requested organization is not assigned to this identity.');
-        }
-
-        $request->session()->put('organization.company_id', $companyId);
-        $request->session()->put('organization.factory_id', $factoryId);
     }
 
     public function assign(array &$attributes): void

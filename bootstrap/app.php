@@ -4,7 +4,6 @@ use App\Http\Middleware\EnforceMappedPermission;
 use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\AuditMutation;
 use App\Http\Middleware\ResolveOrganizationContext;
-use App\Http\Middleware\SwitchOrganizationContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,7 +18,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'organization' => ResolveOrganizationContext::class,
-            'organization.switch' => SwitchOrganizationContext::class,
             'permission' => EnsurePermission::class,
             'rbac' => EnforceMappedPermission::class,
             'audit' => AuditMutation::class,

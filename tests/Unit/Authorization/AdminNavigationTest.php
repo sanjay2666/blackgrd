@@ -25,7 +25,9 @@ final class AdminNavigationTest extends TestCase
 
         $this->assertTrue($items->contains(fn (array $item): bool => $item['route'] === 'admin.users.index' && $item['permission'] === 'users.manage'));
         $this->assertTrue($items->contains(fn (array $item): bool => $item['route'] === 'admin.audit-logs.index' && $item['permission'] === 'audit-logs.view'));
-        $this->assertContains('companies.view', PermissionRegistry::superAdminReserved());
+        $this->assertNotContains('companies.view', PermissionRegistry::superAdminReserved());
+        $this->assertNotContains('companies.update', PermissionRegistry::superAdminReserved());
+        $this->assertContains('companies.configure', PermissionRegistry::superAdminReserved());
         $this->assertContains('audit-logs.view', PermissionRegistry::superAdminReserved());
         $this->assertStringContainsString('AdminNavigation::visible', file_get_contents(base_path('resources/views/admin/common/sidebar.blade.php')));
     }

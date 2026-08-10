@@ -35,7 +35,6 @@ use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\CommonController;
 use App\Http\Controllers\JobMillWorkController;
-use App\Http\Controllers\OrganizationContextController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseOrderController;
@@ -84,7 +83,6 @@ Route::middleware(['auth:web,admin', 'organization', 'rbac', 'audit'])->group(fu
     Route::get('/list_master_color', [CommonController::class, 'list_master_color'])->name('list_master_color');
 });
 
-Route::middleware(['auth:web,admin', 'audit'])->post('/organization/switch', [OrganizationContextController::class, 'switch'])->name('organization.switch');
 
 /*
 |--------------------------------------------------------------------------
@@ -328,7 +326,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('states', StateController::class)->except(['show']);
         Route::resource('all-pages', AllPageController::class)->except(['show']);
         Route::resource('colours', ColourController::class)->except(['show']);
-        Route::resource('companies', CompanyController::class)->except(['show']);
+        Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
+        Route::get('/companies/edit', [CompanyController::class, 'edit'])->name('companies.edit');
+        Route::put('/companies', [CompanyController::class, 'update'])->name('companies.update');
         Route::resource('cotings', CotingController::class)->except(['show']);
         Route::resource('couriers', CourierController::class)->except(['show']);
         Route::resource('gst-rates', GstRateController::class)->except(['show']);

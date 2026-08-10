@@ -5,9 +5,9 @@ namespace App\Support;
 final class PermissionRegistry
 {
     /** Permissions which must never be granted by a Company Admin. */
-    private const SUPER_ADMIN_RESERVED_PREFIXES = ['companies.', 'security.', 'audit-logs.', 'settings.'];
+    private const SUPER_ADMIN_RESERVED_PREFIXES = ['security.', 'audit-logs.', 'settings.'];
 
-    private const SUPER_ADMIN_RESERVED_KEYS = ['organization.access-manage'];
+    private const SUPER_ADMIN_RESERVED_KEYS = ['organization.access-manage', 'companies.configure'];
 
     /** Resources which belong only to the Admin security/configuration panel. */
     private const ADMIN_ONLY_RESOURCES = ['companies', 'roles', 'users', 'security', 'settings', 'audit-logs', 'number-series'];
@@ -16,8 +16,8 @@ final class PermissionRegistry
     public static function all(): array
     {
         $groups = [
-            'dashboard' => ['view'], 'organization' => ['view', 'switch', 'access-manage'],
-            'companies' => ['view', 'create', 'update', 'delete', 'configure'],
+            'dashboard' => ['view'], 'organization' => ['view', 'access-manage'],
+            'companies' => ['view', 'update', 'configure'],
             'financial-years' => ['view', 'create', 'update', 'delete', 'set-current', 'configure'],
             'departments' => ['view', 'create', 'update', 'delete', 'operate', 'configure'],
             'employees' => ['view', 'create', 'update', 'delete', 'export', 'manage'],

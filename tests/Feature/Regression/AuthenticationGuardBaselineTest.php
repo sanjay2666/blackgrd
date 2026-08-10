@@ -53,12 +53,12 @@ class AuthenticationGuardBaselineTest extends TestCase
     {
         $this->get('/sale-orders/not-an-encrypted-id/edit')->assertRedirect(route('login'));
         $this->get('/print-workorder-gatepass/not-an-encrypted-id')->assertRedirect(route('login'));
-        $this->get('/admin/companies/not-an-encrypted-id/edit')->assertRedirect(route('admin.login'));
+        $this->get('/admin/companies/edit')->assertRedirect(route('admin.login'));
     }
 
     private function transientUser(string $type, int $id): User
     {
-        $user = new User;
+        $user = new User();
         $user->forceFill([
             'id' => $id,
             'user_type' => $type,
