@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\SafeAuthRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
 class AdminAuthController extends Controller
@@ -26,18 +28,26 @@ class AdminAuthController extends Controller
         $credentials['status'] = 'Active';
 
         if (Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
+            $admin = Auth::guard('admin')->user();
+            if ($admin !== null && Hash::needsRehash($admin->getAuthPassword())) {
+                $admin->forceFill(['password' => Hash::make($request->password)])->saveQuietly();
+            }
+
+            $request->session()->forget(['organization.company_id', 'organization.factory_id']);
             $request->session()->regenerate();
-            return redirect()->intended(route('admin.dashboard'));
+
+            return app(SafeAuthRedirect::class)->intended($request, route('admin.dashboard'));
         }
 
         return back()->withErrors([
-            'email' => 'Invalid admin credentials or inactive admin account.',
+            'email' => 'Email or Password is incorrect.',
         ])->onlyInput('email');
     }
 
     public function logout(Request $request): RedirectResponse
     {
         Auth::guard('admin')->logout();
+        $request->session()->forget(['organization.company_id', 'organization.factory_id']);
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

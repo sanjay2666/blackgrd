@@ -47,7 +47,6 @@
                             <div><button type="submit" class="btn btn-add">Login</button></div>
                         </form>
                         <hr>
-                        <p class="small text-muted">Default admin: admin@blackgrd.test / Admin@12345</p>
                     </div>
                 </div>
             </div>

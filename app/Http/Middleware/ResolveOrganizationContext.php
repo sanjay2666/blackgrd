@@ -21,6 +21,7 @@ class ResolveOrganizationContext
         try {
             app(CurrentOrganizationContext::class)->resolve($request);
         } catch (\Throwable $exception) {
+            $request->session()->forget(['organization.company_id', 'organization.factory_id']);
             abort(403, 'An active organization context is required.');
         }
 

@@ -34,6 +34,9 @@ class CurrentOrganizationContext
 
         $requestedCompany = $request->session()->get('organization.company_id');
         $requestedFactory = $request->session()->get('organization.factory_id');
+        if ($requestedFactory !== null && $requestedCompany === null) {
+            throw new RuntimeException('A factory context requires a company context.');
+        }
         if ($requestedCompany !== null) {
             $accessQuery->where('company_id', $requestedCompany);
         } else {
@@ -42,6 +45,14 @@ class CurrentOrganizationContext
         if ($requestedFactory !== null) {
             $accessQuery->where(function ($query) use ($requestedFactory): void {
                 $query->whereNull('factory_id')->orWhere('factory_id', $requestedFactory);
+            });
+        }
+
+        if ($requestedFactory !== null && $requestedCompany !== null) {
+            $accessQuery->whereHas('factory', function ($query) use ($requestedCompany, $requestedFactory): void {
+                $query->where('id', $requestedFactory)
+                    ->where('company_id', $requestedCompany)
+                    ->where('status', 'Active');
             });
         }
 
@@ -106,6 +117,9 @@ class CurrentOrganizationContext
             ->when($factoryId !== null, fn ($query) => $query->where(function ($nested) use ($factoryId): void {
                 $nested->whereNull('factory_id')->orWhere('factory_id', $factoryId);
             }))->exists();
+        if ($factoryId !== null && ! Factory::query()->whereKey($factoryId)->where('company_id', $companyId)->where('status', 'Active')->exists()) {
+            $allowed = false;
+        }
         if (! $allowed) {
             throw new RuntimeException('The requested organization is not assigned to this identity.');
         }

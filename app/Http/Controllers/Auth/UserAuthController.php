@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\User;
 use App\Models\UserOrganizationAccess;
+use App\Support\SafeAuthRedirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 class UserAuthController extends Controller
 {
@@ -26,7 +28,7 @@ class UserAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|max:255',
             'email' => 'required|email|max:255|unique:users,email',
-            'password' => 'required|confirmed|min:8',
+            'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
         ], [
             'name.required' => 'Please enter Name.',
             'email.required' => 'Please enter Email.',
@@ -34,7 +36,6 @@ class UserAuthController extends Controller
             'email.unique' => 'Email already exists.',
             'password.required' => 'Please enter Password.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'password.min' => 'Password must be at least 8 characters.',
         ]);
 
         if ($validator->fails()) {
@@ -50,7 +51,6 @@ class UserAuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'financial_year' => currentFinancialYear(),
         ]);
 
         $companyId = Company::query()->where('status', 'Active')->orderBy('id')->value('id');
@@ -66,6 +66,7 @@ class UserAuthController extends Controller
         }
 
         Auth::guard('web')->login($user);
+        $request->session()->forget(['organization.company_id', 'organization.factory_id']);
         $request->session()->regenerate();
 
         return redirect()->route('dashboard');
@@ -103,7 +104,7 @@ class UserAuthController extends Controller
             ->first();
 
         if (empty($user)) {
-            Session::put('message', 'This email address is not registered.');
+            Session::put('message', 'If an account exists, a password reset link will be sent.');
             Session::put('messageClass', 'errorClass');
 
             return redirect()->back()->withInput();
@@ -125,23 +126,9 @@ class UserAuthController extends Controller
         $body .= '<p><a href="'.$resetLink.'" style="background:#0b8f84;color:#ffffff;padding:10px 16px;text-decoration:none;display:inline-block;">Reset Password</a></p>';
         $body .= '<p>If you did not request this, please ignore this email.</p>';
 
-        $mailResult = sendMail($user->email, 'Reset Your Loomexa Password', mailBody($body), 'Loomexa');
+        sendMail($user->email, 'Reset Your Loomexa Password', mailBody($body), 'Loomexa');
 
-        if (config('mail.default') == 'log') {
-            Session::put('message', 'Mail is currently in log mode. Reset email is saved in storage/logs/laravel.log. Please configure SMTP to receive email in inbox.');
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        if ($mailResult != 'Message sent!') {
-            Session::put('message', $mailResult);
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        Session::put('message', 'Password reset link has been sent to your email.');
+        Session::put('message', 'If an account exists, a password reset link will be sent.');
         Session::put('messageClass', 'successClass');
 
         return redirect()->route('login');
@@ -160,14 +147,13 @@ class UserAuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'token' => 'required',
-            'password' => 'required|confirmed|min:8',
+            'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
         ], [
             'email.required' => 'Please enter Email.',
             'email.email' => 'Please enter valid Email.',
             'token.required' => 'Reset token is missing.',
             'password.required' => 'Please enter Password.',
             'password.confirmed' => 'Password confirmation does not match.',
-            'password.min' => 'Password must be at least 8 characters.',
         ]);
 
         if ($validator->fails()) {
@@ -204,7 +190,7 @@ class UserAuthController extends Controller
             ->first();
 
         if (empty($user)) {
-            Session::put('message', 'User account not found.');
+            Session::put('message', 'Password reset link is invalid.');
             Session::put('messageClass', 'errorClass');
 
             return redirect()->route('password.request');
@@ -215,6 +201,7 @@ class UserAuthController extends Controller
         $user->save();
 
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+        DB::table('sessions')->where('user_id', $user->id)->delete();
 
         Session::put('message', 'Password reset successfully. Please login with your new password.');
         Session::put('messageClass', 'successClass');
@@ -248,9 +235,15 @@ class UserAuthController extends Controller
         ];
 
         if (Auth::guard('web')->attempt($credentials, $request->boolean('remember'))) {
+            $user = Auth::guard('web')->user();
+            if ($user !== null && Hash::needsRehash($user->getAuthPassword())) {
+                $user->forceFill(['password' => Hash::make($request->password)])->saveQuietly();
+            }
+
+            $request->session()->forget(['organization.company_id', 'organization.factory_id']);
             $request->session()->regenerate();
 
-            return redirect()->intended(route('dashboard'));
+            return app(SafeAuthRedirect::class)->intended($request, route('dashboard'));
         }
 
         Session::put('message', 'Email or Password is incorrect.');
@@ -262,6 +255,7 @@ class UserAuthController extends Controller
     public function logout(Request $request)
     {
         Auth::guard('web')->logout();
+        $request->session()->forget(['organization.company_id', 'organization.factory_id']);
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

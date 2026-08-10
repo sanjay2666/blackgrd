@@ -90,11 +90,11 @@ Route::middleware('guest:web')->group(function () {
     Route::get('/register', [UserAuthController::class, 'showRegister'])->name('register');
     Route::post('/register', [UserAuthController::class, 'register'])->name('register.store');
     Route::get('/login', [UserAuthController::class, 'showLogin'])->name('login');
-    Route::post('/login', [UserAuthController::class, 'login'])->name('login.store');
+    Route::post('/login', [UserAuthController::class, 'login'])->middleware('throttle:auth-login')->name('login.store');
     Route::get('/forgot-password', [UserAuthController::class, 'showForgotPassword'])->name('password.request');
-    Route::post('/forgot-password', [UserAuthController::class, 'sendResetLink'])->name('password.email');
+    Route::post('/forgot-password', [UserAuthController::class, 'sendResetLink'])->middleware('throttle:password-reset')->name('password.email');
     Route::get('/reset-password/{token}', [UserAuthController::class, 'showResetPassword'])->name('password.reset');
-    Route::post('/reset-password', [UserAuthController::class, 'resetPassword'])->name('password.update');
+    Route::post('/reset-password', [UserAuthController::class, 'resetPassword'])->middleware('throttle:password-reset')->name('password.update');
 });
 
 /*
@@ -320,7 +320,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     // Admin guest routes.
     Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
-        Route::post('/login', [AdminAuthController::class, 'login'])->name('login.store');
+        Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:auth-login')->name('login.store');
     });
 
     // Admin logged-in routes.

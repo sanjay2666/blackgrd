@@ -4,9 +4,13 @@ namespace App\Providers;
 
 use App\Services\CurrentOrganizationContext;
 use App\Services\FinancialYearResolver;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Str;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +27,24 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('auth-login', function (Request $request): array {
+            $email = Str::lower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(20)->by('ip:'.$request->ip()),
+                Limit::perMinute(5)->by('account:'.$request->ip().'|'.$email),
+            ];
+        });
+
+        RateLimiter::for('password-reset', function (Request $request): array {
+            $email = Str::lower(trim((string) $request->input('email')));
+
+            return [
+                Limit::perMinute(10)->by('ip:'.$request->ip()),
+                Limit::perMinute(3)->by('account:'.$request->ip().'|'.$email),
+            ];
+        });
+
         Model::creating(function (Model $model): void {
             if (! Schema::hasColumn($model->getTable(), 'financial_year_id')) {
                 return;
