@@ -1,0 +1,9 @@
+# Task 2.8 — Print, Job Work and Document Settings Audit
+
+The audit found no existing standalone settings/configuration table. Company Master already owns legal identity, logo, invoice footer, and terms fields. Number Series is an existing separate foundation, and Gate Pass owns its print counter/log behavior. No duplicate Company Master, Number Series, print counter, PDF engine, or image/signature store was introduced.
+
+The implementation adds one typed `document_settings` table keyed by canonical company and stable document key. It supports only practical presentation settings for Sale Order, Purchase Order, Work Order, Gate Pass, Job Work Dispatch, and Job Work Receive: logo/address/tax visibility, title, safe plain text footer/terms, signatory label, and three copy labels. Missing rows use deterministic defaults matching current output. Settings are immediately read from the database; no cache was introduced.
+
+Purchase Order print consumes document title, terms, and signatory defaults. Job Work/Gate Pass print consumes configured copy labels while preserving all existing transaction data, print counters, logs, calculations, and routes. Other print templates remain compatible and were not broadly rewritten. Historical customer/vendor/address/tax/quantity/document snapshots are never updated by settings changes.
+
+The settings page is Admin-only, protected server-side by existing settings permissions, visible through permission-aware AdminNavigation, and audited through centralized Audit Log. Validation rejects unsupported keys and executable markup; output remains escaped. Company Master remains the legal identity source. No upload behavior was added because existing logo/signature ownership already belongs to Company Master. No Job Work workflow, Purchase/Sales/Gate Pass/Warehouse flow, Number Series, accounting, PDF, e-Invoice, e-Way Bill, or next-stage task was started.

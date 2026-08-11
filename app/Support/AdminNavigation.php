@@ -73,6 +73,7 @@ final class AdminNavigation
                 self::item('User Web Pages', 'admin.user-web-pages.index', 'settings.view', 'admin.user-web-pages.*'),
                 self::item('Office IPs', 'admin.office-ips.index', 'settings.view', 'admin.office-ips.*'),
                 self::item('Number Series', 'admin.number-series.index', 'number-series.view', 'admin.number-series.*'),
+                self::item('Print & Document Settings', 'admin.document-settings.edit', 'settings.view', 'admin.document-settings.*'),
             ]],
             ['label' => 'Security & Audit', 'icon' => 'fa-shield', 'items' => [
                 self::item('Audit Logs', 'admin.audit-logs.index', 'audit-logs.view', 'admin.audit-logs.*'),

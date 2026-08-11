@@ -203,7 +203,7 @@
 				@endif
 			</div>
 			<div class="po-block">
-				<h2>Purchase Order</h2>
+				<h2>{{ $documentSettings['document_title'] ?: 'Purchase Order' }}</h2>
 				<div class="meta-line"><strong>PO No:</strong> {{ $dataPur->id }}</div>
 				<div class="meta-line"><strong>Date:</strong> {{ $poDate }}</div>
 				<div class="meta-line"><strong>Status:</strong> {{ $dataPur->status }}</div>
@@ -306,9 +306,9 @@
 		<div class="footer-row">
 			<div>
 				<strong>Terms & Conditions</strong><br>
-				{!! nl2br(e($dataCom->terms_and_conditions ?: '')) !!}
+				{!! nl2br(e($documentSettings['terms_text'] ?: ($dataCom->terms_and_conditions ?: ''))) !!}
 			</div>
-			<div class="signature">Authorized Signatory</div>
+			<div class="signature">{{ $documentSettings['signatory_label'] ?: 'Authorized Signatory' }}</div>
 		</div>
 	</div>
 

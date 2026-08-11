@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\VendorAddressController;
 use App\Http\Controllers\Admin\TransporterController;
 use App\Http\Controllers\Admin\TransporterAddressController;
+use App\Http\Controllers\Admin\DocumentSettingsController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ItemTypeController;
 use App\Http\Controllers\Admin\ItemYarnRequirementController;
@@ -414,6 +415,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::post('/financial-years/{financial_year}/set-current', [FinancialYearController::class, 'setCurrent'])->name('financial-years.set-current');
         Route::get('/number-series', [NumberSeriesController::class, 'index'])->middleware('permission:number-series.view')->name('number-series.index');
         Route::put('/number-series/{number_series}', [NumberSeriesController::class, 'update'])->middleware('permission:number-series.manage')->name('number-series.update');
+        Route::get('/document-settings', [DocumentSettingsController::class, 'edit'])->name('document-settings.edit');
+        Route::put('/document-settings', [DocumentSettingsController::class, 'update'])->name('document-settings.update');
         Route::resource('user-web-pages', UserWebPageController::class)->except(['show']);
         Route::resource('warehouses', WarehouseController::class)->except(['show']);
         Route::patch('/warehouses/{id}/activate', [WarehouseController::class, 'activate'])->name('warehouses.activate');

@@ -7,6 +7,7 @@ use App\Models\ItemType;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\UnitType;
+use App\Services\DocumentSettingsService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -411,7 +412,7 @@ class PurchaseOrderController extends Controller
         return response()->json(['success' => true]);
     }
 
-    public function printPurchaseOrder($id)
+    public function printPurchaseOrder($id, DocumentSettingsService $documentSettings)
     {
         $purchaseId = dec($id);
         $dataPur = PurchaseOrder::with(['vendor', 'billingAddress', 'shippingAddress'])
@@ -427,7 +428,7 @@ class PurchaseOrderController extends Controller
 
         $dataCom = Company::where('status', 'Active')->orderBy('id', 'asc')->first();
 
-        return view('frontend.purchaseorder.print', compact('dataPur', 'dataPI', 'dataCom'));
+        return view('frontend.purchaseorder.print', ['dataPur' => $dataPur, 'dataPI' => $dataPI, 'dataCom' => $dataCom, 'documentSettings' => $documentSettings->for('purchase_order')]);
     }
 
 }

@@ -19,6 +19,7 @@ return [
         'admin.vendors.activate' => 'purchases.update', 'admin.vendors.deactivate' => 'purchases.update',
         'admin.vendors.destroy' => 'purchases.update',
         'admin.vendors.addresses.destroy' => 'purchases.update',
+        'admin.document-settings.edit' => 'settings.view', 'admin.document-settings.update' => 'settings.update',
         'admin.transporters.activate' => 'masters.update', 'admin.transporters.deactivate' => 'masters.update',
         'admin.transporters.destroy' => 'masters.delete', 'admin.transporters.addresses.destroy' => 'masters.delete',
         'admin.shifts.activate' => 'masters.update', 'admin.shifts.deactivate' => 'masters.update',

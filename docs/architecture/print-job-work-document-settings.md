@@ -1,0 +1,9 @@
+# Print, Job Work and Document Settings
+
+Document Settings control presentation/default configuration; they do not own transactional document data. The canonical storage is the company-scoped `document_settings` table and `App\Models\DocumentSetting`, accessed through `App\Services\DocumentSettingsService`. The single canonical company comes from `CurrentOrganizationContext`; there is no company selector or tenant settings model.
+
+Supported stable document keys are `sale_order`, `purchase_order`, `work_order`, `gate_pass`, `job_work_dispatch`, and `job_work_receive`. Each key supports typed visibility flags, optional title/footer/terms/signatory text, and up to three copy labels. Defaults preserve current behavior when no row exists. Unsupported keys and fields are rejected. Text is escaped at print output and script/object/style/PHP markup is rejected; no stored Blade/PHP/HTML execution exists.
+
+Company Master remains the legal identity source for company name, address, GSTIN/PAN, contact data, and logo. Existing Company Master logo/signature fields remain owned there; this task adds no duplicate upload or signature storage. Numbering remains owned by canonical Number Series, not Print/Document Settings. Existing Gate Pass print counters and logs remain in the operational print flow and are not changed by settings.
+
+The Admin-only settings page uses existing `settings.view`/`settings.update` RBAC and centralized Audit Log. There is no frontend route. Purchase Order and Job Work/Gate Pass presentation consume resolved settings while retaining their existing transaction queries, calculations, number formats, print routes, counters, and snapshots. Settings changes do not rewrite historical business transactions or snapshots. Job Work settings are defaults/presentation only and are not a second Job Work workflow engine.
