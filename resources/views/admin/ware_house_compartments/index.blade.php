@@ -17,23 +17,24 @@
                     <div class="panel-body">
                         <div class="row" style="margin-bottom:5px">
                             <form action="{{ route('admin.ware-house-compartments.index') }}" method="GET">
-                                <div class="col-sm-4"><input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search"></div>
+                                <div class="col-sm-3"><input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search name"></div>
+                                <div class="col-sm-3"><select name="warehouse_id" class="form-control"><option value="">All Warehouses</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected((string) request('warehouse_id') === (string) $warehouse->id)>{{ $warehouse->warehouse_name }}</option>@endforeach</select></div>
+                                <div class="col-sm-2"><select name="status" class="form-control"><option value="">All Statuses</option>@foreach($statusOptions as $value => $label)<option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>@endforeach</select></div>
                                 <div class="col-sm-2"><button class="btn btn-add">Search</button></div>
                             </form>
-                            <div class="col-sm-3"><a href="{{ route('admin.ware-house-compartments.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Warehouse Compartments</a></div>
+                            <div class="col-sm-2"><a href="{{ route('admin.ware-house-compartments.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Compartment</a></div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped table-hover">
-                                <thead><tr class="info"><th>Compartment Name</th><th>Warehouse Id</th><th>Employee Id</th><th>Status</th><th>Action</th><th>Delete</th></tr></thead>
+                                <thead><tr class="info"><th>Compartment / Bin</th><th>Warehouse</th><th>Factory / Branch</th><th>Status</th><th>Actions</th></tr></thead>
                                 <tbody>
                                     @forelse ($wareHouseCompartments as $row)
                                         <tr id="ware_house_compartments-row-{{ $row->id }}">
                                             <td>{{ $row->compartment_name }}</td>
-                                            <td>{{ $row->warehouse_id }}</td>
-                                            <td>{{ $row->ind_emp_id }}</td>
+                                            <td>{{ $row->warehouse?->warehouse_name ?? '—' }}</td>
+                                            <td>{{ $row->warehouse?->factory?->name ?? 'Company / central' }}</td>
                                             <td>{{ $row->status }}</td>
-                                            <td><a href="{{ route('admin.ware-house-compartments.edit', enc($row->id)) }}"><i class="fa fa-pencil"></i></a></td>
-                                            <td><button type="button" class="btn btn-danger btn-xs" onclick="deleteRecord('{{ enc($row->id) }}', {{ $row->id }})"><i class="fa fa-trash-o"></i></button></td>
+                                            <td><a class="btn btn-xs btn-default" href="{{ route('admin.ware-house-compartments.edit', enc($row->id)) }}">Edit</a>@if($row->status === 'Active')<form class="inline-form" method="POST" action="{{ route('admin.ware-house-compartments.deactivate', enc($row->id)) }}">@csrf @method('PATCH')<button class="btn btn-xs btn-warning">Deactivate</button></form>@else<form class="inline-form" method="POST" action="{{ route('admin.ware-house-compartments.activate', enc($row->id)) }}">@csrf @method('PATCH')<button class="btn btn-xs btn-success">Activate</button></form>@endif</td>
                                         </tr>
                                     @empty
                                         <tr><td colspan="8" class="text-center">No records found.</td></tr>
@@ -49,18 +50,6 @@
         @include('admin.common.footer')
     </div>
     @include('admin.common.formfooterscript')
-    <script>
-        function deleteRecord(id, rowId) {
-            if (!confirm('Do you really want to delete this record?')) { return; }
-            $.ajax({
-                type: 'DELETE',
-                url: '{{ url('/admin/ware-house-compartments') }}/' + encodeURIComponent(id),
-                data: { _token: '{{ csrf_token() }}' },
-                success: function () { $('#ware_house_compartments-row-' + rowId).hide(); },
-                error: function () { alert('Record delete nahi ho paya. Please try again.'); }
-            });
-        }
-    </script>
 </body>
 </html>
 

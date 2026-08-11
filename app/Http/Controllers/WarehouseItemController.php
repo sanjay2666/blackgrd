@@ -370,7 +370,7 @@ class WarehouseItemController extends Controller
 
                 $vendorId = $vendor_id;
 
-                $obj2 = new WarehouseItemStock;
+                $obj2 = new WarehouseItemStock();
                 $obj2->warehouse_item_id = $lastInsertId;
                 $obj2->warehouse_id = $warehouseItem->warehouse_id;
                 $obj2->ware_comp_id = $warehouseItem->ware_comp_id;
@@ -404,7 +404,7 @@ class WarehouseItemController extends Controller
 
                 $lastInsertedStockId = $obj2->getKey();
 
-                $stocFArr = new WarehouseItemStockFile;
+                $stocFArr = new WarehouseItemStockFile();
                 $stocFArr->warehouse_item_id = $lastInsertId;
                 $stocFArr->wis_id = $lastInsertedStockId;
                 $stocFArr->wis_out_id = null;
@@ -805,7 +805,7 @@ class WarehouseItemController extends Controller
                     ]);
                     $lastInsertedStockId = $newStock->id;
 
-                    $stocFArr = new WarehouseItemStockFile;
+                    $stocFArr = new WarehouseItemStockFile();
                     $stocFArr->warehouse_item_id = $warehouseItem->id;
                     $stocFArr->wis_id = $lastInsertedStockId;
                     $stocFArr->wis_out_id = null;
@@ -2137,6 +2137,7 @@ class WarehouseItemController extends Controller
     {
         $warehouseId = $request->input('Id');
         $compartments = WarehouseCompartment::where('warehouse_id', $warehouseId)
+            ->whereHas('warehouse')
             ->where('status', '=', 'Active')
             ->orderBy('compartment_name')
             ->get();
@@ -2158,6 +2159,7 @@ class WarehouseItemController extends Controller
     {
         $warehouseId = $request->input('Id');
         $compartments = WarehouseCompartment::where('warehouse_id', $warehouseId)
+            ->whereHas('warehouse')
             ->where('status', '=', 'Active')
             ->orderBy('compartment_name')
             ->get();
@@ -2177,6 +2179,7 @@ class WarehouseItemController extends Controller
     public function getWarehouseCompEmployee(Request $request)
     {
         $compartment = WarehouseCompartment::where('id', $request->input('Id'))
+            ->whereHas('warehouse')
             ->where('status', '=', 'Active')
             ->first();
 
@@ -2198,6 +2201,7 @@ class WarehouseItemController extends Controller
         }
 
         $options = WarehouseCompartment::where('warehouse_id', $stock->warehouse_id)
+            ->whereHas('warehouse')
             ->where('status', 'Active')
             ->orderBy('compartment_name')
             ->get(['id', 'compartment_name']);
@@ -2210,11 +2214,14 @@ class WarehouseItemController extends Controller
         $stockId = $request->input('id');
         $compartmentId = $request->input('selectedValue');
 
-        $stock = WarehouseItemStock::where('id', $stockId)->where('status', 'Active')->first();
-        $compartment = WarehouseCompartment::where('id', $compartmentId)->where('status', 'Active')->first();
+        $stock = WarehouseItemStock::where('id', $stockId)->whereHas('Warehouse')->where('status', 'Active')->first();
+        $compartment = WarehouseCompartment::where('id', $compartmentId)->whereHas('warehouse')->where('status', 'Active')->first();
 
         if (empty($stock) || empty($compartment)) {
             return response()->json(['success' => false], 404);
+        }
+        if ((int) $stock->warehouse_id !== (int) $compartment->warehouse_id) {
+            return response()->json(['success' => false, 'message' => 'Warehouse and Compartment do not match.'], 422);
         }
 
         $stock->ware_comp_id = $compartment->id;

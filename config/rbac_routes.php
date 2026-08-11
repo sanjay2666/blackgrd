@@ -34,6 +34,7 @@ return [
         'admin.factories.create' => 'branches.create', 'admin.factories.store' => 'branches.create', 'admin.factories.edit' => 'branches.update', 'admin.factories.update' => 'branches.update', 'admin.factories.activate' => 'branches.activate', 'admin.factories.deactivate' => 'branches.deactivate',
         'admin.departments.activate' => 'departments.activate', 'admin.departments.deactivate' => 'departments.deactivate',
         'admin.warehouses.activate' => 'warehouse.update', 'admin.warehouses.deactivate' => 'warehouse.update',
+        'admin.ware-house-compartments.activate' => 'warehouse.update', 'admin.ware-house-compartments.deactivate' => 'warehouse.update',
         'admin.unit-types.activate' => 'masters.update', 'admin.unit-types.deactivate' => 'masters.update',
         'admin.fabric-qualities.activate' => 'masters.update', 'admin.fabric-qualities.deactivate' => 'masters.update',
         'admin.colours.activate' => 'masters.update', 'admin.colours.deactivate' => 'masters.update',

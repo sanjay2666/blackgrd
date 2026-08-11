@@ -18,7 +18,7 @@
                         @csrf
                         <div class="row">
                             <div class="col-sm-4"><div class="form-group"><label>Compartment Name <span class="required">*</span></label><input type="text" name="compartment_name" value="{{ old('compartment_name') }}" class="form-control" required></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Warehouse Id <span class="required">*</span></label><input type="number" name="warehouse_id" value="{{ old('warehouse_id') }}" class="form-control" step="any" required></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Warehouse <span class="required">*</span></label><select name="warehouse_id" class="form-control" required><option value="">Select Warehouse</option>@foreach($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected(old('warehouse_id') == $warehouse->id)>{{ $warehouse->warehouse_name }}@if($warehouse->factory) — {{ $warehouse->factory->name }}@endif</option>@endforeach</select></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Employee Id</label><input type="number" name="ind_emp_id" value="{{ old('ind_emp_id') }}" class="form-control" step="any"></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options')</select></div></div>
                         </div>

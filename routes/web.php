@@ -2,17 +2,17 @@
 
 use App\Http\Controllers\Admin\AllPageController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\BranchFactoryController;
 use App\Http\Controllers\Admin\ChemicalController;
 use App\Http\Controllers\Admin\ColourController;
-use App\Http\Controllers\Admin\DyeingColourController;
-use App\Http\Controllers\Admin\BranchFactoryController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CotingController;
 use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\Admin\FinancialYearController;
+use App\Http\Controllers\Admin\DyeingColourController;
 use App\Http\Controllers\Admin\FabricQualityController;
+use App\Http\Controllers\Admin\FinancialYearController;
 use App\Http\Controllers\Admin\GstRateController;
 use App\Http\Controllers\Admin\HsnCodeController;
 use App\Http\Controllers\Admin\IndividualController;
@@ -26,14 +26,14 @@ use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\NumberSeriesController;
 use App\Http\Controllers\Admin\OfficeIpController;
 use App\Http\Controllers\Admin\PackagingTypeController;
-use App\Http\Controllers\Admin\ProcessItemController;
 use App\Http\Controllers\Admin\PrintingDesignController;
+use App\Http\Controllers\Admin\ProcessItemController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\UnitTypeController;
 use App\Http\Controllers\Admin\UserActivityLogController;
-use App\Http\Controllers\Admin\UserPermissionController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\UserPermissionController;
 use App\Http\Controllers\Admin\UserWebPageController;
 use App\Http\Controllers\Admin\WareHouseCompartmentController;
 use App\Http\Controllers\Admin\WarehouseController;
@@ -90,7 +90,6 @@ Route::middleware(['auth:web,admin', 'organization', 'rbac', 'audit'])->group(fu
     Route::get('/list_master_color', [CommonController::class, 'list_master_color'])->name('list_master_color');
     Route::get('/list_master_dyeing_colour', DyeingColourLookupController::class)->name('list_master_dyeing_colour');
 });
-
 
 /*
 |--------------------------------------------------------------------------
@@ -404,6 +403,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/warehouses/{id}/activate', [WarehouseController::class, 'activate'])->name('warehouses.activate');
         Route::patch('/warehouses/{id}/deactivate', [WarehouseController::class, 'deactivate'])->name('warehouses.deactivate');
         Route::resource('ware-house-compartments', WareHouseCompartmentController::class)->except(['show']);
+        Route::patch('/ware-house-compartments/{id}/activate', [WareHouseCompartmentController::class, 'activate'])->name('ware-house-compartments.activate');
+        Route::patch('/ware-house-compartments/{id}/deactivate', [WareHouseCompartmentController::class, 'deactivate'])->name('ware-house-compartments.deactivate');
 
         // Admin logs/security routes.
         Route::get('/login-attempts', [LoginAttemptController::class, 'index'])->name('login-attempts.index');
