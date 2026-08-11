@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\NumberSeriesController;
 use App\Http\Controllers\Admin\OfficeIpController;
 use App\Http\Controllers\Admin\PackagingTypeController;
 use App\Http\Controllers\Admin\ProcessItemController;
+use App\Http\Controllers\Admin\PrintingDesignController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\StateController;
 use App\Http\Controllers\Admin\UnitTypeController;
@@ -373,6 +374,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('fabric-qualities/{id}/activate', [FabricQualityController::class, 'activate'])->name('fabric-qualities.activate');
         Route::patch('fabric-qualities/{id}/deactivate', [FabricQualityController::class, 'deactivate'])->name('fabric-qualities.deactivate');
         Route::resource('fabric-qualities', FabricQualityController::class)->except(['show']);
+        Route::patch('printing-designs/{id}/activate', [PrintingDesignController::class, 'activate'])->name('printing-designs.activate');
+        Route::patch('printing-designs/{id}/deactivate', [PrintingDesignController::class, 'deactivate'])->name('printing-designs.deactivate');
+        Route::get('printing-designs/options', [PrintingDesignController::class, 'options'])->name('printing-designs.options');
+        Route::resource('printing-designs', PrintingDesignController::class)->except(['show']);
 
         // Admin item/yarn routes.
         Route::get('/items/{id}/manage-yarn', [ItemController::class, 'manageYarn'])->name('items.manage-yarn');
