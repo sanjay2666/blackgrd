@@ -42,6 +42,7 @@ final class AdminNavigation
                 self::item('Individuals (All Parties)', 'admin.individuals.index', 'employees.view', 'admin.individuals.*'),
                 self::item('Employee Master', 'admin.employees.index', 'employees.view', 'admin.employees.*'),
                 self::item('Customer Master', 'admin.customers.index', 'customers.view', 'admin.customers.*'),
+                self::item('Vendor Master', 'admin.vendors.index', 'purchases.view', 'admin.vendors.*'),
                 self::item('States', 'admin.states.index', 'masters.view', 'admin.states.*'),
                 self::item('Colours', 'admin.colours.index', 'masters.view', 'admin.colours.*'),
                 self::item('Shade / Dyeing Colours', 'admin.dyeing-colours.index', 'masters.view', 'admin.dyeing-colours.*'),

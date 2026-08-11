@@ -215,7 +215,7 @@ class CommonController extends Controller
 	{
 
 		$qsearch 	= trim($request->term);
-		$dataI 		= Individual::where(function ($query) use ($qsearch) {
+		$dataI 		= Individual::where('company_id', app(\App\Services\CurrentOrganizationContext::class)->companyId())->where(function ($query) use ($qsearch) {
 			$query->whereRaw("CONCAT(COALESCE(name, ''), COALESCE(whatsapp, ''), COALESCE(email, '')) LIKE ?", ['%' . $qsearch . '%']);
 			})
 			->where('type', 'vendors')

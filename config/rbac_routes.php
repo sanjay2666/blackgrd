@@ -8,7 +8,7 @@ return [
         'item-yarn-requirements' => 'masters', 'notifications' => 'settings', 'packaging-types' => 'masters',
         'unit-types' => 'masters', 'fabric-qualities' => 'masters', 'fabric-fault-reasons' => 'masters', 'printing-designs' => 'masters', 'user-web-pages' => 'settings', 'warehouses' => 'warehouse',
         'ware-house-compartments' => 'warehouse', 'machines' => 'masters', 'machine-capacities' => 'masters', 'shifts' => 'masters', 'office-ips' => 'settings',
-        'process-items' => 'processes', 'individuals' => 'employees', 'employees' => 'employees', 'customers' => 'customers',
+        'process-items' => 'processes', 'individuals' => 'employees', 'employees' => 'employees', 'customers' => 'customers', 'vendors' => 'purchases',
     ],
     'admin_custom' => [
         'admin.item-types.activate' => 'masters.update',
@@ -16,6 +16,9 @@ return [
         'admin.machines.activate' => 'masters.update', 'admin.machines.deactivate' => 'masters.update',
         'admin.employees.activate' => 'employees.update', 'admin.employees.deactivate' => 'employees.update',
         'admin.customers.activate' => 'customers.update', 'admin.customers.deactivate' => 'customers.update',
+        'admin.vendors.activate' => 'purchases.update', 'admin.vendors.deactivate' => 'purchases.update',
+        'admin.vendors.destroy' => 'purchases.update',
+        'admin.vendors.addresses.destroy' => 'purchases.update',
         'admin.shifts.activate' => 'masters.update', 'admin.shifts.deactivate' => 'masters.update',
         'admin.process-items.activate' => 'processes.activate', 'admin.process-items.deactivate' => 'processes.deactivate',
         'admin.dashboard' => 'dashboard.view', 'admin.financial-years.set-current' => 'financial-years.set-current',

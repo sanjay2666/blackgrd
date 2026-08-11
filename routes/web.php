@@ -20,6 +20,8 @@ use App\Http\Controllers\Admin\IndividualController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\CustomerAddressController;
+use App\Http\Controllers\Admin\VendorController;
+use App\Http\Controllers\Admin\VendorAddressController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ItemTypeController;
 use App\Http\Controllers\Admin\ItemYarnRequirementController;
@@ -453,6 +455,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/customers/{customer}/addresses/{address}/edit', [CustomerAddressController::class, 'edit'])->name('customers.addresses.edit');
         Route::put('/customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'update'])->name('customers.addresses.update');
         Route::delete('/customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'destroy'])->name('customers.addresses.destroy');
+        Route::resource('vendors', VendorController::class)->except(['show']);
+        Route::patch('/vendors/{vendor}/activate', [VendorController::class, 'activate'])->name('vendors.activate');
+        Route::patch('/vendors/{vendor}/deactivate', [VendorController::class, 'deactivate'])->name('vendors.deactivate');
+        Route::get('/vendors/{vendor}/addresses/create', [VendorAddressController::class, 'create'])->name('vendors.addresses.create');
+        Route::post('/vendors/{vendor}/addresses', [VendorAddressController::class, 'store'])->name('vendors.addresses.store');
+        Route::get('/vendors/{vendor}/addresses/{address}/edit', [VendorAddressController::class, 'edit'])->name('vendors.addresses.edit');
+        Route::put('/vendors/{vendor}/addresses/{address}', [VendorAddressController::class, 'update'])->name('vendors.addresses.update');
+        Route::delete('/vendors/{vendor}/addresses/{address}', [VendorAddressController::class, 'destroy'])->name('vendors.addresses.destroy');
 
         // Company-scoped RBAC administration. System roles are deliberately absent.
         Route::middleware('permission:roles.view')->group(function (): void {
