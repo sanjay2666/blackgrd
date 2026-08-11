@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -9,7 +10,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SaleOrderItem extends Model
 {
-    use HasFactory, HasRecordStatus;
+    use BelongsToCompany;
+    use HasFactory;
+    use HasRecordStatus;
 
     protected $table = 'sale_order_items';
 

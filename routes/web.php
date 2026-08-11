@@ -149,7 +149,7 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     Route::post('/sale-orders', [SaleOrderController::class, 'store'])->middleware(ValidateCustomerSaleOrder::class)->name('sale-orders.store');
     Route::post('/ajax_script/deleteSaleOrder', [SaleOrderController::class, 'deleteSaleOrder'])->name('saleorders.delete');
     Route::post('/sale-order/submit-selected-items', [SaleOrderController::class, 'submitSelectedItems'])->name('sale-order.submit-selected-items');
-    Route::post('/sale-order/update', [SaleOrderController::class, 'updateSaleOrder'])->name('sale-order.update');
+    Route::post('/sale-order/update', [SaleOrderController::class, 'updateSaleOrder'])->middleware(ValidateCustomerSaleOrder::class)->name('sale-order.update');
     Route::post('/sale-order/update-item', [SaleOrderController::class, 'updateSaleOrderItem'])->name('sale-order.update-item');
     Route::post('/cancelSaleOrderItem', [SaleOrderController::class, 'cancelSaleOrderItem'])->name('cancelSaleOrderItem');
     Route::post('/clearSaleOrderItem', [SaleOrderController::class, 'clearSaleOrderItem'])->name('clearSaleOrderItem');

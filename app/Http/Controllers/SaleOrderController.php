@@ -13,6 +13,7 @@ use App\Models\UnitType;
 use App\Models\User;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
+use App\Services\SaleOrderRequirementService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -153,6 +154,7 @@ class SaleOrderController extends Controller
             'development_type' => 'required',
             'count_product' => 'required|integer|min:1',
             'item_id_arr' => 'required|array',
+            'order_slip_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ], [
             'customer_id.required' => 'Please select Customer.',
             'order_by_employee.required' => 'Please select Order By Employee.',
@@ -172,16 +174,17 @@ class SaleOrderController extends Controller
             return redirect()->back()->withInput();
         }
 
-        $oldSaleOrder = SaleOrder::where('sale_order_number', $request->sale_order_number)->where('status', '!=', 'Deleted')->first();
-        if (!empty($oldSaleOrder)) {
-            Session::put('message', 'Sale Order Number already exists.');
-            Session::put('messageClass', 'errorClass');
-            return redirect()->back()->withInput();
-        }
-
         DB::beginTransaction();
         try {
             $itemIds        = $request->input('item_id_arr', []);
+            if (array_filter($itemIds, static fn ($id): bool => (int) $id > 0) === []) {
+                throw new Exception('Please add at least one valid Item.');
+            }
+            if (SaleOrder::query()->where('sale_order_number', trim((string) $request->sale_order_number))->where('status', '!=', 'Deleted')->lockForUpdate()->exists()) {
+                throw new Exception('Sale Order Number already exists.');
+            }
+
+            $requirements = app(SaleOrderRequirementService::class);
             $itemNames      = $request->input('item_name_arr', []);
             $unitTypeIds    = $request->input('unit_type_id_arr', []);
             $meters         = $request->input('meter_arr', []);
@@ -212,7 +215,7 @@ class SaleOrderController extends Controller
             $orderSlipFile = null;
             if ($request->hasFile('order_slip_file')) {
                 $file           = $request->file('order_slip_file');
-                $fileName       = time().'_'.$file->getClientOriginalName();
+                $fileName       = $file->hashName();
                 $file->move(public_path('uploads/sale-orders'), $fileName);
                 $orderSlipFile  = 'uploads/sale-orders/'.$fileName;
             }
@@ -263,10 +266,10 @@ class SaleOrderController extends Controller
                     continue;
                 }
 
-                $item               = Item::where('item_id', $itemId)->first();
+                [$item, $unitType] = $requirements->assertItemReferences((int) $itemId, (int) ($unitTypeIds[$index] ?? 0));
                 $unitTypeId         = $unitTypeIds[$index] ?? '';
-                $unitType           = UnitType::where('unit_type_id', $unitTypeId)->first();
                 $meter              = (float) ($meters[$index] ?? 0);
+                $requirements->assertPositiveQuantity($meter);
                 $rate               = (float) ($rates[$index] ?? 0);
                 $itemAmount         = (float) ($amounts[$index] ?? 0);
                 $expectDeliveryDate = $expectDeliveryDates[$index] ?? '';
@@ -319,6 +322,12 @@ class SaleOrderController extends Controller
             }
 
             DB::commit();
+            app(\App\Services\AuditLogger::class)->recordAfterCommit([
+                'module' => 'sale-orders', 'action' => 'create', 'event' => 'sale_order_created',
+                'description' => 'Sale Order and its production requirements were created.',
+                'auditable_type' => $saleOrder->getMorphClass(), 'auditable_id' => $saleOrder->getKey(),
+                'new_values' => ['sale_order_number' => $saleOrder->sale_order_number, 'items' => $saleOrder->items], 'request' => $request,
+            ]);
             Session::put('message', 'Sale Order added successfully.');
             Session::put('messageClass', 'successClass');
             return redirect()->route('sale-orders.index');
@@ -340,6 +349,7 @@ class SaleOrderController extends Controller
 
 		try {
 			$saleOrderId = dec($request->FId);
+			app(SaleOrderRequirementService::class)->assertCanDeleteOrder($saleOrderId);
 
 			$saleOrder = SaleOrder::with('saleOrderItems')->where('status', '!=', 'Deleted')->findOrFail($saleOrderId);
 
@@ -359,6 +369,11 @@ class SaleOrderController extends Controller
 			}
 
 			DB::commit();
+			app(\App\Services\AuditLogger::class)->recordAfterCommit([
+				'module' => 'sale-orders', 'action' => 'delete', 'event' => 'sale_order_deleted',
+				'description' => 'Sale Order was soft-deleted; historical rows were retained.',
+				'auditable_type' => $saleOrder->getMorphClass(), 'auditable_id' => $saleOrder->getKey(), 'request' => $request,
+			]);
 
 			return response()->json(['status' => 1, 'message' => 'Sale order deleted successfully.']);
 		} catch (\Throwable $e) {
@@ -559,6 +574,7 @@ class SaleOrderController extends Controller
 			if (empty($saleOrderItem)) {
 				throw new Exception('Sale order item not found.');
 			}
+			app(SaleOrderRequirementService::class)->assertCanMutate($saleOrderItem);
 
 			$saleOrderItem->status = 'Deleted';
 			$saleOrderItem->cancel_reason = $request->cancel_reason;
@@ -672,6 +688,8 @@ class SaleOrderController extends Controller
 			if (empty($saleOrder)) {
 				throw new Exception('Sale order not found.');
 			}
+			$requirements = app(SaleOrderRequirementService::class);
+			$requirements->assertCanChangeHeader($saleOrder, $requirements->changedHeaderFields($saleOrder, $request));
 
 			$oldSaleOrder = SaleOrder::where('sale_order_number', $request->sale_order_number)
 				->where('id', '!=', $saleOrderId)
@@ -764,6 +782,11 @@ class SaleOrderController extends Controller
 				throw new Exception('Sale order item not found.');
 			}
 
+			$requirements = app(SaleOrderRequirementService::class);
+			$requirements->assertCanMutate($saleOrderItem);
+			$requirements->assertPositiveQuantity($request->meter, 'meter');
+			[$validatedItem, $validatedUnit] = $requirements->assertItemReferences((int) $request->item_id, (int) $request->unit_type_id);
+
 			$saleOrderItemFields = [
 				'item_id', 'unit_type_id', 'item_name', 'order_item_priority', 'pcs', 'cut', 'meter',
 				'rate', 'amount',
@@ -806,16 +829,8 @@ class SaleOrderController extends Controller
 				$saleOrderItem->total_price = $saleOrderItem->amount;
 			}
 
-			$item = Item::where('item_id', $saleOrderItem->item_id)->first();
-			$unitType = UnitType::where('unit_type_id', $saleOrderItem->unit_type_id)->first();
-
-			if (!empty($item)) {
-				$saleOrderItem->item_type_id = $item->item_type_id;
-			}
-
-			if (!empty($unitType)) {
-				$saleOrderItem->unit = $unitType->unit_type_name;
-			}
+			$saleOrderItem->item_type_id = $validatedItem->item_type_id;
+			$saleOrderItem->unit = $validatedUnit->unit_type_name;
 
 			$saleOrderItem->net_amount = $saleOrderItem->amount;
 			$saleOrderItem->total_price = $saleOrderItem->amount;
@@ -1282,10 +1297,6 @@ class SaleOrderController extends Controller
     }
 
 }
-
-
-
-
 
 
 
