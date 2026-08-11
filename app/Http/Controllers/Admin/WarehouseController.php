@@ -4,98 +4,47 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Factory;
 use App\Models\Warehouse;
 use App\Rules\RecordStatusRule;
-use Exception;
+use App\Services\CurrentOrganizationContext;
+use App\Services\WarehouseMasterService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class WarehouseController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $query = Warehouse::query();
-        $query->notDeleted();
+        $query = Warehouse::query()->notDeleted()
+            ->when($request->filled('search'), fn ($q) => $q->where(function ($q) use ($request): void {
+                $term = '%'.$request->string('search').'%';
+                $q->where('warehouse_name', 'like', $term)->orWhere('location', 'like', $term)->orWhere('contact_number', 'like', $term);
+            }))
+            ->when($request->filled('factory_id'), fn ($q) => $q->where('factory_id', $request->integer('factory_id')))
+            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')));
 
-        if ($request->filled('search')) {
-            $query->where(function ($query) use ($request) {
-                $query->where('warehouse_name', 'like', '%'.$request->search.'%');
-                $query->orWhere('location', 'like', '%'.$request->search.'%');
-                $query->orWhere('supervisor_id', 'like', '%'.$request->search.'%');
-                $query->orWhere('contact_number', 'like', '%'.$request->search.'%');
-            });
-        }
-
-        $warehouses = $query->orderBy('id', 'desc')->paginate(config('app.pagination_limit'))->withQueryString();
-
-        return view('admin.warehouses.index', compact('warehouses'));
-    }
-
-    public function create()
-    {
-        return view('admin.warehouses.create', ['statusOptions' => RecordStatus::formOptions()]);
-    }
-
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'warehouse_name' => 'required',
-            'location' => 'required',
-            'capacity' => 'required',
-            'supervisor_id' => 'nullable',
-            'contact_number' => 'required',
-            'process_type_id' => 'nullable',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'warehouse_name.required' => 'Please enter Warehouse Name.',
-            'location.required' => 'Please enter Location.',
-            'capacity.required' => 'Please enter Capacity.',
-            'contact_number.required' => 'Please enter Contact Number.',
-            'status.required' => 'Please select Status.',
+        return view('admin.warehouses.index', [
+            'warehouses' => $query->with('factory')->withCount('compartments')->latest('id')->paginate(config('app.pagination_limit'))->withQueryString(),
+            'factories' => Factory::active()->orderBy('name')->get(),
+            'statusOptions' => RecordStatus::formOptions(),
         ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $warehouse = new Warehouse;
-            $warehouse->warehouse_name = $request->warehouse_name;
-            $warehouse->location = $request->location;
-            $warehouse->capacity = $request->capacity;
-            $warehouse->supervisor_id = $request->supervisor_id;
-            $warehouse->financial_year = currentFinancialYear();
-            $warehouse->created_by = Auth::id();
-            $warehouse->modified_by = Auth::id();
-            $warehouse->contact_number = $request->contact_number;
-            $warehouse->process_type_id = $request->has('process_type_id') ? 1 : 0;
-            $warehouse->status = $request->status;
-            $warehouse->created_at = now();
-            $warehouse->updated_at = now();
-            $warehouse->save();
-
-            DB::commit();
-            Session::put('message', 'Warehouses added successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.warehouses.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to save Warehouses. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
     }
 
-    public function edit($id)
+    public function create(CurrentOrganizationContext $organization): View
+    {
+        return view('admin.warehouses.create', $this->formData($organization));
+    }
+
+    public function store(Request $request, WarehouseMasterService $service): RedirectResponse
+    {
+        $service->save(new Warehouse, $this->validated($request));
+
+        return redirect()->route('admin.warehouses.index')->with('message', 'Warehouse added successfully.')->with('messageClass', 'successClass');
+    }
+
+    public function edit($id, CurrentOrganizationContext $organization): View
     {
         $id = dec($id);
         $warehouse = Warehouse::where('id', $id)->firstOrFail();
@@ -103,10 +52,10 @@ class WarehouseController extends Controller
             abort(404);
         }
 
-        return view('admin.warehouses.edit', compact('warehouse'))->with('statusOptions', RecordStatus::formOptions());
+        return view('admin.warehouses.edit', array_merge(['warehouse' => $warehouse], $this->formData($organization)));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, WarehouseMasterService $service): RedirectResponse
     {
         $id = dec($id);
         $warehouse = Warehouse::where('id', $id)->firstOrFail();
@@ -114,82 +63,54 @@ class WarehouseController extends Controller
             abort(404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'warehouse_name' => 'required',
-            'location' => 'required',
-            'capacity' => 'required',
-            'supervisor_id' => 'nullable',
-            'contact_number' => 'required',
-            'process_type_id' => 'nullable',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'warehouse_name.required' => 'Please enter Warehouse Name.',
-            'location.required' => 'Please enter Location.',
-            'capacity.required' => 'Please enter Capacity.',
-            'contact_number.required' => 'Please enter Contact Number.',
-            'status.required' => 'Please select Status.',
+        $service->save($warehouse, $this->validated($request));
+
+        return redirect()->route('admin.warehouses.index')->with('message', 'Warehouse updated successfully.')->with('messageClass', 'successClass');
+    }
+
+    public function activate($id, WarehouseMasterService $service): RedirectResponse
+    {
+        $warehouse = $this->find($id);
+        $service->transition($warehouse, 'Active');
+
+        return back()->with('message', 'Warehouse activated successfully.')->with('messageClass', 'successClass');
+    }
+
+    public function deactivate($id, WarehouseMasterService $service): RedirectResponse
+    {
+        $warehouse = $this->find($id);
+        $service->transition($warehouse, 'Inactive');
+
+        return back()->with('message', 'Warehouse deactivated successfully.')->with('messageClass', 'successClass');
+    }
+
+    public function destroy($id, WarehouseMasterService $service): RedirectResponse
+    {
+        $service->ensureNotDeletable($this->find($id));
+    }
+
+    private function find($id): Warehouse
+    {
+        $warehouse = Warehouse::whereKey(dec($id))->firstOrFail();
+        abort_if($warehouse->status === 'Deleted', 404);
+
+        return $warehouse;
+    }
+
+    /** @return array<string, mixed> */
+    private function formData(CurrentOrganizationContext $organization): array
+    {
+        return ['factories' => Factory::active()->where('company_id', $organization->companyId())->orderBy('name')->get(), 'statusOptions' => RecordStatus::formOptions()];
+    }
+
+    /** @return array<string, mixed> */
+    private function validated(Request $request): array
+    {
+        return $request->validate([
+            'warehouse_name' => 'required|string|max:255', 'location' => 'nullable|string|max:255',
+            'capacity' => 'nullable|numeric', 'supervisor_id' => 'nullable|integer',
+            'contact_number' => 'nullable|string|max:20', 'process_type_id' => 'nullable|integer|min:0',
+            'factory_id' => 'nullable|integer', 'status' => ['required', 'in:Active,Inactive', new RecordStatusRule],
         ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $warehouse->warehouse_name = $request->warehouse_name;
-            $warehouse->location = $request->location;
-            $warehouse->capacity = $request->capacity;
-            $warehouse->supervisor_id = $request->supervisor_id;
-            $warehouse->modified_by = Auth::id();
-            $warehouse->contact_number = $request->contact_number;
-            $warehouse->process_type_id = $request->has('process_type_id') ? 1 : 0;
-            $warehouse->status = $request->status;
-            $warehouse->updated_at = now();
-            $warehouse->save();
-
-            DB::commit();
-            Session::put('message', 'Warehouses updated successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.warehouses.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to update Warehouses. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
-    }
-
-    public function destroy($id)
-    {
-        $id = dec($id);
-        $warehouse = Warehouse::where('id', $id)->firstOrFail();
-        if ($warehouse->status === 'Deleted') {
-            abort(404);
-        }
-
-        DB::beginTransaction();
-        try {
-            $warehouse->status = 'Deleted';
-            $warehouse->modified_by = Auth::id();
-            $warehouse->updated_at = now();
-            $warehouse->save();
-
-            DB::commit();
-            Session::put('message', 'Warehouses deleted successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return response()->json(['success' => true]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to delete Warehouses. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
     }
 }

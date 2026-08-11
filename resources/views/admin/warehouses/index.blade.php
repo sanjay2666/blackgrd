@@ -1,68 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-@include('admin.common.head')
-</head>
-<body class="hold-transition sidebar-mini">
-    <div id="preloader"><div id="status"></div></div>
-    <div class="wrapper">
-        @include('admin.common.header')
-        @include('admin.common.sidebar')
-        <div class="content-wrapper">
-            <section class="content-header"><div class="header-icon"><i class="fa fa-list"></i></div><div class="header-title"><h1>Warehouses</h1><small>Warehouses list</small></div></section>
-            <section class="content">
-                {!! display_message('message') !!}
-                <div class="row"><div class="col-sm-12"><div class="panel panel-bd lobidrag">
-                    <div class="panel-heading"><div class="btn-group"><h4>Warehouses List</h4></div></div>
-                    <div class="panel-body">
-                        <div class="row" style="margin-bottom:5px">
-                            <form action="{{ route('admin.warehouses.index') }}" method="GET">
-                                <div class="col-sm-4"><input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search"></div>
-                                <div class="col-sm-2"><button class="btn btn-add">Search</button></div>
-                            </form>
-                            <div class="col-sm-3"><a href="{{ route('admin.warehouses.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Warehouses</a></div>
-                        </div>
-                        <div class="table-responsive">
-                            <table class="table table-bordered table-striped table-hover">
-                                <thead><tr class="info"><th>Warehouse Name</th><th>Location</th><th>Capacity</th><th>Supervisor Id</th><th>Contact Number</th><th>Status</th><th>Action</th><th>Delete</th></tr></thead>
-                                <tbody>
-                                    @forelse ($warehouses as $row)
-                                        <tr id="warehouses-row-{{ $row->id }}">
-                                            <td>{{ $row->warehouse_name }}</td>
-                                            <td>{{ $row->location }}</td>
-                                            <td>{{ $row->capacity }}</td>
-                                            <td>{{ $row->supervisor_id }}</td>
-                                            <td>{{ $row->contact_number }}</td>
-                                            <td>{{ $row->status }}</td>
-                                            <td><a href="{{ route('admin.warehouses.edit', enc($row->id)) }}"><i class="fa fa-pencil"></i></a></td>
-                                            <td><button type="button" class="btn btn-danger btn-xs" onclick="deleteRecord('{{ enc($row->id) }}', {{ $row->id }})"><i class="fa fa-trash-o"></i></button></td>
-                                        </tr>
-                                    @empty
-                                        <tr><td colspan="8" class="text-center">No records found.</td></tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="pagination">{{ $warehouses->links() }}</div>
-                    </div>
-                </div></div></div>
-            </section>
-        </div>
-        @include('admin.common.footer')
-    </div>
-    @include('admin.common.formfooterscript')
-    <script>
-        function deleteRecord(id, rowId) {
-            if (!confirm('Do you really want to delete this record?')) { return; }
-            $.ajax({
-                type: 'DELETE',
-                url: '{{ url('/admin/warehouses') }}/' + encodeURIComponent(id),
-                data: { _token: '{{ csrf_token() }}' },
-                success: function () { $('#warehouses-row-' + rowId).hide(); },
-                error: function () { alert('Record delete nahi ho paya. Please try again.'); }
-            });
-        }
-    </script>
-</body>
-</html>
-
+<html lang="en"><head>@include('admin.common.head')</head>
+<body class="hold-transition sidebar-mini"><div class="wrapper">
+@include('admin.common.header') @include('admin.common.sidebar')
+<div class="content-wrapper"><section class="content-header"><div class="header-icon"><i class="fa fa-database"></i></div><div class="header-title"><h1>Warehouse Master</h1><small>Storage-location identity</small></div></section>
+<section class="content">{!! display_message('message') !!}<div class="row"><div class="col-sm-12"><div class="panel panel-bd lobidrag"><div class="panel-heading"><h4>Warehouses</h4></div><div class="panel-body">
+<form method="GET" class="row" style="margin-bottom:10px"><div class="col-sm-3"><input class="form-control" name="search" value="{{ request('search') }}" placeholder="Search name or location"></div><div class="col-sm-3"><select class="form-control" name="factory_id"><option value="">All Branch / Factories</option>@foreach($factories as $factory)<option value="{{ $factory->id }}" @selected((string)request('factory_id') === (string)$factory->id)>{{ $factory->name }}</option>@endforeach</select></div><div class="col-sm-2"><select class="form-control" name="status"><option value="">All statuses</option>@foreach($statusOptions as $status => $label)<option value="{{ $status }}" @selected(request('status') === $status)>{{ $label }}</option>@endforeach</select></div><div class="col-sm-2"><button class="btn btn-primary">Filter</button></div><div class="col-sm-2 text-right"><a class="btn btn-add" href="{{ route('admin.warehouses.create') }}"><i class="fa fa-plus"></i> Add Warehouse</a></div></form>
+<div class="table-responsive"><table class="table table-bordered table-striped"><thead><tr class="info"><th>Name</th><th>Location</th><th>Branch / Factory</th><th>Compartments</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+@forelse($warehouses as $warehouse)<tr><td>{{ $warehouse->warehouse_name }}</td><td>{{ $warehouse->location ?: '—' }}</td><td>{{ $warehouse->factory?->name ?: 'Company / central' }}</td><td>{{ $warehouse->compartments_count }}</td><td>{{ $warehouse->status }}</td><td><a class="btn btn-xs btn-default" href="{{ route('admin.warehouses.edit', enc($warehouse->id)) }}">Edit</a>@if($warehouse->status === 'Active')<form class="inline-form" method="POST" action="{{ route('admin.warehouses.deactivate', enc($warehouse->id)) }}">@csrf @method('PATCH')<button class="btn btn-xs btn-warning">Deactivate</button></form>@else<form class="inline-form" method="POST" action="{{ route('admin.warehouses.activate', enc($warehouse->id)) }}">@csrf @method('PATCH')<button class="btn btn-xs btn-success">Activate</button></form>@endif</td></tr>@empty<tr><td colspan="6" class="text-center">No warehouses found.</td></tr>@endforelse
+</tbody></table></div><div class="pagination">{{ $warehouses->links() }}</div></div></div></div></div></section></div>
+@include('admin.common.footer')</div>@include('admin.common.formfooterscript')
+<style>.inline-form{display:inline;margin-left:4px}.inline-form button{display:inline-block}</style></body></html>

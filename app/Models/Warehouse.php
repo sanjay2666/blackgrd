@@ -7,10 +7,13 @@ use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Warehouse extends Model
 {
-    use BelongsToCompany, HasFactory, HasRecordStatus;
+    use BelongsToCompany;
+    use HasFactory;
+    use HasRecordStatus;
 
     protected $table = 'warehouses';
 
@@ -26,5 +29,10 @@ class Warehouse extends Model
     public function factory(): BelongsTo
     {
         return $this->belongsTo(Factory::class);
+    }
+
+    public function compartments(): HasMany
+    {
+        return $this->hasMany(WarehouseCompartment::class);
     }
 }

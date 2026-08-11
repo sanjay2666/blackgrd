@@ -401,6 +401,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/number-series/{number_series}', [NumberSeriesController::class, 'update'])->middleware('permission:number-series.manage')->name('number-series.update');
         Route::resource('user-web-pages', UserWebPageController::class)->except(['show']);
         Route::resource('warehouses', WarehouseController::class)->except(['show']);
+        Route::patch('/warehouses/{id}/activate', [WarehouseController::class, 'activate'])->name('warehouses.activate');
+        Route::patch('/warehouses/{id}/deactivate', [WarehouseController::class, 'deactivate'])->name('warehouses.deactivate');
         Route::resource('ware-house-compartments', WareHouseCompartmentController::class)->except(['show']);
 
         // Admin logs/security routes.
