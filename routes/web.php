@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\FinancialYearController;
 use App\Http\Controllers\Admin\GstRateController;
 use App\Http\Controllers\Admin\HsnCodeController;
 use App\Http\Controllers\Admin\IndividualController;
+use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ItemTypeController;
 use App\Http\Controllers\Admin\ItemYarnRequirementController;
@@ -438,6 +439,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/process-items/{process_item}/activate', [ProcessItemController::class, 'activate'])->name('process-items.activate');
         Route::patch('/process-items/{process_item}/deactivate', [ProcessItemController::class, 'deactivate'])->name('process-items.deactivate');
         Route::resource('individuals', IndividualController::class)->except(['show']);
+        Route::resource('employees', EmployeeController::class)->except(['show']);
+        Route::patch('/employees/{employee}/activate', [EmployeeController::class, 'activate'])->name('employees.activate');
+        Route::patch('/employees/{employee}/deactivate', [EmployeeController::class, 'deactivate'])->name('employees.deactivate');
 
         // Company-scoped RBAC administration. System roles are deliberately absent.
         Route::middleware('permission:roles.view')->group(function (): void {

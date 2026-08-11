@@ -10,7 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Individual extends Model
 {
-    use BelongsToCompany, HasFactory;
+    use BelongsToCompany;
+    use HasFactory;
 
     protected $table = 'individuals';
 
@@ -36,6 +37,21 @@ class Individual extends Model
     public function department(): BelongsTo
     {
         return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function factory(): BelongsTo
+    {
+        return $this->belongsTo(Factory::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    public function users(): HasMany
+    {
+        return $this->hasMany(User::class, 'individual_id');
     }
 
     public function IndividualBillingAddress()

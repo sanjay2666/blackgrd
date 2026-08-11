@@ -39,7 +39,8 @@ final class AdminNavigation
                 self::item('Financial Years', 'admin.financial-years.index', 'financial-years.view', 'admin.financial-years.*'),
             ]],
             ['label' => 'Masters', 'icon' => 'fa-database', 'items' => [
-                self::item('Individuals', 'admin.individuals.index', 'employees.view', 'admin.individuals.*'),
+                self::item('Individuals (All Parties)', 'admin.individuals.index', 'employees.view', 'admin.individuals.*'),
+                self::item('Employee Master', 'admin.employees.index', 'employees.view', 'admin.employees.*'),
                 self::item('States', 'admin.states.index', 'masters.view', 'admin.states.*'),
                 self::item('Colours', 'admin.colours.index', 'masters.view', 'admin.colours.*'),
                 self::item('Shade / Dyeing Colours', 'admin.dyeing-colours.index', 'masters.view', 'admin.dyeing-colours.*'),
