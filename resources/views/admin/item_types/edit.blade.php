@@ -33,6 +33,7 @@
 										<div class="col-sm-4">
 											<div class="form-group"><label>Item Type Name <span class="required">*</span></label><input type="text" name="item_type_name" value="{{ old('item_type_name', $itemType->item_type_name) }}" class="form-control" required></div>
 										</div>
+										<div class="col-sm-4"><div class="form-group"><label>Short Code <span class="required">*</span></label><input type="text" name="short_code" value="{{ old('short_code', $itemType->short_code) }}" class="form-control" maxlength="30" pattern="[A-Za-z0-9_-]+" required></div></div>
 										<div class="col-sm-4">
 											<div class="form-group">
 												<label>Unit Type</label>

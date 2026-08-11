@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class ItemType extends Model
 {
-    use BelongsToCompany, HasFactory, HasRecordStatus;
+    use BelongsToCompany;
+    use HasFactory;
+    use HasRecordStatus;
 
     protected $table = 'item_type';
 
@@ -18,6 +20,10 @@ class ItemType extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+
+    protected $casts = [
+        'display_order' => 'integer',
+    ];
 
     public function unitType()
     {

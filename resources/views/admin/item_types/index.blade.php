@@ -41,31 +41,33 @@
 									<table class="table table-bordered table-striped table-hover">
 										<thead>
 											<tr class="info">
-												<th>Item Type Name</th>
+														<th>Item Type Name</th>
+														<th>Code</th>
 												<th>Unit Type</th>
 												<th>Is Purchase</th>
 												<th>Is Work</th>
 												<th>Is Department</th>
 												<th>Status</th>
 												<th>Action</th>
-												<th>Delete</th>
+														<th>Status Action</th>
 											</tr>
 										</thead>
 										<tbody>
 											@forelse ($itemTypes as $row)
 											<tr id="item_types-row-{{ $row->item_type_id }}">
-												<td>{{ $row->item_type_name }}</td>
+														<td>{{ $row->item_type_name }}</td>
+														<td>{{ $row->short_code ?: '-' }}</td>
 												<td>{{ $row->unitType->unit_type_name ?? '' }}</td>
 												<td>{{ $row->is_purchase }}</td>
 												<td>{{ $row->is_work }}</td>
 												<td>{{ $row->is_department }}</td>
 												<td>{{ $row->status }}</td>
 												<td><a href="{{ route('admin.item-types.edit', enc($row->item_type_id)) }}"><i class="fa fa-pencil"></i></a></td>
-												<td><button type="button" class="btn btn-danger btn-xs" onclick="deleteRecord('{{ enc($row->item_type_id) }}', {{ $row->item_type_id }})"><i class="fa fa-trash-o"></i></button></td>
+														<td>@if ($row->status === 'Active') <form method="POST" action="{{ route('admin.item-types.deactivate', enc($row->item_type_id)) }}" style="display:inline">@csrf @method('PATCH')<button class="btn btn-warning btn-xs">Deactivate</button></form> @else <form method="POST" action="{{ route('admin.item-types.activate', enc($row->item_type_id)) }}" style="display:inline">@csrf @method('PATCH')<button class="btn btn-success btn-xs">Activate</button></form> @endif</td>
 											</tr>
 											@empty
 											<tr>
-												<td colspan="8" class="text-center">No records found.</td>
+														<td colspan="9" class="text-center">No records found.</td>
 											</tr>
 											@endforelse
 										</tbody>

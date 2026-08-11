@@ -353,6 +353,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('hsn-codes', HsnCodeController::class)->except(['show']);
         Route::patch('/hsn-codes/{id}/activate', [HsnCodeController::class, 'activate'])->name('hsn-codes.activate');
         Route::patch('/hsn-codes/{id}/deactivate', [HsnCodeController::class, 'deactivate'])->name('hsn-codes.deactivate');
+        Route::patch('item-types/{id}/activate', [ItemTypeController::class, 'activate'])->name('item-types.activate');
+        Route::patch('item-types/{id}/deactivate', [ItemTypeController::class, 'deactivate'])->name('item-types.deactivate');
         Route::resource('item-types', ItemTypeController::class)->except(['show']);
 
         // Admin item/yarn routes.
