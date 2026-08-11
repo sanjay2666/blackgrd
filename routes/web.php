@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\GstRateController;
 use App\Http\Controllers\Admin\HsnCodeController;
 use App\Http\Controllers\Admin\IndividualController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerAddressController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ItemTypeController;
 use App\Http\Controllers\Admin\ItemYarnRequirementController;
@@ -54,6 +56,7 @@ use App\Http\Controllers\WarehouseItemController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\WorkProcessRequirementController;
 use App\Http\Controllers\WorkPurchaseRequirementController;
+use App\Http\Middleware\ValidateCustomerSaleOrder;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -137,7 +140,7 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     Route::get('/sale-order/ajax-details/{id}', [SaleOrderController::class, 'ajaxSaleOrderDetails']);
     Route::get('/show-saleorder-reports', [SaleOrderController::class, 'show_sale_order_reports'])->name('show-saleorder-reports');
 
-    Route::post('/sale-orders', [SaleOrderController::class, 'store'])->name('sale-orders.store');
+    Route::post('/sale-orders', [SaleOrderController::class, 'store'])->middleware(ValidateCustomerSaleOrder::class)->name('sale-orders.store');
     Route::post('/ajax_script/deleteSaleOrder', [SaleOrderController::class, 'deleteSaleOrder'])->name('saleorders.delete');
     Route::post('/sale-order/submit-selected-items', [SaleOrderController::class, 'submitSelectedItems'])->name('sale-order.submit-selected-items');
     Route::post('/sale-order/update', [SaleOrderController::class, 'updateSaleOrder'])->name('sale-order.update');
@@ -442,6 +445,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('employees', EmployeeController::class)->except(['show']);
         Route::patch('/employees/{employee}/activate', [EmployeeController::class, 'activate'])->name('employees.activate');
         Route::patch('/employees/{employee}/deactivate', [EmployeeController::class, 'deactivate'])->name('employees.deactivate');
+        Route::resource('customers', CustomerController::class)->except(['show']);
+        Route::patch('/customers/{customer}/activate', [CustomerController::class, 'activate'])->name('customers.activate');
+        Route::patch('/customers/{customer}/deactivate', [CustomerController::class, 'deactivate'])->name('customers.deactivate');
+        Route::get('/customers/{customer}/addresses/create', [CustomerAddressController::class, 'create'])->name('customers.addresses.create');
+        Route::post('/customers/{customer}/addresses', [CustomerAddressController::class, 'store'])->name('customers.addresses.store');
+        Route::get('/customers/{customer}/addresses/{address}/edit', [CustomerAddressController::class, 'edit'])->name('customers.addresses.edit');
+        Route::put('/customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'update'])->name('customers.addresses.update');
+        Route::delete('/customers/{customer}/addresses/{address}', [CustomerAddressController::class, 'destroy'])->name('customers.addresses.destroy');
 
         // Company-scoped RBAC administration. System roles are deliberately absent.
         Route::middleware('permission:roles.view')->group(function (): void {

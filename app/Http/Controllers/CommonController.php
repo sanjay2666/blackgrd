@@ -137,6 +137,7 @@ class CommonController extends Controller
 		$validated = $request->validate([
 			'individualId' => ['required', 'integer', 'min:1'],
 		]);
+		app(\App\Services\CustomerMasterService::class)->assertActiveCustomer((int) $validated['individualId']);
 
 		$addresses = DB::table('individual_address as address')
 			->leftJoin('states as state', 'state.id', '=', 'address.state_id')
@@ -362,6 +363,7 @@ class CommonController extends Controller
     public function customer_addresses(Request $request)
     {
         $individualId = $request->input('individual_id', '');
+		app(\App\Services\CustomerMasterService::class)->assertActiveCustomer((int) $individualId);
 
         $billingRows = IndividualAddress::where('individual_id', $individualId)
             ->where('address_type', 'b')

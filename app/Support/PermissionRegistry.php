@@ -21,6 +21,7 @@ final class PermissionRegistry
             'financial-years' => ['view', 'create', 'update', 'delete', 'set-current', 'configure'],
             'departments' => ['view', 'create', 'update', 'delete', 'activate', 'deactivate'],
             'employees' => ['view', 'create', 'update', 'delete', 'export', 'manage'],
+            'customers' => ['view', 'create', 'update', 'delete', 'export', 'manage'],
             'masters' => ['view', 'create', 'update', 'delete', 'export', 'configure', 'manage-yarn'],
             'processes' => ['view', 'create', 'update', 'delete', 'activate', 'deactivate'],
             'sale-orders' => ['view', 'create', 'update', 'cancel', 'submit', 'print', 'export'],

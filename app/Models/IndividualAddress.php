@@ -26,4 +26,9 @@ class IndividualAddress extends Model
     {
         return $this->belongsTo(Individual::class, 'individual_id');
     }
+
+    public function state(): BelongsTo
+    {
+        return $this->belongsTo(State::class, 'state_id');
+    }
 }
