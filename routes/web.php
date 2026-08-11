@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DyeingColourController;
 use App\Http\Controllers\Admin\FabricQualityController;
+use App\Http\Controllers\Admin\FabricFaultReasonController;
 use App\Http\Controllers\Admin\FinancialYearController;
 use App\Http\Controllers\Admin\GstRateController;
 use App\Http\Controllers\Admin\HsnCodeController;
@@ -376,6 +377,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('fabric-qualities/{id}/activate', [FabricQualityController::class, 'activate'])->name('fabric-qualities.activate');
         Route::patch('fabric-qualities/{id}/deactivate', [FabricQualityController::class, 'deactivate'])->name('fabric-qualities.deactivate');
         Route::resource('fabric-qualities', FabricQualityController::class)->except(['show']);
+        Route::patch('fabric-fault-reasons/{id}/activate', [FabricFaultReasonController::class, 'activate'])->name('fabric-fault-reasons.activate');
+        Route::patch('fabric-fault-reasons/{id}/deactivate', [FabricFaultReasonController::class, 'deactivate'])->name('fabric-fault-reasons.deactivate');
+        Route::resource('fabric-fault-reasons', FabricFaultReasonController::class)->except(['show']);
+        Route::get('fabric-fault-reasons/options', [FabricFaultReasonController::class, 'options'])->middleware('permission:masters.view')->name('fabric-fault-reasons.options');
         Route::patch('printing-designs/{id}/activate', [PrintingDesignController::class, 'activate'])->name('printing-designs.activate');
         Route::patch('printing-designs/{id}/deactivate', [PrintingDesignController::class, 'deactivate'])->name('printing-designs.deactivate');
         Route::get('printing-designs/options', [PrintingDesignController::class, 'options'])->name('printing-designs.options');
