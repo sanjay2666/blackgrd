@@ -72,6 +72,7 @@ final class PermissionRegistry
             self::companyAdminAssignable(),
             static fn (string $key): bool => ! in_array(strtok($key, '.'), self::ADMIN_ONLY_RESOURCES, true)
                 && $key !== 'organization.access-manage'
+                && $key !== 'masters.manage-yarn'
         ));
     }
 

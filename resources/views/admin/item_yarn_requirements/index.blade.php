@@ -41,8 +41,9 @@
 									<table class="table table-bordered table-striped table-hover">
 										<thead>
 											<tr class="info">
-												<th>Item Id</th>
-												<th>Yarn Id</th>
+														<th>Target Item</th>
+														<th>Process</th>
+														<th>Yarn</th>
 												<th>Reed Peak</th>
 												<th>Yarn Quantity</th>
 												<th>Unit</th>
@@ -54,8 +55,9 @@
 										<tbody>
 											@forelse ($itemYarnRequirements as $row)
 											<tr id="item_yarn_requirements-row-{{ $row->id }}">
-												<td>{{ $row->item_id }}</td>
-												<td>{{ $row->yarn_id }}</td>
+														<td>{{ $row->item->item_name ?? $row->item_id }}</td>
+														<td>{{ $row->process->process_name ?? $row->process_id }}</td>
+														<td>{{ $row->yarnItem->item_name ?? $row->yarn_id }}</td>
 												<td>{{ $row->reed_peak }}</td>
 												<td>{{ $row->yarn_quantity }}</td>
 												<td>{{ $row->unit }}</td>

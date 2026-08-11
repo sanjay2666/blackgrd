@@ -42,9 +42,9 @@
                                         <tbody>
                                             @forelse ($requirements as $row)
                                                 <tr id="yarn-row-{{ $row->id }}">
-                                                    <td>{{ $row->process_id == 1 ? 'EPI' : 'PPI' }}</td>
+                                                    <td>{{ $row->process->process_name ?? $row->process_id }}</td>
                                                     <td>{{ $row->yarnItem->item_name ?? '' }}</td>
-                                                    <td>{{ $row->process_id == 1 ? 'Reed' : 'Pick' }} : {{ $row->reed_peak }}</td>
+                                                    <td>Reed / Pick : {{ $row->reed_peak }}</td>
                                                     <td>{{ $row->yarn_quantity }} {{ $row->unit }}</td>
                                                     <td><button type="button" class="btn btn-danger btn-xs" onclick="deleteYarn({{ $row->id }})">Delete</button></td>
                                                 </tr>
@@ -95,7 +95,7 @@
                                                         <input type="number" min="1" class="form-control" name="reed_peak[]" required>
                                                     </td>
                                                     <td><input type="number" min="1" class="form-control" name="yarn_quantity[]" required></td>
-                                                    <td>Kg</td>
+                                                    <td>{{ $yarnItems->first()?->unitType?->unit_type_name ?? 'See Yarn Item' }}</td>
                                                     <td><button type="button" class="btn btn-success btn-xs" onclick="addRowNew()">Add Row</button></td>
                                                 </tr>
                                             </tbody>
@@ -143,7 +143,7 @@
                 + '<td><select class="form-control" name="yarn_id[]" required>' + yarnOptionsHtml + '</select></td>'
                 + '<td><span id="readpk-' + rowCount + '"></span><input type="number" min="1" class="form-control" name="reed_peak[]" required></td>'
                 + '<td><input type="number" min="1" class="form-control" name="yarn_quantity[]" required></td>'
-                + '<td>Kg</td>'
+                + '<td>See selected Yarn Item unit</td>'
                 + '<td><button type="button" class="btn btn-danger btn-xs" onclick="deleteRow(this)">Delete</button></td>';
         }
 

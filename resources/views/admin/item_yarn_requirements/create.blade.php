@@ -17,12 +17,12 @@
                     <form method="POST" action="{{ route('admin.item-yarn-requirements.store') }}">
                         @csrf
                         <div class="row">
-                            <div class="col-sm-4"><div class="form-group"><label>Item Id <span class="required">*</span></label><input type="number" name="item_id" value="{{ old('item_id') }}" class="form-control" step="any" required></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Yarn Id <span class="required">*</span></label><input type="number" name="yarn_id" value="{{ old('yarn_id') }}" class="form-control" step="any" required></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Reed Peak <span class="required">*</span></label><input type="number" name="reed_peak" value="{{ old('reed_peak') }}" class="form-control" step="any" required></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Yarn Quantity</label><input type="number" name="yarn_quantity" value="{{ old('yarn_quantity') }}" class="form-control" step="any"></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Unit <span class="required">*</span></label><input type="text" name="unit" value="{{ old('unit') }}" class="form-control" required></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Process Id <span class="required">*</span></label><input type="number" name="process_id" value="{{ old('process_id') }}" class="form-control" step="any" required></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Target Item <span class="required">*</span></label><select name="item_id" class="form-control" required><option value="">Select Item</option>@foreach ($items as $item)<option value="{{ $item->item_id }}" @selected(old('item_id') == $item->item_id)>{{ $item->item_name }} ({{ $item->item_code }})</option>@endforeach</select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Yarn <span class="required">*</span></label><select name="yarn_id" id="yarn_id" class="form-control" required><option value="">Select Yarn</option>@foreach ($yarns as $yarn)<option value="{{ $yarn->item_id }}" data-unit="{{ $yarn->unitType?->unit_type_name }}" @selected(old('yarn_id') == $yarn->item_id)>{{ $yarn->item_name }} ({{ $yarn->item_code }})</option>@endforeach</select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Process <span class="required">*</span></label><select name="process_id" class="form-control" required><option value="">Select Process</option>@foreach ($processes as $process)<option value="{{ $process->id }}" @selected(old('process_id') == $process->id)>{{ $process->process_name }}</option>@endforeach</select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Reed / Pick <span class="required">*</span></label><input type="number" name="reed_peak" value="{{ old('reed_peak') }}" class="form-control" min="0" step="1" required></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Requirement Quantity <span class="required">*</span></label><input type="number" name="yarn_quantity" value="{{ old('yarn_quantity') }}" class="form-control" min="0" step="0.01" required></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Yarn Unit <span class="required">*</span></label><input type="text" name="unit" id="yarn_unit" value="{{ old('unit') }}" class="form-control" maxlength="22" readonly required></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status', 'Active') === 'Inactive')>Inactive</option></select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.item-yarn-requirements.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
@@ -33,5 +33,6 @@
         @include('admin.common.footer')
     </div>
     @include('admin.common.formfooterscript')
+    <script>$('#yarn_id').on('change', function () { $('#yarn_unit').val($(this).find(':selected').data('unit') || ''); }).trigger('change');</script>
 </body>
 </html>

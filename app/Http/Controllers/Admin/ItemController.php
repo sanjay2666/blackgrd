@@ -9,19 +9,19 @@ use App\Models\HsnCode;
 use App\Models\Item;
 use App\Models\ItemType;
 use App\Models\ItemYarnRequirement;
+use App\Models\ProcessItem;
 use App\Models\UnitType;
 use App\Services\ItemMasterService;
+use App\Services\YarnRecipeService;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class ItemController extends Controller
 {
-    public function __construct(private readonly ItemMasterService $items)
+    public function __construct(private readonly ItemMasterService $items, private readonly YarnRecipeService $recipes)
     {
         // The Item master service owns mutation policy and auditing.
     }
@@ -174,24 +174,14 @@ class ItemController extends Controller
             abort(404);
         }
 
-        $requirements = ItemYarnRequirement::with('yarnItem')
+        $requirements = ItemYarnRequirement::with(['yarnItem', 'process'])
             ->where('item_id', $item->item_id)
             ->where('status', '!=', 'Deleted')
             ->orderBy('id', 'desc')
             ->get();
 
-        $yarnTypeIds = ItemType::active()
-            ->where('item_type_name', 'like', '%Yarn%')
-            ->pluck('item_type_id');
-
-        $yarnItems = Item::active();
-
-        if ($yarnTypeIds->count() > 0) {
-            $yarnItems->whereIn('item_type_id', $yarnTypeIds);
-        }
-
-        $yarnItems = $yarnItems->orderBy('item_id', 'asc')->get();
-        $processOptions = [1 => 'EPI', 2 => 'PPI'];
+        $yarnItems = $this->recipes->activeYarns();
+        $processOptions = ProcessItem::query()->active()->orderBy('process_name')->pluck('process_name', 'id');
 
         return view('admin.items.manage-yarn', compact('item', 'requirements', 'yarnItems', 'processOptions'));
     }
@@ -219,63 +209,35 @@ class ItemController extends Controller
             return redirect()->back()->withInput();
         }
 
-        DB::beginTransaction();
         try {
-            $processIds = $request->process_id;
-            $yarnIds = $request->yarn_id;
-            $reedPeaks = $request->reed_peak;
-            $yarnQuantities = $request->yarn_quantity;
-
-            foreach ($processIds as $key => $processId) {
-                if ($processId == '' || empty($yarnIds[$key]) || empty($reedPeaks[$key]) || empty($yarnQuantities[$key])) {
+            foreach ((array) $request->input('process_id') as $key => $processId) {
+                if ($processId === '' || empty($request->yarn_id[$key])) {
                     continue;
                 }
-
-                $itemYarnRequirement = new ItemYarnRequirement;
-                $itemYarnRequirement->item_id = $request->item_id;
-                $itemYarnRequirement->process_id = $processId;
-                $itemYarnRequirement->yarn_id = $yarnIds[$key];
-                $itemYarnRequirement->reed_peak = $reedPeaks[$key];
-                $itemYarnRequirement->yarn_quantity = $yarnQuantities[$key];
-                $itemYarnRequirement->unit = 'Kg';
-                $itemYarnRequirement->financial_year = currentFinancialYear();
-                $itemYarnRequirement->status = 'Active';
-                $itemYarnRequirement->created_by = Auth::id();
-                $itemYarnRequirement->created_at = now();
-                $itemYarnRequirement->save();
+                $yarn = Item::query()->whereKey((int) $request->yarn_id[$key])->with('unitType')->firstOrFail();
+                $this->recipes->save(new ItemYarnRequirement, [
+                    'item_id' => $request->item_id, 'process_id' => $processId, 'yarn_id' => $yarn->item_id,
+                    'reed_peak' => $request->reed_peak[$key], 'yarn_quantity' => $request->yarn_quantity[$key],
+                    'unit' => $yarn->unitType?->unit_type_name, 'status' => 'Active',
+                ], $request);
             }
 
-            DB::commit();
-            Session::put('message', 'Yarn details added successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->back();
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to save yarn details. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
+            return redirect()->back()->with('message', 'Yarn details added successfully.')->with('messageClass', 'successClass');
+        } catch (Exception $exception) {
+            return redirect()->back()->withInput()->withErrors(['yarn' => $exception->getMessage()]);
         }
+
     }
 
     public function deleteYarn($id)
     {
         $itemYarnRequirement = ItemYarnRequirement::where('id', $id)->firstOrFail();
 
-        DB::beginTransaction();
         try {
-            $itemYarnRequirement->status = 'Deleted';
-            $itemYarnRequirement->modified_by = Auth::id();
-            $itemYarnRequirement->modified_at = now();
-            $itemYarnRequirement->save();
-
-            DB::commit();
+            $this->recipes->remove($itemYarnRequirement, request());
 
             return response()->json(['success' => true]);
         } catch (Exception $e) {
-            DB::rollBack();
-
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }

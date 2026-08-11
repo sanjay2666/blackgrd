@@ -10,8 +10,11 @@ class ItemYarnRequirement extends Model
     use HasFactory;
 
     protected $table = 'item_yarn_requirements';
+
     protected $primaryKey = 'id';
+
     public $timestamps = false;
+
     protected $guarded = [];
 
     public function item()
@@ -22,6 +25,11 @@ class ItemYarnRequirement extends Model
     public function yarnItem()
     {
         return $this->belongsTo(Item::class, 'yarn_id', 'item_id');
+    }
+
+    public function process()
+    {
+        return $this->belongsTo(ProcessItem::class, 'process_id');
     }
 
     public function getyarn()
