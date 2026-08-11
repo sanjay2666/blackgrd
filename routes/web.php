@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\FinancialYearController;
+use App\Http\Controllers\Admin\FabricQualityController;
 use App\Http\Controllers\Admin\GstRateController;
 use App\Http\Controllers\Admin\HsnCodeController;
 use App\Http\Controllers\Admin\IndividualController;
@@ -356,6 +357,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('item-types/{id}/activate', [ItemTypeController::class, 'activate'])->name('item-types.activate');
         Route::patch('item-types/{id}/deactivate', [ItemTypeController::class, 'deactivate'])->name('item-types.deactivate');
         Route::resource('item-types', ItemTypeController::class)->except(['show']);
+        Route::patch('fabric-qualities/{id}/activate', [FabricQualityController::class, 'activate'])->name('fabric-qualities.activate');
+        Route::patch('fabric-qualities/{id}/deactivate', [FabricQualityController::class, 'deactivate'])->name('fabric-qualities.deactivate');
+        Route::resource('fabric-qualities', FabricQualityController::class)->except(['show']);
 
         // Admin item/yarn routes.
         Route::get('/items/{id}/manage-yarn', [ItemController::class, 'manageYarn'])->name('items.manage-yarn');
