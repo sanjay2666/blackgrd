@@ -227,6 +227,18 @@ class CommonController extends Controller
 			echo json_encode($dataI);
 	}
 
+    public function list_transporter(Request $request)
+    {
+        $term = trim((string) $request->input('term', ''));
+        $query = Individual::query()->where('type', 'transport')->where('status', 'Active');
+        if ($term !== '') {
+            $query->where(function ($search) use ($term): void {
+                $search->where('name', 'like', '%'.$term.'%')->orWhere('company_name', 'like', '%'.$term.'%')->orWhere('transporter_code', 'like', '%'.$term.'%')->orWhere('phone', 'like', '%'.$term.'%');
+            });
+        }
+        return response()->json($query->orderBy('name')->limit(10)->get(['id', 'name', 'transporter_code', 'phone', 'type']));
+    }
+
 	public function list_customerandvendor(Request $request)
 	{
 		$qsearch = trim($request->input('term', ''));

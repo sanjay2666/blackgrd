@@ -22,6 +22,8 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\CustomerAddressController;
 use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\VendorAddressController;
+use App\Http\Controllers\Admin\TransporterController;
+use App\Http\Controllers\Admin\TransporterAddressController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ItemTypeController;
 use App\Http\Controllers\Admin\ItemYarnRequirementController;
@@ -89,6 +91,7 @@ Route::middleware(['auth:web,admin', 'organization', 'rbac', 'audit'])->group(fu
     Route::get('/individual-addresses', [CommonController::class, 'individual_addresses'])->name('individual_addresses');
     Route::get('/find_saleDyeingColor', [CommonController::class, 'find_saleDyeingColor'])->name('find_saleDyeingColor');
     Route::get('/list_vendor', [CommonController::class, 'list_vendor'])->name('list_vendor');
+    Route::get('/list_transporter', [CommonController::class, 'list_transporter'])->name('list_transporter');
     Route::get('/list_customerandvendor', [CommonController::class, 'list_customerandvendor'])->name('list_customerandvendor');
     Route::get('/list_employee', [CommonController::class, 'list_employee'])->name('list_employee');
     Route::get('/list_item', [CommonController::class, 'list_item'])->name('list_item');
@@ -463,6 +466,14 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/vendors/{vendor}/addresses/{address}/edit', [VendorAddressController::class, 'edit'])->name('vendors.addresses.edit');
         Route::put('/vendors/{vendor}/addresses/{address}', [VendorAddressController::class, 'update'])->name('vendors.addresses.update');
         Route::delete('/vendors/{vendor}/addresses/{address}', [VendorAddressController::class, 'destroy'])->name('vendors.addresses.destroy');
+        Route::resource('transporters', TransporterController::class)->except(['show']);
+        Route::patch('/transporters/{transporter}/activate', [TransporterController::class, 'activate'])->name('transporters.activate');
+        Route::patch('/transporters/{transporter}/deactivate', [TransporterController::class, 'deactivate'])->name('transporters.deactivate');
+        Route::get('/transporters/{transporter}/addresses/create', [TransporterAddressController::class, 'create'])->name('transporters.addresses.create');
+        Route::post('/transporters/{transporter}/addresses', [TransporterAddressController::class, 'store'])->name('transporters.addresses.store');
+        Route::get('/transporters/{transporter}/addresses/{address}/edit', [TransporterAddressController::class, 'edit'])->name('transporters.addresses.edit');
+        Route::put('/transporters/{transporter}/addresses/{address}', [TransporterAddressController::class, 'update'])->name('transporters.addresses.update');
+        Route::delete('/transporters/{transporter}/addresses/{address}', [TransporterAddressController::class, 'destroy'])->name('transporters.addresses.destroy');
 
         // Company-scoped RBAC administration. System roles are deliberately absent.
         Route::middleware('permission:roles.view')->group(function (): void {
