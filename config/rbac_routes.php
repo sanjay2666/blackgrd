@@ -7,7 +7,7 @@ return [
         'couriers' => 'masters', 'gst-rates' => 'masters', 'hsn-codes' => 'masters', 'item-types' => 'masters', 'items' => 'masters',
         'item-yarn-requirements' => 'masters', 'notifications' => 'settings', 'packaging-types' => 'masters',
         'unit-types' => 'masters', 'fabric-qualities' => 'masters', 'fabric-fault-reasons' => 'masters', 'printing-designs' => 'masters', 'user-web-pages' => 'settings', 'warehouses' => 'warehouse',
-        'ware-house-compartments' => 'warehouse', 'machines' => 'masters', 'office-ips' => 'settings',
+        'ware-house-compartments' => 'warehouse', 'machines' => 'masters', 'machine-capacities' => 'masters', 'office-ips' => 'settings',
         'process-items' => 'processes', 'individuals' => 'employees',
     ],
     'admin_custom' => [

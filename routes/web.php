@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\ItemYarnRequirementController;
 use App\Http\Controllers\Admin\LoginAttemptController;
 use App\Http\Controllers\Admin\LoginOtpController;
 use App\Http\Controllers\Admin\MachineController;
+use App\Http\Controllers\Admin\MachineCapacityController;
 use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\NumberSeriesController;
 use App\Http\Controllers\Admin\OfficeIpController;
@@ -426,6 +427,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('machines', MachineController::class)->except(['show']);
         Route::patch('/machines/{machine}/activate', [MachineController::class, 'activate'])->name('machines.activate');
         Route::patch('/machines/{machine}/deactivate', [MachineController::class, 'deactivate'])->name('machines.deactivate');
+        Route::resource('machine-capacities', MachineCapacityController::class)->except(['show', 'destroy']);
+        Route::delete('/machine-capacities/{machine_capacity}', [MachineCapacityController::class, 'destroy'])->name('machine-capacities.destroy');
         Route::resource('office-ips', OfficeIpController::class)->except(['show']);
         Route::resource('process-items', ProcessItemController::class)->except(['show']);
         Route::patch('/process-items/{process_item}/activate', [ProcessItemController::class, 'activate'])->name('process-items.activate');
