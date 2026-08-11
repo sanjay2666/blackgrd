@@ -31,6 +31,7 @@ return [
         'admin.branches.create' => 'branches.create', 'admin.branches.store' => 'branches.create', 'admin.branches.edit' => 'branches.update', 'admin.branches.update' => 'branches.update', 'admin.branches.activate' => 'branches.activate', 'admin.branches.deactivate' => 'branches.deactivate',
         'admin.factories.create' => 'branches.create', 'admin.factories.store' => 'branches.create', 'admin.factories.edit' => 'branches.update', 'admin.factories.update' => 'branches.update', 'admin.factories.activate' => 'branches.activate', 'admin.factories.deactivate' => 'branches.deactivate',
         'admin.departments.activate' => 'departments.activate', 'admin.departments.deactivate' => 'departments.deactivate',
+        'admin.unit-types.activate' => 'masters.update', 'admin.unit-types.deactivate' => 'masters.update',
     ],
     'frontend_named' => [
         'dashboard' => 'dashboard.view',

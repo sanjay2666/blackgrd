@@ -360,6 +360,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('notifications', NotificationController::class)->except(['show']);
         Route::resource('packaging-types', PackagingTypeController::class)->except(['show']);
         Route::resource('unit-types', UnitTypeController::class)->except(['show']);
+        Route::patch('/unit-types/{id}/activate', [UnitTypeController::class, 'activate'])->name('unit-types.activate');
+        Route::patch('/unit-types/{id}/deactivate', [UnitTypeController::class, 'deactivate'])->name('unit-types.deactivate');
         Route::resource('financial-years', FinancialYearController::class)->except(['show']);
         Route::post('/financial-years/{financial_year}/set-current', [FinancialYearController::class, 'setCurrent'])->name('financial-years.set-current');
         Route::get('/number-series', [NumberSeriesController::class, 'index'])->middleware('permission:number-series.view')->name('number-series.index');

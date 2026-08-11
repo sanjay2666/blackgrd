@@ -1,0 +1,8 @@
+<div class="row">
+    <div class="col-sm-4"><div class="form-group"><label>Unit Name <span class="required">*</span></label><input type="text" name="unit_type_name" value="{{ old('unit_type_name', $unitType?->unit_type_name) }}" class="form-control" maxlength="255" required></div></div>
+    <div class="col-sm-3"><div class="form-group"><label>Short Code / Symbol</label><input type="text" name="unit_code" value="{{ old('unit_code', $unitType?->unit_code) }}" class="form-control" maxlength="20" placeholder="e.g. KG"></div></div>
+    <div class="col-sm-2"><div class="form-group"><label>Decimal Places</label><input type="number" name="decimal_places" value="{{ old('decimal_places', $unitType?->decimal_places) }}" min="0" max="6" class="form-control"></div></div>
+    <div class="col-sm-3"><div class="form-group"><label>Status</label><select name="status" class="form-control">@include('admin.common.status-options', ['selectedStatus' => old('status', $unitType?->status ?? 'Active')])</select></div></div>
+</div>
+<div class="row"><div class="col-sm-8"><div class="form-group"><label>Description</label><textarea name="description" class="form-control" rows="2" maxlength="1000">{{ old('description', $unitType?->description) }}</textarea></div></div><div class="col-sm-2"><div class="form-group"><label>Display Order</label><input type="number" name="display_order" value="{{ old('display_order', $unitType?->display_order ?? 0) }}" min="0" class="form-control"></div></div></div>
+<div class="reset-button"><a href="{{ route('admin.unit-types.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
