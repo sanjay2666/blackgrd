@@ -3,8 +3,8 @@
 use App\Http\Controllers\Admin\AllPageController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ColourController;
-use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\BranchFactoryController;
+use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CotingController;
 use App\Http\Controllers\Admin\CourierController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -383,6 +383,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('machines', MachineController::class)->except(['show']);
         Route::resource('office-ips', OfficeIpController::class)->except(['show']);
         Route::resource('process-items', ProcessItemController::class)->except(['show']);
+        Route::patch('/process-items/{process_item}/activate', [ProcessItemController::class, 'activate'])->name('process-items.activate');
+        Route::patch('/process-items/{process_item}/deactivate', [ProcessItemController::class, 'deactivate'])->name('process-items.deactivate');
         Route::resource('individuals', IndividualController::class)->except(['show']);
 
         // Company-scoped RBAC administration. System roles are deliberately absent.

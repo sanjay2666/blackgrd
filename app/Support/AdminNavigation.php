@@ -50,7 +50,7 @@ final class AdminNavigation
                 self::item('Item Yarn Requirements', 'admin.item-yarn-requirements.index', 'masters.view', 'admin.item-yarn-requirements.*'),
                 self::item('Packaging Types', 'admin.packaging-types.index', 'masters.view', 'admin.packaging-types.*'),
                 self::item('Unit Types', 'admin.unit-types.index', 'masters.view', 'admin.unit-types.*'),
-                self::item('Process Items', 'admin.process-items.index', 'masters.view', 'admin.process-items.*'),
+                self::item('Processes', 'admin.process-items.index', 'processes.view', 'admin.process-items.*'),
                 self::item('Machines', 'admin.machines.index', 'masters.view', 'admin.machines.*'),
                 self::item('Warehouses', 'admin.warehouses.index', 'warehouse.view-stock', 'admin.warehouses.*'),
                 self::item('Warehouse Compartments', 'admin.ware-house-compartments.index', 'warehouse.view-stock', 'admin.ware-house-compartments.*'),

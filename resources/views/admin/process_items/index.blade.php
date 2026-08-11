@@ -16,7 +16,7 @@
 			<section class="content-header">
 				<div class="header-icon"><i class="fa fa-cogs"></i></div>
 				<div class="header-title">
-					<h1>Process Items</h1><small>Process list</small>
+										<h1>Process Master</h1><small>Reusable manufacturing process identities</small>
 				</div>
 			</section>
 			<section class="content">
@@ -32,19 +32,22 @@
 							<div class="panel-body">
 								<div class="row" style="margin-bottom:5px">
 									<form action="{{ route('admin.process-items.index') }}" method="GET">
-										<div class="col-sm-4"><input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Search process"></div>
-										<div class="col-sm-2"><button class="btn btn-add">Search</button></div>
-									</form>
-									<div class="col-sm-3"><a href="{{ route('admin.process-items.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Process</a></div>
+												<div class="col-sm-3"><input type="text" name="search" value="{{ request('search') }}" class="form-control" placeholder="Name or code"></div>
+												<div class="col-sm-3"><select name="department_id" class="form-control"><option value="">All Departments</option>@foreach($departments as $department)<option value="{{ $department->id }}" @selected((string) request('department_id') === (string) $department->id)>{{ $department->department_name }}</option>@endforeach</select></div>
+												<div class="col-sm-2"><select name="status" class="form-control"><option value="">All Statuses</option>@foreach($statusOptions as $value => $label)<option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>@endforeach</select></div>
+												<div class="col-sm-2"><button class="btn btn-add">Filter</button></div>
+										</form>
+									<div class="col-sm-2"><a href="{{ route('admin.process-items.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Process</a></div>
 								</div>
 								<div class="table-responsive">
 									<table class="table table-bordered table-striped table-hover">
 										<thead>
 											<tr class="info">
-												<th>Entry Name</th>
-												<th>Process Name</th>
-												<th>Output Name</th>
-												<th>Last Sl No</th>
+														<th>Process Name</th>
+														<th>Code</th>
+														<th>Department</th>
+														<th>Output Name</th>
+														<th>Order</th>
 												<th>Status</th>
 												<th>Action</th>
 												<th>Delete</th>
@@ -53,17 +56,18 @@
 										<tbody>
 											@forelse ($processItems as $processItem)
 											<tr id="process-row-{{ $processItem->id }}">
-												<td>{{ $processItem->entry_name ?? '-' }}</td>
-												<td>{{ $processItem->process_name }}</td>
-												<td>{{ $processItem->output_name }}</td>
-												<td>{{ $processItem->process_sl_no_last }}</td>
+														<td>{{ $processItem->process_name }}</td>
+														<td>{{ $processItem->short_code }}</td>
+														<td>{{ $processItem->department?->department_name ?? 'Reusable / unassigned' }}</td>
+														<td>{{ $processItem->output_name }}</td>
+														<td>{{ $processItem->display_order ?? '-' }}</td>
 												<td>{{ $processItem->status }}</td>
 												<td><a href="{{ route('admin.process-items.edit', enc($processItem->id)) }}"><i class="fa fa-pencil"></i></a></td>
-												<td><button type="button" class="btn btn-danger btn-xs" onclick="deleteProcess('{{ enc($processItem->id) }}', {{ $processItem->id }})"><i class="fa fa-trash-o"></i></button></td>
+														<td><form method="POST" action="{{ route($processItem->status === 'Active' ? 'admin.process-items.deactivate' : 'admin.process-items.activate', enc($processItem->id)) }}">@csrf @method('PATCH')<button class="btn btn-xs {{ $processItem->status === 'Active' ? 'btn-warning' : 'btn-success' }}">{{ $processItem->status === 'Active' ? 'Deactivate' : 'Activate' }}</button></form></td>
 											</tr>
 											@empty
 											<tr>
-												<td colspan="7" class="text-center">No records found.</td>
+													<td colspan="8" class="text-center">No records found.</td>
 											</tr>
 											@endforelse
 										</tbody>
@@ -79,27 +83,6 @@
 		@include('admin.common.footer')
 	</div>
 	@include('admin.common.formfooterscript')
-	<script>
-		function deleteProcess(id, rowId) {
-			if (!confirm('Do you really want to delete this record?')) {
-				return;
-			}
-			$.ajax({
-				type: 'DELETE'
-				, url: '{{ url(' / admin / process - items ') }}/' + encodeURIComponent(id)
-				, data: {
-					_token: '{{ csrf_token() }}'
-				}
-				, success: function() {
-					$('#process-row-' + rowId).hide();
-				}
-				, error: function() {
-					alert('Record delete nahi ho paya. Please try again.');
-				}
-			});
-		}
-
-	</script>
 </body>
 
 </html>

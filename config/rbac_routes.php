@@ -8,9 +8,10 @@ return [
         'item-yarn-requirements' => 'masters', 'notifications' => 'settings', 'packaging-types' => 'masters',
         'unit-types' => 'masters', 'user-web-pages' => 'settings', 'warehouses' => 'warehouse',
         'ware-house-compartments' => 'warehouse', 'machines' => 'masters', 'office-ips' => 'settings',
-        'process-items' => 'masters', 'individuals' => 'employees',
+        'process-items' => 'processes', 'individuals' => 'employees',
     ],
     'admin_custom' => [
+        'admin.process-items.activate' => 'processes.activate', 'admin.process-items.deactivate' => 'processes.deactivate',
         'admin.dashboard' => 'dashboard.view', 'admin.financial-years.set-current' => 'financial-years.set-current',
         'admin.items.manage-yarn' => 'masters.manage-yarn', 'admin.items.add-manage-yarn' => 'masters.manage-yarn', 'admin.items.delete-yarn' => 'masters.delete',
         'admin.login-attempts.index' => 'security.view', 'admin.login-attempts.destroy' => 'security.delete',

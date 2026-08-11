@@ -4,176 +4,99 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
+use App\Models\Department;
 use App\Models\ProcessItem;
 use App\Rules\RecordStatusRule;
-use Exception;
+use App\Services\CurrentOrganizationContext;
+use App\Services\ProcessMasterService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
 class ProcessItemController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $query = ProcessItem::notDeleted();
-
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('entry_name', 'like', '%'.$request->search.'%')
-                    ->orWhere('process_name', 'like', '%'.$request->search.'%')
-                    ->orWhere('output_name', 'like', '%'.$request->search.'%');
-            });
-        }
+        $query = ProcessItem::query()->notDeleted()->with('department');
+        $query->when($request->filled('search'), fn ($q) => $q->where(fn ($nested) => $nested
+            ->where('process_name', 'like', '%'.$request->string('search').'%')
+            ->orWhere('short_code', 'like', '%'.$request->string('search').'%')
+            ->orWhere('entry_name', 'like', '%'.$request->string('search').'%')
+            ->orWhere('output_name', 'like', '%'.$request->string('search').'%')));
+        $query->when($request->filled('department_id'), fn ($q) => $q->where('department_id', $request->integer('department_id')));
+        $query->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')));
 
         return view('admin.process_items.index', [
-            'processItems' => $query->latest('id')->paginate(config('app.pagination_limit'))->withQueryString(),
-        ]);
-    }
-
-    public function create()
-    {
-        return view('admin.process_items.create', ['statusOptions' => RecordStatus::formOptions()]);
-    }
-
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'entry_name' => 'nullable|max:255',
-            'process_name' => 'required|max:255',
-            'output_name' => 'required|max:255',
-            'process_sl_no_last' => 'required|integer|min:0',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'entry_name.max' => 'Entry Name should not be greater than 255 characters.',
-            'process_name.required' => 'Please enter Process Name.',
-            'process_name.max' => 'Process Name should not be greater than 255 characters.',
-            'output_name.required' => 'Please enter Output Name.',
-            'output_name.max' => 'Output Name should not be greater than 255 characters.',
-            'process_sl_no_last.required' => 'Please enter Last Sl No.',
-            'process_sl_no_last.integer' => 'Last Sl No should be a number.',
-            'process_sl_no_last.min' => 'Last Sl No should not be less than 0.',
-            'status.required' => 'Please select Status.',
-            'status.in' => 'Please select valid Status.',
-        ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $processItem = new ProcessItem;
-            $processItem->entry_name = $request->entry_name;
-            $processItem->process_name = $request->process_name;
-            $processItem->output_name = $request->output_name;
-            $processItem->process_sl_no_last = $request->process_sl_no_last;
-            $processItem->created = now();
-            $processItem->status = $request->status;
-            $processItem->save();
-
-            DB::commit();
-            Session::put('message', 'Process item added successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.process-items.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to save process item. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
-    }
-
-    public function edit(ProcessItem $process_item)
-    {
-        abort_if($process_item->status === 'Deleted', 404);
-
-        return view('admin.process_items.edit', [
-            'processItem' => $process_item,
+            'processItems' => $query->orderByRaw('COALESCE(display_order, 999999), id')->paginate(config('app.pagination_limit'))->withQueryString(),
+            'departments' => Department::active()->orderBy('department_name')->get(),
             'statusOptions' => RecordStatus::formOptions(),
         ]);
     }
 
-    public function update(Request $request, ProcessItem $process_item)
+    public function create(CurrentOrganizationContext $organization): View
     {
-        abort_if($process_item->status === 'Deleted', 404);
-
-        $validator = Validator::make($request->all(), [
-            'entry_name' => 'nullable|max:255',
-            'process_name' => 'required|max:255',
-            'output_name' => 'required|max:255',
-            'process_sl_no_last' => 'required|integer|min:0',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'entry_name.max' => 'Entry Name should not be greater than 255 characters.',
-            'process_name.required' => 'Please enter Process Name.',
-            'process_name.max' => 'Process Name should not be greater than 255 characters.',
-            'output_name.required' => 'Please enter Output Name.',
-            'output_name.max' => 'Output Name should not be greater than 255 characters.',
-            'process_sl_no_last.required' => 'Please enter Last Sl No.',
-            'process_sl_no_last.integer' => 'Last Sl No should be a number.',
-            'process_sl_no_last.min' => 'Last Sl No should not be less than 0.',
-            'status.required' => 'Please select Status.',
-            'status.in' => 'Please select valid Status.',
-        ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $process_item->entry_name = $request->entry_name;
-            $process_item->process_name = $request->process_name;
-            $process_item->output_name = $request->output_name;
-            $process_item->process_sl_no_last = $request->process_sl_no_last;
-            $process_item->modified = now();
-            $process_item->status = $request->status;
-            $process_item->save();
-
-            DB::commit();
-            Session::put('message', 'Process item updated successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.process-items.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to update process item. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
+        return view('admin.process_items.create', $this->formData($organization));
     }
 
-    public function destroy(ProcessItem $process_item)
+    public function store(Request $request, ProcessMasterService $service): RedirectResponse
+    {
+        $service->save(new ProcessItem, $this->validated($request));
+
+        return redirect()->route('admin.process-items.index')->with('message', 'Process added successfully.')->with('messageClass', 'successClass');
+    }
+
+    public function edit(ProcessItem $process_item, CurrentOrganizationContext $organization): View
     {
         abort_if($process_item->status === 'Deleted', 404);
 
-        DB::beginTransaction();
-        try {
-            $process_item->status = 'Deleted';
-            $process_item->modified = now();
-            $process_item->save();
+        return view('admin.process_items.edit', array_merge(['processItem' => $process_item], $this->formData($organization)));
+    }
 
-            DB::commit();
-            Session::put('message', 'Process item deleted successfully.');
-            Session::put('messageClass', 'successClass');
+    public function update(Request $request, ProcessItem $process_item, ProcessMasterService $service): RedirectResponse
+    {
+        abort_if($process_item->status === 'Deleted', 404);
+        $service->save($process_item, $this->validated($request));
 
-            return response()->json(['success' => true]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to delete process item. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
+        return redirect()->route('admin.process-items.index')->with('message', 'Process updated successfully.')->with('messageClass', 'successClass');
+    }
 
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+    public function activate(ProcessItem $process_item, ProcessMasterService $service): RedirectResponse
+    {
+        abort_if($process_item->status === 'Deleted', 404);
+        $service->transition($process_item, 'Active');
+
+        return back()->with('message', 'Process activated successfully.')->with('messageClass', 'successClass');
+    }
+
+    public function deactivate(ProcessItem $process_item, ProcessMasterService $service): RedirectResponse
+    {
+        abort_if($process_item->status === 'Deleted', 404);
+        $service->transition($process_item, 'Inactive');
+
+        return back()->with('message', 'Process deactivated successfully.')->with('messageClass', 'successClass');
+    }
+
+    public function destroy(ProcessItem $process_item, ProcessMasterService $service): never
+    {
+        abort_if($process_item->status === 'Deleted', 404);
+        $service->rejectDeletion($process_item);
+    }
+
+    /** @return array<string, mixed> */
+    private function validated(Request $request): array
+    {
+        return $request->validate([
+            'process_name' => 'required|string|max:255', 'short_code' => 'required|string|max:30|alpha_dash',
+            'description' => 'nullable|string|max:5000', 'entry_name' => 'nullable|string|max:255',
+            'output_name' => 'required|string|max:255', 'department_id' => 'nullable|integer',
+            'display_order' => 'nullable|integer|min:0', 'process_sl_no_last' => 'nullable|integer|min:0',
+            'status' => ['required', new RecordStatusRule],
+        ]);
+    }
+
+    /** @return array<string, mixed> */
+    private function formData(CurrentOrganizationContext $organization): array
+    {
+        return ['departments' => Department::active()->where('company_id', $organization->companyId())->orderBy('department_name')->get(), 'statusOptions' => RecordStatus::formOptions()];
     }
 }

@@ -10,7 +10,7 @@ final class PermissionRegistry
     private const SUPER_ADMIN_RESERVED_KEYS = ['organization.access-manage', 'companies.configure'];
 
     /** Resources which belong only to the Admin security/configuration panel. */
-    private const ADMIN_ONLY_RESOURCES = ['companies', 'roles', 'users', 'security', 'settings', 'audit-logs', 'number-series'];
+    private const ADMIN_ONLY_RESOURCES = ['companies', 'roles', 'users', 'security', 'settings', 'audit-logs', 'number-series', 'processes'];
 
     /** @return list<array{key:string,resource:string,action:string,category:string,description:string,critical:bool}> */
     public static function all(): array
@@ -22,6 +22,7 @@ final class PermissionRegistry
             'departments' => ['view', 'create', 'update', 'delete', 'activate', 'deactivate'],
             'employees' => ['view', 'create', 'update', 'delete', 'export', 'manage'],
             'masters' => ['view', 'create', 'update', 'delete', 'export', 'configure', 'manage-yarn'],
+            'processes' => ['view', 'create', 'update', 'delete', 'activate', 'deactivate'],
             'sale-orders' => ['view', 'create', 'update', 'cancel', 'submit', 'print', 'export'],
             'purchases' => ['view', 'create', 'update', 'cancel', 'receive', 'return', 'print', 'export'],
             'work-orders' => ['view', 'create', 'update', 'cancel', 'start', 'complete', 'assign', 'print', 'export'],
