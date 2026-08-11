@@ -38,6 +38,7 @@ return [
         'admin.colours.activate' => 'masters.update', 'admin.colours.deactivate' => 'masters.update',
         'admin.dyeing-colours.activate' => 'masters.update', 'admin.dyeing-colours.deactivate' => 'masters.update',
         'admin.chemicals.activate' => 'masters.update', 'admin.chemicals.deactivate' => 'masters.update', 'admin.chemicals.options' => 'masters.view',
+        'admin.cotings.activate' => 'masters.update', 'admin.cotings.deactivate' => 'masters.update', 'admin.cotings.options' => 'masters.view',
         'admin.printing-designs.activate' => 'masters.update', 'admin.printing-designs.deactivate' => 'masters.update', 'admin.printing-designs.options' => 'masters.view',
         'admin.gst-rates.activate' => 'masters.update', 'admin.gst-rates.deactivate' => 'masters.update',
         'admin.hsn-codes.activate' => 'masters.update', 'admin.hsn-codes.deactivate' => 'masters.update',

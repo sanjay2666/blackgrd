@@ -361,6 +361,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/factories/{factory}/activate', [BranchFactoryController::class, 'activateFactory'])->name('factories.activate');
         Route::patch('/factories/{factory}/deactivate', [BranchFactoryController::class, 'deactivateFactory'])->name('factories.deactivate');
         Route::resource('cotings', CotingController::class)->except(['show']);
+        Route::patch('cotings/{id}/activate', [CotingController::class, 'activate'])->name('cotings.activate');
+        Route::patch('cotings/{id}/deactivate', [CotingController::class, 'deactivate'])->name('cotings.deactivate');
+        Route::get('cotings/options', [CotingController::class, 'options'])->name('cotings.options');
         Route::resource('couriers', CourierController::class)->except(['show']);
         Route::resource('gst-rates', GstRateController::class)->except(['show']);
         Route::patch('/gst-rates/{id}/activate', [GstRateController::class, 'activate'])->name('gst-rates.activate');

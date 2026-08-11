@@ -6,162 +6,57 @@ use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Coting;
 use App\Rules\RecordStatusRule;
-use Exception;
+use App\Services\CotingMasterService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
 
-class CotingController extends Controller
+final class CotingController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
-        $query = Coting::query();
-        $query->notDeleted();
-
+        $query = Coting::query()->notDeleted();
         if ($request->filled('search')) {
-            $query->where(function ($query) use ($request) {
-                $query->where('name', 'like', '%'.$request->search.'%');
-                $query->orWhere('code', 'like', '%'.$request->search.'%');
-            });
+            $search = trim((string) $request->input('search'));
+            $query->where(fn ($q) => $q->where('name', 'like', '%'.$search.'%')->orWhere('code', 'like', '%'.$search.'%'));
         }
-
-        $cotings = $query->orderBy('id', 'desc')->paginate(config('app.pagination_limit'))->withQueryString();
-
-        return view('admin.cotings.index', compact('cotings'));
+        if ($request->filled('status') && in_array($request->input('status'), ['Active', 'Inactive'], true)) {
+            $query->where('status', $request->input('status'));
+        }
+        return view('admin.cotings.index', ['cotings' => $query->orderByRaw('COALESCE(display_order, 999999), name, id')->paginate(config('app.pagination_limit'))->withQueryString(), 'statusOptions' => RecordStatus::formOptions()]);
     }
 
-    public function create()
+    public function create(): View { return view('admin.cotings.form', ['coting' => new Coting(), 'statusOptions' => RecordStatus::formOptions()]); }
+
+    public function store(Request $request, CotingMasterService $service)
     {
-        return view('admin.cotings.create', ['statusOptions' => RecordStatus::formOptions()]);
+        $service->save(new Coting(), $this->validated($request));
+        return redirect()->route('admin.cotings.index')->with('message', 'Coating Type added successfully.')->with('messageClass', 'successClass');
     }
 
-    public function store(Request $request)
+    public function edit($id): View
     {
-        $validator = Validator::make($request->all(), [
-            'code' => 'required',
-            'name' => 'required',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'code.required' => 'Please enter Code.',
-            'name.required' => 'Please enter Name.',
-            'status.required' => 'Please select Status.',
-        ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $coting = new Coting;
-            $coting->code = $request->code;
-            $coting->name = $request->name;
-            $coting->status = $request->status;
-            $coting->created = now();
-            $coting->modified = now();
-            $coting->save();
-
-            DB::commit();
-            Session::put('message', 'Cotings added successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.cotings.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to save Cotings. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
+        return view('admin.cotings.form', ['coting' => Coting::whereKey(dec($id))->notDeleted()->firstOrFail(), 'statusOptions' => RecordStatus::formOptions()]);
     }
 
-    public function edit($id)
+    public function update(Request $request, $id, CotingMasterService $service)
     {
-        $id = dec($id);
-        $coting = Coting::where('id', $id)->firstOrFail();
-        if ($coting->status === 'Deleted') {
-            abort(404);
-        }
-
-        return view('admin.cotings.edit', compact('coting'))->with('statusOptions', RecordStatus::formOptions());
+        $service->save(Coting::whereKey(dec($id))->notDeleted()->firstOrFail(), $this->validated($request));
+        return redirect()->route('admin.cotings.index')->with('message', 'Coating Type updated successfully.')->with('messageClass', 'successClass');
     }
 
-    public function update(Request $request, $id)
+    public function destroy($id, CotingMasterService $service): never { $service->rejectDeletion(Coting::whereKey(dec($id))->notDeleted()->firstOrFail()); }
+    public function activate($id, CotingMasterService $service) { $service->transition(Coting::whereKey(dec($id))->notDeleted()->firstOrFail(), 'Active'); return back(); }
+    public function deactivate($id, CotingMasterService $service) { $service->transition(Coting::whereKey(dec($id))->notDeleted()->firstOrFail(), 'Inactive'); return back(); }
+
+    public function options(Request $request)
     {
-        $id = dec($id);
-        $coting = Coting::where('id', $id)->firstOrFail();
-        if ($coting->status === 'Deleted') {
-            abort(404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'code' => 'required',
-            'name' => 'required',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'code.required' => 'Please enter Code.',
-            'name.required' => 'Please enter Name.',
-            'status.required' => 'Please select Status.',
-        ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $coting->code = $request->code;
-            $coting->name = $request->name;
-            $coting->status = $request->status;
-            $coting->modified = now();
-            $coting->save();
-
-            DB::commit();
-            Session::put('message', 'Cotings updated successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.cotings.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to update Cotings. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
+        $search = trim((string) $request->input('q', ''));
+        $query = Coting::query()->active()->when($search !== '', fn ($q) => $q->where(fn ($q) => $q->where('name', 'like', '%'.$search.'%')->orWhere('code', 'like', '%'.$search.'%')));
+        return response()->json(['results' => $query->orderBy('name')->limit(50)->get(['id', 'name', 'code'])->map(fn (Coting $coting) => ['id' => $coting->id, 'text' => $coting->name, 'code' => $coting->code])->values()]);
     }
 
-    public function destroy($id)
+    private function validated(Request $request): array
     {
-        $id = dec($id);
-        $coting = Coting::where('id', $id)->firstOrFail();
-        if ($coting->status === 'Deleted') {
-            abort(404);
-        }
-
-        DB::beginTransaction();
-        try {
-            $coting->status = 'Deleted';
-            $coting->modified = now();
-            $coting->save();
-
-            DB::commit();
-            Session::put('message', 'Cotings deleted successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return response()->json(['success' => true]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to delete Cotings. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+        return $request->validate(['name' => 'required|string|max:255', 'code' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/'], 'description' => 'nullable|string|max:5000', 'display_order' => 'nullable|integer|min:0', 'status' => ['required', new RecordStatusRule()]]);
     }
 }

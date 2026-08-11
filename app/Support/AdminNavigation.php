@@ -44,7 +44,7 @@ final class AdminNavigation
                 self::item('Colours', 'admin.colours.index', 'masters.view', 'admin.colours.*'),
                 self::item('Shade / Dyeing Colours', 'admin.dyeing-colours.index', 'masters.view', 'admin.dyeing-colours.*'),
                 self::item('Chemicals', 'admin.chemicals.index', 'masters.view', 'admin.chemicals.*'),
-                self::item('Cotings', 'admin.cotings.index', 'masters.view', 'admin.cotings.*'),
+                self::item('Coating Types', 'admin.cotings.index', 'masters.view', 'admin.cotings.*'),
                 self::item('Couriers', 'admin.couriers.index', 'masters.view', 'admin.couriers.*'),
                 self::item('GST Rates', 'admin.gst-rates.index', 'masters.view', 'admin.gst-rates.*'),
                 self::item('HSN Master', 'admin.hsn-codes.index', 'masters.view', 'admin.hsn-codes.*'),
