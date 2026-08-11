@@ -35,6 +35,7 @@
 										<div class="col-sm-4 col-xs-12">
 											<input type="text" name="qsearch" value="{{ $qsearch }}" class="form-control" placeholder="Search by Colour Name or Code">
 										</div>
+										<div class="col-sm-2 col-xs-12"><select name="status" class="form-control"><option value="">All statuses</option>@foreach ($statusOptions as $value => $label)<option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>@endforeach</select></div>
 										<div class="col-sm-2 col-xs-12"><button type="submit" class="btn btn-success">Search</button></div>
 									</form>
 									<div class="col-sm-3 col-xs-12"><a href="{{ route('admin.colours.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Colour</a></div>
@@ -46,7 +47,7 @@
 												<th>ID</th>
 												<th>Colour Name</th>
 												<th>Code</th>
-												<th>Date</th>
+														<th>Visual</th>
 												<th>Status</th>
 												<th>Action</th>
 												<th>Delete</th>
@@ -57,11 +58,11 @@
 											<tr id="colours-row-{{ $row->id }}">
 												<td>{{ $row->id }}</td>
 												<td>{{ $row->name }}</td>
-												<td>{{ $row->code }}</td>
-												<td>{{ $row->created ? \Carbon\Carbon::parse($row->created)->format('d-m-Y H:i:s') : '' }}</td>
+														<td>{{ $row->code ?: '-' }}</td>
+														<td><span class="label" style="background:#{{ preg_match('/^[0-9A-Fa-f]{6}$/', (string) $row->code) ? $row->code : '777' }}">&nbsp;&nbsp;&nbsp;</span></td>
 												<td>{{ $row->status }}</td>
 												<td><a href="{{ route('admin.colours.edit', enc($row->id)) }}"><i class="fa fa-pencil"></i></a></td>
-												<td><button type="button" class="btn btn-danger btn-xs" onclick="deleteRecord('{{ enc($row->id) }}', {{ $row->id }})"><i class="fa fa-trash-o"></i></button></td>
+														<td><form method="POST" action="{{ route($row->status === 'Active' ? 'admin.colours.deactivate' : 'admin.colours.activate', enc($row->id)) }}" style="display:inline">@csrf @method('PATCH')<button class="btn btn-xs {{ $row->status === 'Active' ? 'btn-warning' : 'btn-success' }}">{{ $row->status === 'Active' ? 'Deactivate' : 'Activate' }}</button></form></td>
 											</tr>
 											@empty
 											<tr>
@@ -108,25 +109,6 @@
 				window.location.href = baseUrl + "?" + params.toString();
 			}
 		});
-
-		function deleteRecord(id, rowId) {
-			if (!confirm('Do you really want to delete this record?')) {
-				return;
-			}
-			$.ajax({
-				type: 'DELETE'
-				, url: '{{ url(' / admin / colours ') }}/' + encodeURIComponent(id)
-				, data: {
-					_token: '{{ csrf_token() }}'
-				}
-				, success: function() {
-					$('#colours-row-' + rowId).hide();
-				}
-				, error: function() {
-					alert('Record delete nahi ho paya. Please try again.');
-				}
-			});
-		}
 
 	</script>
 </body>

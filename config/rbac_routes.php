@@ -35,6 +35,7 @@ return [
         'admin.departments.activate' => 'departments.activate', 'admin.departments.deactivate' => 'departments.deactivate',
         'admin.unit-types.activate' => 'masters.update', 'admin.unit-types.deactivate' => 'masters.update',
         'admin.fabric-qualities.activate' => 'masters.update', 'admin.fabric-qualities.deactivate' => 'masters.update',
+        'admin.colours.activate' => 'masters.update', 'admin.colours.deactivate' => 'masters.update',
         'admin.gst-rates.activate' => 'masters.update', 'admin.gst-rates.deactivate' => 'masters.update',
         'admin.hsn-codes.activate' => 'masters.update', 'admin.hsn-codes.deactivate' => 'masters.update',
     ],

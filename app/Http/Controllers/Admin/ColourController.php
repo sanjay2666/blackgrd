@@ -6,20 +6,18 @@ use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Colour;
 use App\Rules\RecordStatusRule;
-use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\View\View;
+use App\Services\ColourMasterService;
 
 class ColourController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         $query = Colour::query();
         $query->notDeleted();
 
-        $qsearch = trim($request->input('qsearch', ''));
+        $qsearch = trim((string) $request->input('qsearch', ''));
         if ($qsearch == '' && $request->filled('search')) {
             $qsearch = trim($request->input('search', ''));
         }
@@ -31,9 +29,12 @@ class ColourController extends Controller
             });
         }
 
-        $colours = $query->orderBy('id', 'desc')->paginate(config('app.pagination_limit'))->withQueryString();
+        if ($request->filled('status') && in_array($request->input('status'), ['Active', 'Inactive'], true)) {
+            $query->where('status', $request->input('status'));
+        }
+        $colours = $query->orderBy('id')->paginate(config('app.pagination_limit'))->withQueryString();
 
-        return view('admin.colours.index', compact('colours', 'qsearch'));
+        return view('admin.colours.index', compact('colours', 'qsearch'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function create()
@@ -41,46 +42,15 @@ class ColourController extends Controller
         return view('admin.colours.create', ['statusOptions' => RecordStatus::formOptions()]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, ColourMasterService $service)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'code' => 'nullable',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/'],
             'status' => ['required', new RecordStatusRule],
-        ], [
-            'name.required' => 'Please enter Colour Name.',
-            'status.required' => 'Please select Status.',
         ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $colour = new Colour;
-            $colour->name = $request->name;
-            $colour->code = $request->code;
-            $colour->status = $request->status;
-            $colour->created = now();
-            $colour->modified = now();
-            $colour->save();
-
-            DB::commit();
-            Session::put('message', 'Colours added successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.colours.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to save Colours. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
+        $service->save(new Colour(), $validated);
+        return redirect()->route('admin.colours.index')->with('message', 'Colour added successfully.')->with('messageClass', 'successClass');
     }
 
     public function edit($id)
@@ -94,7 +64,7 @@ class ColourController extends Controller
         return view('admin.colours.edit', compact('colour'))->with('statusOptions', RecordStatus::formOptions());
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, ColourMasterService $service)
     {
         $id = dec($id);
         $colour = Colour::where('id', $id)->firstOrFail();
@@ -102,45 +72,16 @@ class ColourController extends Controller
             abort(404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'name' => 'required',
-            'code' => 'nullable',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'code' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/'],
             'status' => ['required', new RecordStatusRule],
-        ], [
-            'name.required' => 'Please enter Colour Name.',
-            'status.required' => 'Please select Status.',
         ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
-        try {
-            $colour->name = $request->name;
-            $colour->code = $request->code;
-            $colour->status = $request->status;
-            $colour->modified = now();
-            $colour->save();
-
-            DB::commit();
-            Session::put('message', 'Colours updated successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.colours.index');
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to update Colours. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
-        }
+        $service->save($colour, $validated);
+        return redirect()->route('admin.colours.index')->with('message', 'Colour updated successfully.')->with('messageClass', 'successClass');
     }
 
-    public function destroy($id)
+    public function destroy($id, ColourMasterService $service)
     {
         $id = dec($id);
         $colour = Colour::where('id', $id)->firstOrFail();
@@ -148,25 +89,22 @@ class ColourController extends Controller
             abort(404);
         }
 
-        DB::beginTransaction();
-        try {
-            $colour->status = 'Deleted';
-            $colour->modified = now();
-            $colour->deleted_by = auth('admin')->id();
-            $colour->deleted_date = now();
-            $colour->save();
+        $service->rejectDeletion($colour);
+    }
 
-            DB::commit();
-            Session::put('message', 'Colours deleted successfully.');
-            Session::put('messageClass', 'successClass');
+    public function activate($id, ColourMasterService $service)
+    {
+        $colour = Colour::whereKey(dec($id))->firstOrFail();
+        abort_if($colour->status === 'Deleted', 404);
+        $service->transition($colour, 'Active');
+        return back();
+    }
 
-            return response()->json(['success' => true]);
-        } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to delete Colours. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+    public function deactivate($id, ColourMasterService $service)
+    {
+        $colour = Colour::whereKey(dec($id))->firstOrFail();
+        abort_if($colour->status === 'Deleted', 404);
+        $service->transition($colour, 'Inactive');
+        return back();
     }
 }

@@ -329,6 +329,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('states', StateController::class)->except(['show']);
         Route::resource('all-pages', AllPageController::class)->except(['show']);
         Route::resource('colours', ColourController::class)->except(['show']);
+        Route::patch('/colours/{id}/activate', [ColourController::class, 'activate'])->name('colours.activate');
+        Route::patch('/colours/{id}/deactivate', [ColourController::class, 'deactivate'])->name('colours.deactivate');
         Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
         Route::get('/companies/edit', [CompanyController::class, 'edit'])->name('companies.edit');
         Route::put('/companies', [CompanyController::class, 'update'])->name('companies.update');
