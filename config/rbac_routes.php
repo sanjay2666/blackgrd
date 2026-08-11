@@ -13,6 +13,7 @@ return [
     'admin_custom' => [
         'admin.item-types.activate' => 'masters.update',
         'admin.item-types.deactivate' => 'masters.update',
+        'admin.machines.activate' => 'masters.update', 'admin.machines.deactivate' => 'masters.update',
         'admin.process-items.activate' => 'processes.activate', 'admin.process-items.deactivate' => 'processes.deactivate',
         'admin.dashboard' => 'dashboard.view', 'admin.financial-years.set-current' => 'financial-years.set-current',
         'admin.items.manage-yarn' => 'masters.manage-yarn', 'admin.items.add-manage-yarn' => 'masters.manage-yarn', 'admin.items.delete-yarn' => 'masters.delete',

@@ -424,6 +424,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/departments/{department}/activate', [DepartmentController::class, 'activate'])->name('departments.activate');
         Route::patch('/departments/{department}/deactivate', [DepartmentController::class, 'deactivate'])->name('departments.deactivate');
         Route::resource('machines', MachineController::class)->except(['show']);
+        Route::patch('/machines/{machine}/activate', [MachineController::class, 'activate'])->name('machines.activate');
+        Route::patch('/machines/{machine}/deactivate', [MachineController::class, 'deactivate'])->name('machines.deactivate');
         Route::resource('office-ips', OfficeIpController::class)->except(['show']);
         Route::resource('process-items', ProcessItemController::class)->except(['show']);
         Route::patch('/process-items/{process_item}/activate', [ProcessItemController::class, 'activate'])->name('process-items.activate');
