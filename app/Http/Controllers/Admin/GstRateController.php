@@ -2,17 +2,22 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\GstRate;
+use App\Services\GstHsnMasterService;
 use Exception;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 
 class GstRateController extends Controller
 {
+    public function __construct(private readonly GstHsnMasterService $masters)
+    {
+    }
+
     public function index(Request $request)
     {
         $query = GstRate::query();
@@ -37,12 +42,18 @@ class GstRateController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'gst_rate' => 'required',
+            'gst_rate' => ['required', 'numeric', 'between:0,100', 'decimal:0,2'],
+            'description' => 'nullable|string|max:1000',
             'status' => 'required|in:Active,Inactive',
         ], [
             'gst_rate.required' => 'Please enter GST Rate.',
             'status.required' => 'Please select Status.',
         ]);
+        $validator->after(function ($validator) use ($request): void {
+            if (is_numeric($request->gst_rate) && GstRate::where('gst_rate', number_format((float) $request->gst_rate, 2, '.', ''))->where('status', '!=', 'Deleted')->exists()) {
+                $validator->errors()->add('gst_rate', 'This GST Rate already exists.');
+            }
+        });
 
         if ($validator->fails()) {
             Session::put('message', $validator->errors()->first());
@@ -53,12 +64,7 @@ class GstRateController extends Controller
 
         DB::beginTransaction();
         try {
-            $gstRate = new GstRate();
-            $gstRate->gst_rate = $request->gst_rate;
-            $gstRate->status = $request->status;
-            $gstRate->created = now();
-            $gstRate->modified = now();
-            $gstRate->save();
+            $gstRate = $this->masters->createRate($request->only(['gst_rate', 'description', 'status']), $request);
 
             DB::commit();
             Session::put('message', 'GST Rates added successfully.');
@@ -94,12 +100,18 @@ class GstRateController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'gst_rate' => 'required',
+            'gst_rate' => ['required', 'numeric', 'between:0,100', 'decimal:0,2'],
+            'description' => 'nullable|string|max:1000',
             'status' => 'required|in:Active,Inactive',
         ], [
             'gst_rate.required' => 'Please enter GST Rate.',
             'status.required' => 'Please select Status.',
         ]);
+        $validator->after(function ($validator) use ($request, $gstRate): void {
+            if (is_numeric($request->gst_rate) && GstRate::where('gst_rate', number_format((float) $request->gst_rate, 2, '.', ''))->where('gst_rate_id', '!=', $gstRate->gst_rate_id)->where('status', '!=', 'Deleted')->exists()) {
+                $validator->errors()->add('gst_rate', 'This GST Rate already exists.');
+            }
+        });
 
         if ($validator->fails()) {
             Session::put('message', $validator->errors()->first());
@@ -110,10 +122,7 @@ class GstRateController extends Controller
 
         DB::beginTransaction();
         try {
-            $gstRate->gst_rate = $request->gst_rate;
-            $gstRate->status = $request->status;
-            $gstRate->modified = now();
-            $gstRate->save();
+            $this->masters->updateRate($gstRate, $request->only(['gst_rate', 'description', 'status']), $request);
 
             DB::commit();
             Session::put('message', 'GST Rates updated successfully.');
@@ -127,6 +136,16 @@ class GstRateController extends Controller
 
             return back()->withInput();
         }
+    }
+
+    public function activate(Request $request, $id)
+    {
+        return $this->changeStatus($request, $id, 'Active');
+    }
+
+    public function deactivate(Request $request, $id)
+    {
+        return $this->changeStatus($request, $id, 'Inactive');
     }
 
     public function destroy($id)
@@ -156,5 +175,14 @@ class GstRateController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
-}
 
+    private function changeStatus(Request $request, $id, string $status)
+    {
+        $gstRate = GstRate::where('gst_rate_id', dec($id))->firstOrFail();
+        $this->masters->setStatus($gstRate, RecordStatus::from($status), $request);
+        Session::put('message', 'GST Rate status updated successfully.');
+        Session::put('messageClass', 'successClass');
+
+        return redirect()->route('admin.gst-rates.index');
+    }
+}

@@ -4,7 +4,7 @@ return [
     'admin_resources' => [
         'companies' => 'companies', 'branches' => 'branches', 'factories' => 'branches', 'financial-years' => 'financial-years', 'departments' => 'departments',
         'states' => 'masters', 'all-pages' => 'settings', 'colours' => 'masters', 'cotings' => 'masters',
-        'couriers' => 'masters', 'gst-rates' => 'masters', 'item-types' => 'masters', 'items' => 'masters',
+        'couriers' => 'masters', 'gst-rates' => 'masters', 'hsn-codes' => 'masters', 'item-types' => 'masters', 'items' => 'masters',
         'item-yarn-requirements' => 'masters', 'notifications' => 'settings', 'packaging-types' => 'masters',
         'unit-types' => 'masters', 'user-web-pages' => 'settings', 'warehouses' => 'warehouse',
         'ware-house-compartments' => 'warehouse', 'machines' => 'masters', 'office-ips' => 'settings',
@@ -32,6 +32,8 @@ return [
         'admin.factories.create' => 'branches.create', 'admin.factories.store' => 'branches.create', 'admin.factories.edit' => 'branches.update', 'admin.factories.update' => 'branches.update', 'admin.factories.activate' => 'branches.activate', 'admin.factories.deactivate' => 'branches.deactivate',
         'admin.departments.activate' => 'departments.activate', 'admin.departments.deactivate' => 'departments.deactivate',
         'admin.unit-types.activate' => 'masters.update', 'admin.unit-types.deactivate' => 'masters.update',
+        'admin.gst-rates.activate' => 'masters.update', 'admin.gst-rates.deactivate' => 'masters.update',
+        'admin.hsn-codes.activate' => 'masters.update', 'admin.hsn-codes.deactivate' => 'masters.update',
     ],
     'frontend_named' => [
         'dashboard' => 'dashboard.view',

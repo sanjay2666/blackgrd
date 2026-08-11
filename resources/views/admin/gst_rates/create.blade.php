@@ -17,7 +17,8 @@
                     <form method="POST" action="{{ route('admin.gst-rates.store') }}">
                         @csrf
                         <div class="row">
-                            <div class="col-sm-4"><div class="form-group"><label>GST Rate <span class="required">*</span></label><input type="number" name="gst_rate" value="{{ old('gst_rate') }}" class="form-control" step="any" required></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>GST Rate <span class="required">*</span></label><input type="number" name="gst_rate" value="{{ old('gst_rate') }}" class="form-control" step="0.01" required></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Description</label><input name="description" value="{{ old('description') }}" class="form-control"></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', 'Active') === 'Active')>Active</option><option value="Inactive" @selected(old('status', 'Active') === 'Inactive')>Inactive</option></select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.gst-rates.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>

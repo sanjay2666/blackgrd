@@ -45,6 +45,7 @@ final class AdminNavigation
                 self::item('Cotings', 'admin.cotings.index', 'masters.view', 'admin.cotings.*'),
                 self::item('Couriers', 'admin.couriers.index', 'masters.view', 'admin.couriers.*'),
                 self::item('GST Rates', 'admin.gst-rates.index', 'masters.view', 'admin.gst-rates.*'),
+                self::item('HSN Master', 'admin.hsn-codes.index', 'masters.view', 'admin.hsn-codes.*'),
                 self::item('Item Types', 'admin.item-types.index', 'masters.view', 'admin.item-types.*'),
                 self::item('Items', 'admin.items.index', 'masters.view', 'admin.items.*'),
                 self::item('Item Yarn Requirements', 'admin.item-yarn-requirements.index', 'masters.view', 'admin.item-yarn-requirements.*'),

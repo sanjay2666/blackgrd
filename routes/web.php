@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\FinancialYearController;
 use App\Http\Controllers\Admin\GstRateController;
+use App\Http\Controllers\Admin\HsnCodeController;
 use App\Http\Controllers\Admin\IndividualController;
 use App\Http\Controllers\Admin\ItemController;
 use App\Http\Controllers\Admin\ItemTypeController;
@@ -347,6 +348,11 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('cotings', CotingController::class)->except(['show']);
         Route::resource('couriers', CourierController::class)->except(['show']);
         Route::resource('gst-rates', GstRateController::class)->except(['show']);
+        Route::patch('/gst-rates/{id}/activate', [GstRateController::class, 'activate'])->name('gst-rates.activate');
+        Route::patch('/gst-rates/{id}/deactivate', [GstRateController::class, 'deactivate'])->name('gst-rates.deactivate');
+        Route::resource('hsn-codes', HsnCodeController::class)->except(['show']);
+        Route::patch('/hsn-codes/{id}/activate', [HsnCodeController::class, 'activate'])->name('hsn-codes.activate');
+        Route::patch('/hsn-codes/{id}/deactivate', [HsnCodeController::class, 'deactivate'])->name('hsn-codes.deactivate');
         Route::resource('item-types', ItemTypeController::class)->except(['show']);
 
         // Admin item/yarn routes.

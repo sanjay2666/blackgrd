@@ -30,9 +30,10 @@
 									@csrf
 									@method('PUT')
 									<div class="row">
-										<div class="col-sm-4">
-											<div class="form-group"><label>GST Rate <span class="required">*</span></label><input type="number" name="gst_rate" value="{{ old('gst_rate', $gstRate->gst_rate) }}" class="form-control" step="any" required></div>
-										</div>
+											<div class="col-sm-4">
+												<div class="form-group"><label>GST Rate <span class="required">*</span></label><input type="number" name="gst_rate" value="{{ old('gst_rate', $gstRate->gst_rate) }}" class="form-control" step="any" required></div>
+											</div>
+											<div class="col-sm-4"><div class="form-group"><label>Description</label><input name="description" value="{{ old('description', $gstRate->description) }}" class="form-control"></div></div>
 										<div class="col-sm-4">
 											<div class="form-group"><label>Status</label><select name="status" class="form-control">
 													<option value="Active" @selected(old('status', $)==='Active' )>Active</option>
