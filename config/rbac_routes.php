@@ -3,7 +3,7 @@
 return [
     'admin_resources' => [
         'companies' => 'companies', 'branches' => 'branches', 'factories' => 'branches', 'financial-years' => 'financial-years', 'departments' => 'departments',
-        'states' => 'masters', 'all-pages' => 'settings', 'colours' => 'masters', 'dyeing-colours' => 'masters', 'cotings' => 'masters',
+        'states' => 'masters', 'all-pages' => 'settings', 'colours' => 'masters', 'dyeing-colours' => 'masters', 'chemicals' => 'masters', 'cotings' => 'masters',
         'couriers' => 'masters', 'gst-rates' => 'masters', 'hsn-codes' => 'masters', 'item-types' => 'masters', 'items' => 'masters',
         'item-yarn-requirements' => 'masters', 'notifications' => 'settings', 'packaging-types' => 'masters',
         'unit-types' => 'masters', 'fabric-qualities' => 'masters', 'user-web-pages' => 'settings', 'warehouses' => 'warehouse',
@@ -37,6 +37,7 @@ return [
         'admin.fabric-qualities.activate' => 'masters.update', 'admin.fabric-qualities.deactivate' => 'masters.update',
         'admin.colours.activate' => 'masters.update', 'admin.colours.deactivate' => 'masters.update',
         'admin.dyeing-colours.activate' => 'masters.update', 'admin.dyeing-colours.deactivate' => 'masters.update',
+        'admin.chemicals.activate' => 'masters.update', 'admin.chemicals.deactivate' => 'masters.update', 'admin.chemicals.options' => 'masters.view',
         'admin.gst-rates.activate' => 'masters.update', 'admin.gst-rates.deactivate' => 'masters.update',
         'admin.hsn-codes.activate' => 'masters.update', 'admin.hsn-codes.deactivate' => 'masters.update',
     ],

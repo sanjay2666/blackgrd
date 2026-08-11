@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AllPageController;
 use App\Http\Controllers\Admin\AuditLogController;
+use App\Http\Controllers\Admin\ChemicalController;
 use App\Http\Controllers\Admin\ColourController;
 use App\Http\Controllers\Admin\DyeingColourController;
 use App\Http\Controllers\Admin\BranchFactoryController;
@@ -333,6 +334,10 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('all-pages', AllPageController::class)->except(['show']);
         Route::resource('colours', ColourController::class)->except(['show']);
         Route::resource('dyeing-colours', DyeingColourController::class)->except(['show']);
+        Route::patch('/chemicals/{id}/activate', [ChemicalController::class, 'activate'])->name('chemicals.activate');
+        Route::patch('/chemicals/{id}/deactivate', [ChemicalController::class, 'deactivate'])->name('chemicals.deactivate');
+        Route::get('/chemicals/options', [ChemicalController::class, 'options'])->name('chemicals.options');
+        Route::resource('chemicals', ChemicalController::class)->except(['show']);
         Route::patch('/dyeing-colours/{id}/activate', [DyeingColourController::class, 'activate'])->name('dyeing-colours.activate');
         Route::patch('/dyeing-colours/{id}/deactivate', [DyeingColourController::class, 'deactivate'])->name('dyeing-colours.deactivate');
         Route::patch('/colours/{id}/activate', [ColourController::class, 'activate'])->name('colours.activate');
