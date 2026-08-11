@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminUserRequest;
+use App\Http\Requests\DepartmentAccessRequest;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Factory;
@@ -11,6 +12,7 @@ use App\Models\Individual;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\CurrentOrganizationContext;
+use App\Services\DepartmentAccessService;
 use App\Services\UserManagementService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -24,7 +26,7 @@ final class UserController extends Controller
         $companyId = $organization->companyId();
         $query = User::query()->where('user_type', 'User')->where('status', '!=', 'Deleted')
             ->whereHas('organizationAccess', fn ($access) => $access->where('company_id', $companyId))
-            ->with(['individual', 'roleAssignments.role', 'organizationAccess' => fn ($access) => $access->where('company_id', $companyId)->with(['branch', 'factory', 'department'])]);
+            ->with(['individual', 'roleAssignments.role', 'departmentAccess' => fn ($access) => $access->where('company_id', $companyId)->with('department'), 'organizationAccess' => fn ($access) => $access->where('company_id', $companyId)->with(['branch', 'factory', 'department'])]);
         if ($request->filled('search')) {
             $search = trim((string) $request->query('search'));
             $query->where(fn ($inner) => $inner->where('name', 'like', "%{$search}%")->orWhere('email', 'like', "%{$search}%")->orWhereHas('individual', fn ($individual) => $individual->where('phone', 'like', "%{$search}%")));
@@ -94,6 +96,26 @@ final class UserController extends Controller
         $service->resetPassword($user, $data['password']);
 
         return back()->with('status', 'Frontend User password reset successfully.');
+    }
+
+    public function departmentAccess(User $user, CurrentOrganizationContext $organization): View
+    {
+        $this->assertFrontendUser($user);
+        $companyId = $organization->companyId();
+        abort_unless($user->organizationAccess()->where('company_id', $companyId)->exists(), 404);
+        $departments = Department::query()->where('company_id', $companyId)->where('status', 'Active')->with('factory')->orderBy('department_name')->get();
+        $assigned = $user->departmentAccess()->where('company_id', $companyId)->where('status', 'Active')->pluck('department_id')->all();
+        $home = $user->organizationAccess()->where('company_id', $companyId)->value('department_id');
+
+        return view('admin.users.department-access', compact('user', 'departments', 'assigned', 'home'));
+    }
+
+    public function updateDepartmentAccess(DepartmentAccessRequest $request, User $user, DepartmentAccessService $service): RedirectResponse
+    {
+        $this->assertFrontendUser($user);
+        $service->sync($user, $request->validated('department_ids', []));
+
+        return redirect()->route('admin.users.department-access', $user)->with('status', 'Department Access updated successfully.');
     }
 
     /** @return array<string, mixed> */

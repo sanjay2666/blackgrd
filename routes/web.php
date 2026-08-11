@@ -412,6 +412,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/users/{user}/activate', [UserController::class, 'activate'])->middleware('permission:users.manage')->name('users.activate');
         Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate'])->middleware('permission:users.manage')->name('users.deactivate');
         Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->middleware('permission:users.manage')->name('users.reset-password');
+        Route::get('/users/{user}/department-access', [UserController::class, 'departmentAccess'])->middleware('permission:users.manage')->name('users.department-access');
+        Route::put('/users/{user}/department-access', [UserController::class, 'updateDepartmentAccess'])->middleware('permission:users.manage')->name('users.department-access.update');
         Route::middleware('permission:audit-logs.view')->group(function (): void {
             Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
             Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');

@@ -12,7 +12,9 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory;
+
+    use Notifiable;
 
     protected $fillable = [
         'user_type',
@@ -42,6 +44,11 @@ class User extends Authenticatable
     public function organizationAccess(): HasMany
     {
         return $this->hasMany(UserOrganizationAccess::class);
+    }
+
+    public function departmentAccess(): HasMany
+    {
+        return $this->hasMany(UserDepartmentAccess::class);
     }
 
     public function individual(): BelongsTo

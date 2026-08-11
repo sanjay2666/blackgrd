@@ -10,6 +10,7 @@ use App\Support\RoleTemplateCatalog;
 use App\Support\RoutePermissionRegistry;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Collection;
+use Symfony\Component\Process\Process;
 
 final class QualityGateService
 {
@@ -27,7 +28,7 @@ final class QualityGateService
         $canonical = array_fill_keys($keys, true);
         foreach (RoleTemplateCatalog::all() as $role => $rolePermissions) {
             foreach ($rolePermissions as $permission) {
-                if (!isset($canonical[$permission])) {
+                if (! isset($canonical[$permission])) {
                     $errors[] = "Role template [{$role}] references unknown permission [{$permission}].";
                 }
             }
@@ -35,7 +36,7 @@ final class QualityGateService
 
         $frontend = FrontendPermissionCatalog::keys();
         foreach ($frontend as $permission) {
-            if (!isset($canonical[$permission])) {
+            if (! isset($canonical[$permission])) {
                 $errors[] = "Frontend catalog references unknown permission [{$permission}].";
             }
         }
@@ -58,11 +59,11 @@ final class QualityGateService
         $excluded = config('rbac_routes.excluded_authenticated', []);
 
         foreach ($routes as $route) {
-            if (!$this->isAuthenticated($route)) {
+            if (! $this->isAuthenticated($route)) {
                 continue;
             }
 
-            if (RoutePermissionRegistry::permission($route) === null && !in_array($route->getName(), $excluded, true)) {
+            if (RoutePermissionRegistry::permission($route) === null && ! in_array($route->getName(), $excluded, true)) {
                 $errors[] = 'Authenticated route has no RBAC decision: '.$route->methods()[0].' '.$route->uri().' ['.$route->getName().'].';
             }
         }
@@ -70,7 +71,7 @@ final class QualityGateService
         $configuredNames = array_keys(config('rbac_routes.admin_custom', []) + config('rbac_routes.frontend_named', []));
         $routeNames = $routes->map(fn (Route $route): ?string => $route->getName())->filter()->all();
         foreach ($configuredNames as $name) {
-            if (!in_array($name, $routeNames, true)) {
+            if (! in_array($name, $routeNames, true)) {
                 $errors[] = "Stale RBAC route mapping [{$name}].";
             }
         }
@@ -90,7 +91,7 @@ final class QualityGateService
         ];
 
         foreach ($required as $file) {
-            if (!is_file(base_path($file))) {
+            if (! is_file(base_path($file))) {
                 $errors[] = "Required foundation regression test is missing [{$file}].";
             }
         }
@@ -103,7 +104,7 @@ final class QualityGateService
         }
 
         foreach (['app/Services/NumberSeriesService.php', 'app/Services/FinancialYearResolver.php'] as $file) {
-            if (!is_file(base_path($file))) {
+            if (! is_file(base_path($file))) {
                 $errors[] = "Foundation service is missing [{$file}].";
             }
         }
@@ -116,17 +117,19 @@ final class QualityGateService
     {
         $errors = [];
         foreach ($this->changedFiles('database/migrations') as $relative) {
-            if ($relative === '' || !is_file(base_path($relative))) {
+            if ($relative === '' || ! is_file(base_path($relative))) {
                 continue;
             }
 
             $contents = file_get_contents(base_path($relative));
             if ($contents === false) {
                 $errors[] = "Unable to read changed migration [{$relative}].";
+
                 continue;
             }
 
-            if (preg_match('/\b(?:drop(?:IfExists|Column)?|truncate|delete\s+from|migrate:fresh|schema:drop)\b/i', $contents)) {
+            $forwardMigration = preg_match('/public function up\(\):?\s*void\s*\{(.*?)\}\s*public function down/s', $contents, $match) === 1 ? $match[1] : $contents;
+            if (preg_match('/\b(?:drop(?:IfExists|Column)?|truncate|delete\s+from|migrate:fresh|schema:drop)\b/i', $forwardMigration)) {
                 $errors[] = "Changed migration contains a destructive pattern and needs explicit review [{$relative}].";
             }
         }
@@ -157,7 +160,7 @@ final class QualityGateService
     /** @return array{code:int,output:string} */
     private function runGit(array $arguments): array
     {
-        $process = new \Symfony\Component\Process\Process(array_merge(['git'], $arguments), base_path());
+        $process = new Process(array_merge(['git'], $arguments), base_path());
         $process->run();
 
         return ['code' => $process->getExitCode() ?? 1, 'output' => $process->getOutput().$process->getErrorOutput()];

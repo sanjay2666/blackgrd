@@ -24,6 +24,7 @@ return [
         'admin.users.edit' => 'users.manage', 'admin.users.update' => 'users.manage',
         'admin.users.activate' => 'users.manage', 'admin.users.deactivate' => 'users.manage',
         'admin.users.reset-password' => 'users.manage',
+        'admin.users.department-access' => 'users.manage', 'admin.users.department-access.update' => 'users.manage',
         'admin.audit-logs.index' => 'audit-logs.view', 'admin.audit-logs.show' => 'audit-logs.view',
         'admin.number-series.index' => 'number-series.view', 'admin.number-series.update' => 'number-series.manage',
         'admin.branches.create' => 'branches.create', 'admin.branches.store' => 'branches.create', 'admin.branches.edit' => 'branches.update', 'admin.branches.update' => 'branches.update', 'admin.branches.activate' => 'branches.activate', 'admin.branches.deactivate' => 'branches.deactivate',

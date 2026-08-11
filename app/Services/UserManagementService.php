@@ -22,6 +22,7 @@ final class UserManagementService
         private readonly RoleManagementService $roles,
         private readonly AuthorizationService $authorization,
         private readonly AuditLogger $audit,
+        private readonly DepartmentAccessService $departmentAccess,
     ) {
     }
 
@@ -51,6 +52,7 @@ final class UserManagementService
                 'status' => 'Active', 'created_by' => auth('admin')->id(),
                 'created_at' => now(), 'updated_at' => now(),
             ]);
+            $this->departmentAccess->grantHomeDepartment($user, $access->department_id);
 
             foreach ($roles as $role) {
                 $this->roles->assign($user, $role);
@@ -86,6 +88,7 @@ final class UserManagementService
                 'branch_id' => $data['branch_id'] ?? null, 'factory_id' => $data['factory_id'] ?? null,
                 'department_id' => $data['department_id'] ?? null, 'updated_at' => now(),
             ]);
+            $this->departmentAccess->grantHomeDepartment($user, $data['department_id'] ?? null);
 
             if (array_key_exists('role_ids', $data)) {
                 $this->syncRoles($user, $data['role_ids']);
