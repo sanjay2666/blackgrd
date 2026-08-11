@@ -32,6 +32,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use App\Models\WorkProcessRequirement;
 use App\Services\CurrentOrganizationContext;
+use App\Services\DepartmentAccessService;
 use App\Services\NumberSeriesService;
 use Carbon\Carbon;
 use Dompdf\Dompdf;
@@ -87,10 +88,6 @@ class WorkOrderController extends Controller
             Session::put('workorders_return_url', $request->fullUrl());
         }
 
-        $userId = Auth::id();
-        $userD = User::find($userId);
-        $userIndId = $userD->individual_id;
-
         $cusSearch = trim((string) $request->input('cus_search', ''));
         $individualId = trim((string) $request->input('individual_id', ''));
         if (empty($cusSearch)) {
@@ -122,8 +119,6 @@ class WorkOrderController extends Controller
             $selectedFinancialYear = substr((string) $yearStart, -2).substr((string) ($yearStart + 1), -2);
             $yearRecord = (string) $yearStart;
         }
-
-        $processTypeId = Individual::where('id', $userIndId)->where('type', 'master')->where('status', 'Active')->value('process_type_id');
 
         $arrr = 0;
         if (! empty($search_process_id)) {
@@ -182,25 +177,8 @@ class WorkOrderController extends Controller
             ->with('DepartmentReturnRequest')
             ->orderByDesc('id');
 
-        $permissions = [
-            '2' => [1, 2],
-            '4' => [4, 6, 7],
-        ];
-        if ($userId != 2) {
-            if ($userId == 21) {
-                $query->whereIn('process_type_id', [3]); // special case
-            } elseif ($userId == 11) {
-                $query->whereIn('process_type_id', [1, 2, 3, 4, 6, 7]); // special case
-            } elseif ($userId == 13 && $processTypeId == '4') {
-                $query->whereIn('process_type_id', [4, 6, 7]); // special case
-            } elseif ($userId == 26 && $processTypeId == '4') {
-                $query->whereIn('process_type_id', [4, 6, 7]); // special case
-            } elseif (isset($permissions[$processTypeId])) {
-                $query->whereIn('process_type_id', $permissions[$processTypeId]);
-            } else {
-                $query->where('process_type_id', $processTypeId);
-            }
-        }
+        $allowedProcessIds = app(DepartmentAccessService::class)->allowedProcessIds();
+        $query->whereIn('process_type_id', $allowedProcessIds);
 
         if ($workStatus == '1' || $workStatus == '') {
             $query->where('inspection_status', InspectionStatus::Pending->value);
@@ -1395,6 +1373,7 @@ class WorkOrderController extends Controller
         $workOrder = WorkOrder::with(['Item', 'ProcessType', 'WorkMachine', 'WorkMaster', 'WorkInspectionOne'])
             ->where('id', (int) $request->FId)
             ->where('status', '!=', 'Deleted')
+            ->whereIn('process_type_id', app(DepartmentAccessService::class)->allowedProcessIds())
             ->first();
 
         if (! $workOrder) {
@@ -4013,11 +3992,8 @@ class WorkOrderController extends Controller
         }
     }
 
-    public function workOrderTotals(Request $request)
+    public function workOrderTotals(Request $request, DepartmentAccessService $departmentAccess)
     {
-        $userId = (int) Auth::id();
-        $userIndId = Auth::user()?->individual_id;
-
         $cusSearch = trim((string) $request->cus_search);
         $individualId = trim((string) $request->individual_id);
         $itemSearch = trim((string) $request->item_search);
@@ -4054,27 +4030,10 @@ class WorkOrderController extends Controller
         $startDate = Carbon::create((int) $yearRecord, 4, 1)->startOfDay();
         $endDate = Carbon::create((int) $yearRecord + 1, 3, 31)->endOfDay();
 
-        $processTypeId = Individual::where('id', $userIndId)->where('type', 'master')->where('status', 'Active')->value('process_type_id');
-
         $query = WorkOrder::query()
             ->where('work_orders.status', 'Active')
-            ->whereBetween('work_orders.created_at', [$startDate, $endDate]);
-
-        $permissions = [2 => [1, 2], 4 => [4, 6, 7]];
-
-        if ($userId !== 1) {
-            if ($userId === 21) {
-                $query->where('work_orders.process_type_id', 3);
-            } elseif ($userId === 11) {
-                $query->whereIn('work_orders.process_type_id', [1, 2, 3, 4, 6, 7]);
-            } elseif (in_array($userId, [13, 26], true) && (int) $processTypeId === 4) {
-                $query->whereIn('work_orders.process_type_id', [4, 6, 7]);
-            } elseif (isset($permissions[(int) $processTypeId])) {
-                $query->whereIn('work_orders.process_type_id', $permissions[(int) $processTypeId]);
-            } else {
-                $query->where('work_orders.process_type_id', $processTypeId);
-            }
-        }
+            ->whereBetween('work_orders.created_at', [$startDate, $endDate])
+            ->whereIn('work_orders.process_type_id', $departmentAccess->allowedProcessIds());
 
         if ($workStatus === '' || $workStatus === '1') {
             $query->where('work_orders.inspection_status', InspectionStatus::Pending->value);
@@ -4420,7 +4379,7 @@ class WorkOrderController extends Controller
         }
     }
 
-    public function print_workorder_gatepass($id)
+    public function print_workorder_gatepass($id, DepartmentAccessService $departmentAccess)
     {
         if (ctype_digit((string) $id)) {
             $GpId = (int) $id;
@@ -4459,6 +4418,7 @@ class WorkOrderController extends Controller
         $data = WorkOrder::with(['WarehouseItem', 'WorkOrderItem'])
             ->whereKey((int) $dataGp->work_order_id)
             ->where('status', '!=', 'Deleted')
+            ->whereIn('process_type_id', $departmentAccess->allowedProcessIds())
             ->first();
 
         if (! $data || empty($data->process_type_id)) {
@@ -4532,13 +4492,8 @@ class WorkOrderController extends Controller
         return view('frontend.workorder.print-workorder-gatepass', compact('data', 'toDepart', 'compData', 'dataInd', 'GpId', 'dataGp', 'warehouseName'));
     }
 
-    public function show_workorder_inspection_report(Request $request)
+    public function show_workorder_inspection_report(Request $request, DepartmentAccessService $departmentAccess)
     {
-
-        $userId = Auth::id();
-        $userD = User::find($userId);
-        $userIndId = (int) ($userD->individual_id ?? 0);
-
         $currentUrl = $request->fullUrl();
         session(['currentUrl' => $currentUrl]);
 
@@ -4553,7 +4508,7 @@ class WorkOrderController extends Controller
         $isAccepted = $request->isAccepted;
         $LotNumSearch = $request->LotNumSearch;
 
-        $allowedProcessIds = [1, 2, 3, 4, 5, 6, 7];
+        $allowedProcessIds = $departmentAccess->allowedProcessIds();
 
         $recvWhDate = (! empty($request->receive_date)) ? date('Y-m-d', strtotime($request->receive_date)) : '';
 
@@ -4602,12 +4557,12 @@ class WorkOrderController extends Controller
 
         $dataWI = $query->paginate(20)->appends(request()->except('_token'));
 
-        $dataPI = ProcessItem::where('status', 'Active')->get();
+        $dataPI = ProcessItem::whereIn('id', $allowedProcessIds)->where('status', 'Active')->get();
 
         return view('frontend.workorder.show-workorder-inspection', compact('dataWI', 'qsearch', 'LotNumSearch', 'dataPI', 'receiverName', 'recvWhDate', 'cusSearch', 'processTypeId', 'isAccepted'));
     }
 
-    public function receive_work_item($id)
+    public function receive_work_item($id, DepartmentAccessService $departmentAccess)
     {
         $inspId = ctype_digit((string) $id) ? (int) $id : (int) dec((string) $id);
 
@@ -4637,7 +4592,10 @@ class WorkOrderController extends Controller
         }
 
         $wId = (int) $dataWI->work_order_id;
-        $dataWO = WorkOrder::where('id', $wId)->where('status', '!=', 'Deleted')->first();
+        $dataWO = WorkOrder::where('id', $wId)
+            ->where('status', '!=', 'Deleted')
+            ->whereIn('process_type_id', $departmentAccess->allowedProcessIds())
+            ->first();
 
         if (! $dataWO) {
             Session::put('message', 'Work order details not found.');

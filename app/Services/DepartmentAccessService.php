@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Department;
+use App\Models\ProcessItem;
 use App\Models\User;
 use App\Models\UserDepartmentAccess;
 use Illuminate\Database\Eloquent\Builder;
@@ -40,6 +41,23 @@ final class DepartmentAccessService
     public function scope(Builder $query, string $column = 'department_id'): Builder
     {
         return $query->whereIn($column, $this->allowedDepartmentIds());
+    }
+
+    /** @return list<int> */
+    public function allowedProcessIds(?User $user = null): array
+    {
+        $departmentIds = $this->allowedDepartmentIds($user);
+
+        if ($departmentIds === []) {
+            return [];
+        }
+
+        return ProcessItem::query()
+            ->whereIn('department_id', $departmentIds)
+            ->where('status', 'Active')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
     }
 
     public function sync(User $user, array $departmentIds): void
