@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\AllPageController;
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ColourController;
+use App\Http\Controllers\Admin\DyeingColourController;
 use App\Http\Controllers\Admin\BranchFactoryController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CotingController;
@@ -37,6 +38,7 @@ use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\CommonController;
+use App\Http\Controllers\DyeingColourLookupController;
 use App\Http\Controllers\JobMillWorkController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PurchaseController;
@@ -84,6 +86,7 @@ Route::middleware(['auth:web,admin', 'organization', 'rbac', 'audit'])->group(fu
     Route::get('/list_saleOrderNumer', [CommonController::class, 'list_saleOrderNumer'])->name('list_saleOrderNumer');
     Route::get('/ajax_script/search_customer_bill_address', [CommonController::class, 'search_customer_bill_address']);
     Route::get('/list_master_color', [CommonController::class, 'list_master_color'])->name('list_master_color');
+    Route::get('/list_master_dyeing_colour', DyeingColourLookupController::class)->name('list_master_dyeing_colour');
 });
 
 
@@ -329,6 +332,9 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('states', StateController::class)->except(['show']);
         Route::resource('all-pages', AllPageController::class)->except(['show']);
         Route::resource('colours', ColourController::class)->except(['show']);
+        Route::resource('dyeing-colours', DyeingColourController::class)->except(['show']);
+        Route::patch('/dyeing-colours/{id}/activate', [DyeingColourController::class, 'activate'])->name('dyeing-colours.activate');
+        Route::patch('/dyeing-colours/{id}/deactivate', [DyeingColourController::class, 'deactivate'])->name('dyeing-colours.deactivate');
         Route::patch('/colours/{id}/activate', [ColourController::class, 'activate'])->name('colours.activate');
         Route::patch('/colours/{id}/deactivate', [ColourController::class, 'deactivate'])->name('colours.deactivate');
         Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');

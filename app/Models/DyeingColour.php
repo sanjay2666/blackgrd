@@ -6,22 +6,22 @@ use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Colour extends Model
+class DyeingColour extends Model
 {
     use BelongsToCompany;
     use HasFactory;
     use HasRecordStatus;
 
-    protected $table = 'colours';
+    protected $table = 'dyeing_colours';
 
     public $timestamps = false;
 
     protected $guarded = [];
 
-    public function dyeingColours(): HasMany
+    public function colour(): BelongsTo
     {
-        return $this->hasMany(DyeingColour::class, 'colour_id');
+        return $this->belongsTo(Colour::class, 'colour_id');
     }
 }
