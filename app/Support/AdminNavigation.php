@@ -59,6 +59,7 @@ final class AdminNavigation
                 self::item('Processes', 'admin.process-items.index', 'processes.view', 'admin.process-items.*'),
                 self::item('Machines', 'admin.machines.index', 'masters.view', 'admin.machines.*'),
                 self::item('Machine Capacity', 'admin.machine-capacities.index', 'masters.view', 'admin.machine-capacities.*'),
+                self::item('Shifts', 'admin.shifts.index', 'masters.view', 'admin.shifts.*'),
                 self::item('Warehouses', 'admin.warehouses.index', 'warehouse.view-stock', 'admin.warehouses.*'),
                 self::item('Warehouse Compartments', 'admin.ware-house-compartments.index', 'warehouse.view-stock', 'admin.ware-house-compartments.*'),
             ]],
