@@ -4,23 +4,31 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
+use App\Models\GstRate;
+use App\Models\HsnCode;
 use App\Models\Item;
 use App\Models\ItemType;
 use App\Models\ItemYarnRequirement;
 use App\Models\UnitType;
-use App\Rules\RecordStatusRule;
+use App\Services\ItemMasterService;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class ItemController extends Controller
 {
+    public function __construct(private readonly ItemMasterService $items)
+    {
+        // The Item master service owns mutation policy and auditing.
+    }
+
     public function index(Request $request)
     {
-        $query = Item::with('itemType', 'unitType');
+        $query = Item::with('itemType', 'unitType', 'hsnCode', 'gstRate');
         $query->notDeleted();
 
         $qsearch = trim($request->input('qsearch', ''));
@@ -29,6 +37,7 @@ class ItemController extends Controller
         }
 
         $item_type_id = $request->input('item_type_id', '');
+        $status = $request->input('status', '');
         $itemId = $request->input('itemId', '');
 
         if ($qsearch != '') {
@@ -44,6 +53,10 @@ class ItemController extends Controller
             $query->where('item_type_id', $item_type_id);
         }
 
+        if (in_array($status, [RecordStatus::Active->value, RecordStatus::Inactive->value], true)) {
+            $query->where('status', $status);
+        }
+
         if ($itemId != '') {
             $query->where('item_id', $itemId);
         }
@@ -51,7 +64,7 @@ class ItemController extends Controller
         $items = $query->orderBy('item_id', 'desc')->paginate(config('app.pagination_limit'))->withQueryString();
         $itemTypes = ItemType::active()->orderBy('item_type_id', 'asc')->get();
 
-        return view('admin.items.index', compact('items', 'itemTypes', 'qsearch', 'item_type_id', 'itemId'));
+        return view('admin.items.index', compact('items', 'itemTypes', 'qsearch', 'item_type_id', 'status', 'itemId'));
     }
 
     public function create()
@@ -59,100 +72,22 @@ class ItemController extends Controller
         $itemTypes = ItemType::active()->orderBy('item_type_id', 'asc')->get();
         $unitTypes = UnitType::active()->orderBy('unit_type_id', 'asc')->get();
 
-        return view('admin.items.create', compact('itemTypes', 'unitTypes'))->with('statusOptions', RecordStatus::formOptions());
+        $hsnCodes = HsnCode::active()->orderBy('hsn_code')->get();
+        $gstRates = GstRate::active()->orderBy('gst_rate')->get();
+
+        return view('admin.items.create', compact('itemTypes', 'unitTypes', 'hsnCodes', 'gstRates'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'item_name' => 'nullable',
-            'item_code' => 'nullable',
-            'internal_item_name' => 'nullable',
-            'unit_price' => 'nullable',
-            'hsncode' => 'nullable',
-            'item_type_id' => 'required',
-            'unit_type_id' => 'required',
-            'clr_category' => 'nullable',
-            'cut' => 'nullable',
-            'pur_rate' => 'nullable',
-            'sale_rate' => 'nullable',
-            'igst' => 'nullable',
-            'sgst' => 'nullable',
-            'cgst' => 'nullable',
-            'sale_igst' => 'nullable',
-            'sale_cgst' => 'nullable',
-            'sale_sgst' => 'nullable',
-            'item_gsm' => 'nullable',
-            'item_final_gsm' => 'nullable',
-            'item_width' => 'nullable',
-            'item_final_width' => 'nullable',
-            'remarks' => 'nullable',
-            'is_conusmable' => 'nullable',
-            'is_outsourced' => 'nullable',
-            'is_jobwork' => 'nullable',
-            'is_lab_test_required' => 'required',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'item_type_id.required' => 'Please select Item Type.',
-            'unit_type_id.required' => 'Please select Unit Type.',
-            'is_lab_test_required.required' => 'Please enter Lab Test Required.',
-            'status.required' => 'Please select Status.',
-        ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
+        $this->validateRequest($request);
+        $this->ensureCodeUnique($request);
         try {
-            $item = new Item;
-            $item->item_name = $request->item_name;
-            $item->item_code = $request->item_code;
-            $item->internal_item_name = $request->internal_item_name;
-            $item->unit_price = $request->unit_price;
-            $item->hsncode = $request->hsncode;
-            $item->item_type_id = $request->item_type_id;
-            $item->unit_type_id = $request->unit_type_id;
-            $item->clr_category = $request->clr_category;
-            $item->cut = $request->cut;
-            $item->pur_rate = $request->pur_rate;
-            $item->sale_rate = $request->sale_rate;
-            $item->igst = $request->igst;
-            $item->sgst = $request->sgst;
-            $item->cgst = $request->cgst;
-            $item->sale_igst = $request->sale_igst;
-            $item->sale_cgst = $request->sale_cgst;
-            $item->sale_sgst = $request->sale_sgst;
-            $item->item_gsm = $request->item_gsm;
-            $item->item_final_gsm = $request->item_final_gsm;
-            $item->item_width = $request->item_width;
-            $item->item_final_width = $request->item_final_width;
-            $item->remarks = $request->remarks;
-            $item->is_conusmable = $request->has('is_conusmable') ? 1 : 0;
-            $item->is_outsourced = $request->has('is_outsourced') ? 1 : 0;
-            $item->is_jobwork = $request->has('is_jobwork') ? 1 : 0;
-            $item->is_lab_test_required = $request->is_lab_test_required;
-            $item->status = $request->status;
-            $item->created = now();
-            $item->modified = now();
-            $item->created_by = Auth::guard('admin')->id();
-            $item->modified_by = Auth::guard('admin')->id();
-            $item->save();
+            $this->items->create($request->only($this->fields()), $request);
 
-            DB::commit();
-            Session::put('message', 'Items added successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return redirect()->route('admin.items.index');
+            return redirect()->route('admin.items.index')->with('message', 'Item created successfully.')->with('messageClass', 'successClass');
         } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to save Items. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
+            return back()->withInput()->withErrors(['item' => $e->getMessage()]);
         }
     }
 
@@ -165,9 +100,12 @@ class ItemController extends Controller
         }
 
         $itemTypes = ItemType::active()->orderBy('item_type_id', 'asc')->get();
-        $unitTypes = UnitType::active()->orderBy('unit_type_id', 'asc')->get();
+        $unitTypes = UnitType::query()->whereIn('unit_type_id', [$item->unit_type_id])->orWhere(fn ($q) => $q->active())->orderBy('unit_type_id')->get();
+        $itemTypes = ItemType::query()->whereIn('item_type_id', [$item->item_type_id])->orWhere(fn ($q) => $q->active())->orderBy('item_type_id')->get();
+        $hsnCodes = HsnCode::query()->whereIn('hsn_code_id', [$item->hsn_code_id])->orWhere(fn ($q) => $q->active())->orderBy('hsn_code')->get();
+        $gstRates = GstRate::query()->whereIn('gst_rate_id', [$item->gst_rate_id])->orWhere(fn ($q) => $q->active())->orderBy('gst_rate')->get();
 
-        return view('admin.items.edit', compact('item', 'itemTypes', 'unitTypes'))->with('statusOptions', RecordStatus::formOptions());
+        return view('admin.items.edit', compact('item', 'itemTypes', 'unitTypes', 'hsnCodes', 'gstRates'))->with('statusOptions', RecordStatus::formOptions());
     }
 
     public function update(Request $request, $id)
@@ -178,92 +116,14 @@ class ItemController extends Controller
             abort(404);
         }
 
-        $validator = Validator::make($request->all(), [
-            'item_name' => 'nullable',
-            'item_code' => 'nullable',
-            'internal_item_name' => 'nullable',
-            'unit_price' => 'nullable',
-            'hsncode' => 'nullable',
-            'item_type_id' => 'required',
-            'unit_type_id' => 'required',
-            'clr_category' => 'nullable',
-            'cut' => 'nullable',
-            'pur_rate' => 'nullable',
-            'sale_rate' => 'nullable',
-            'igst' => 'nullable',
-            'sgst' => 'nullable',
-            'cgst' => 'nullable',
-            'sale_igst' => 'nullable',
-            'sale_cgst' => 'nullable',
-            'sale_sgst' => 'nullable',
-            'item_gsm' => 'nullable',
-            'item_final_gsm' => 'nullable',
-            'item_width' => 'nullable',
-            'item_final_width' => 'nullable',
-            'remarks' => 'nullable',
-            'is_conusmable' => 'nullable',
-            'is_outsourced' => 'nullable',
-            'is_jobwork' => 'nullable',
-            'is_lab_test_required' => 'required',
-            'status' => ['required', new RecordStatusRule],
-        ], [
-            'item_type_id.required' => 'Please select Item Type.',
-            'unit_type_id.required' => 'Please select Unit Type.',
-            'is_lab_test_required.required' => 'Please enter Lab Test Required.',
-            'status.required' => 'Please select Status.',
-        ]);
-
-        if ($validator->fails()) {
-            Session::put('message', $validator->errors()->first());
-            Session::put('messageClass', 'errorClass');
-
-            return redirect()->back()->withInput();
-        }
-
-        DB::beginTransaction();
         try {
-            $item->item_name = $request->item_name;
-            $item->item_code = $request->item_code;
-            $item->internal_item_name = $request->internal_item_name;
-            $item->unit_price = $request->unit_price;
-            $item->hsncode = $request->hsncode;
-            $item->item_type_id = $request->item_type_id;
-            $item->unit_type_id = $request->unit_type_id;
-            $item->clr_category = $request->clr_category;
-            $item->cut = $request->cut;
-            $item->pur_rate = $request->pur_rate;
-            $item->sale_rate = $request->sale_rate;
-            $item->igst = $request->igst;
-            $item->sgst = $request->sgst;
-            $item->cgst = $request->cgst;
-            $item->sale_igst = $request->sale_igst;
-            $item->sale_cgst = $request->sale_cgst;
-            $item->sale_sgst = $request->sale_sgst;
-            $item->item_gsm = $request->item_gsm;
-            $item->item_final_gsm = $request->item_final_gsm;
-            $item->item_width = $request->item_width;
-            $item->item_final_width = $request->item_final_width;
-            $item->remarks = $request->remarks;
-            $item->is_conusmable = $request->has('is_conusmable') ? 1 : 0;
-            $item->is_outsourced = $request->has('is_outsourced') ? 1 : 0;
-            $item->is_jobwork = $request->has('is_jobwork') ? 1 : 0;
-            $item->is_lab_test_required = $request->is_lab_test_required;
-            $item->status = $request->status;
-            $item->modified = now();
-            $item->modified_by = Auth::guard('admin')->id();
-            $item->save();
-
-            DB::commit();
-            Session::put('message', 'Items updated successfully.');
-            Session::put('messageClass', 'successClass');
+            $this->validateRequest($request);
+            $this->ensureCodeUnique($request, $item);
+            $this->items->update($item, $request->only($this->fields()), $request);
 
             return redirect()->route('admin.items.index');
         } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to update Items. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
-            return back()->withInput();
+            return back()->withInput()->withErrors(['item' => $e->getMessage()]);
         }
     }
 
@@ -275,24 +135,34 @@ class ItemController extends Controller
             abort(404);
         }
 
-        DB::beginTransaction();
         try {
-            $item->status = 'Deleted';
-            $item->modified = now();
-            $item->modified_by = Auth::guard('admin')->id();
-            $item->save();
+            $status = $this->items->deleteOrDeactivate($item, request());
 
-            DB::commit();
-            Session::put('message', 'Items deleted successfully.');
-            Session::put('messageClass', 'successClass');
-
-            return response()->json(['success' => true]);
+            return response()->json(['success' => true, 'status' => $status]);
         } catch (Exception $e) {
-            DB::rollBack();
-            Session::put('message', 'Failed to delete Items. Error: '.$e->getMessage());
-            Session::put('messageClass', 'errorClass');
-
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function fields(): array
+    {
+        return ['item_name', 'item_code', 'internal_item_name', 'unit_price', 'hsncode', 'hsn_code_id', 'gst_rate_id', 'item_type_id', 'unit_type_id', 'clr_category', 'cut', 'pur_rate', 'sale_rate', 'igst', 'sgst', 'cgst', 'sale_igst', 'sale_cgst', 'sale_sgst', 'item_gsm', 'item_final_gsm', 'item_width', 'item_final_width', 'remarks', 'is_conusmable', 'is_outsourced', 'is_jobwork', 'is_lab_test_required', 'status'];
+    }
+
+    private function validateRequest(Request $request): void
+    {
+        Validator::make($request->all(), [
+            'item_name' => ['required', 'string', 'max:255'], 'item_code' => ['nullable', 'string', 'max:100', 'regex:/^[A-Za-z0-9._-]+$/'],
+            'item_type_id' => ['required', 'integer'], 'unit_type_id' => ['required', 'integer'], 'hsn_code_id' => ['nullable', 'integer'], 'gst_rate_id' => ['nullable', 'integer'],
+            'is_lab_test_required' => ['required', 'in:Yes,No'], 'status' => ['required', 'in:Active,Inactive'],
+        ])->validate();
+    }
+
+    private function ensureCodeUnique(Request $request, ?Item $item = null): void
+    {
+        $code = strtoupper(trim((string) $request->input('item_code')));
+        if ($code !== '' && Item::query()->where('item_code', $code)->notDeleted()->when($item, fn ($q) => $q->where('item_id', '!=', $item->getKey()))->exists()) {
+            throw ValidationException::withMessages(['item_code' => 'This Item Code already exists.']);
         }
     }
 

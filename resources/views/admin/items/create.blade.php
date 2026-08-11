@@ -21,7 +21,9 @@
                             <div class="col-sm-4"><div class="form-group"><label>Item Code</label><input type="text" name="item_code" value="{{ old('item_code') }}" class="form-control"></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Internal Item Name</label><input type="text" name="internal_item_name" value="{{ old('internal_item_name') }}" class="form-control"></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>Unit Price</label><input type="number" name="unit_price" value="{{ old('unit_price') }}" class="form-control" step="any"></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>HSN Code</label><input type="text" name="hsncode" value="{{ old('hsncode') }}" class="form-control"></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Legacy HSN Text</label><input type="text" name="hsncode" value="{{ old('hsncode') }}" class="form-control"></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>HSN Master</label><select name="hsn_code_id" class="form-control"><option value="">Not configured</option>@foreach($hsnCodes as $hsn)<option value="{{ $hsn->hsn_code_id }}" @selected((string) old('hsn_code_id') === (string) $hsn->hsn_code_id)>{{ $hsn->hsn_code }}</option>@endforeach</select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Default GST Rate</label><select name="gst_rate_id" class="form-control"><option value="">Not configured</option>@foreach($gstRates as $gst)<option value="{{ $gst->gst_rate_id }}" @selected((string) old('gst_rate_id') === (string) $gst->gst_rate_id)>{{ $gst->gst_rate }}%</option>@endforeach</select></div></div>
                             <div class="col-sm-4">
                                 <div class="form-group">
                                     <label>Item Type <span class="required">*</span></label>

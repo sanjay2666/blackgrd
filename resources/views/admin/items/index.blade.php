@@ -44,6 +44,7 @@
 												@endforeach
 											</select>
 										</div>
+										<div class="col-sm-2 col-xs-12"><select name="status" class="form-control"><option value="">All Statuses</option><option value="Active" @selected($status === 'Active')>Active</option><option value="Inactive" @selected($status === 'Inactive')>Inactive</option></select></div>
 										<div class="col-sm-1 col-xs-12"><button type="submit" class="btn btn-success">Search</button></div>
 									</form>
 									<div class="col-sm-3"><a href="{{ route('admin.items.create') }}" class="btn btn-add"><i class="fa fa-plus"></i> Add Items</a></div>
@@ -57,7 +58,8 @@
 												<th>Internal Item Name</th>
 												<th>Item Type</th>
 												<th>Unit Type</th>
-												<th>HSN Code</th>
+																				<th>HSN Code</th>
+																				<th>GST</th>
 												<th>Manage</th>
 												<th>Status</th>
 												<th>Action</th>
@@ -72,7 +74,8 @@
 												<td>{{ $row->internal_item_name }}</td>
 												<td>{{ $row->itemType->item_type_name ?? '' }}</td>
 												<td>{{ $row->unitType->unit_type_name ?? '' }}</td>
-												<td>{{ $row->hsncode }}</td>
+																				<td>{{ $row->hsncode }}</td>
+																				<td>{{ $row->gstRate->gst_rate ?? '' }}{{ $row->gstRate ? '%' : '' }}</td>
 												<td>
 													@if($row->item_type_id == '8')
 													<a href="{{ route('admin.items.manage-yarn', enc($row->item_id)) }}" class="btn btn-success btn-xs">Manage Yarn</a>
@@ -86,7 +89,7 @@
 											</tr>
 											@empty
 											<tr>
-												<td colspan="10" class="text-center">No records found.</td>
+																				<td colspan="11" class="text-center">No records found.</td>
 											</tr>
 											@endforelse
 										</tbody>
@@ -94,7 +97,7 @@
 								</div>
 								<div class="pagination text-center" style="display:block">
 									<span class="pagination-links">
-										{{ $items->appends(['qsearch' => $qsearch, 'itemId' => $itemId, 'item_type_id' => $item_type_id])->links('vendor.pagination.bootstrap-4') }}
+										{{ $items->appends(['qsearch' => $qsearch, 'itemId' => $itemId, 'item_type_id' => $item_type_id, 'status' => $status])->links('vendor.pagination.bootstrap-4') }}
 									</span>
 									@if ($items->lastPage() > 1)
 									<span class="manual-page-input" style="margin-left:15px">

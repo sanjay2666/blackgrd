@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Item extends Model
 {
-    use BelongsToCompany, HasFactory, HasRecordStatus;
+    use BelongsToCompany;
+    use HasFactory;
+    use HasRecordStatus;
 
     protected $table = 'items';
 
@@ -27,5 +29,15 @@ class Item extends Model
     public function unitType()
     {
         return $this->belongsTo(UnitType::class, 'unit_type_id', 'unit_type_id');
+    }
+
+    public function hsnCode()
+    {
+        return $this->belongsTo(HsnCode::class, 'hsn_code_id', 'hsn_code_id');
+    }
+
+    public function gstRate()
+    {
+        return $this->belongsTo(GstRate::class, 'gst_rate_id', 'gst_rate_id');
     }
 }
