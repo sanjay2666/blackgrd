@@ -14,6 +14,14 @@ Department is an organizational unit. Process is a reusable manufacturing operat
 
 `display_order` is only a master display/default order. It is not an authoritative Sale Order Item route. Inactive processes remain readable for historical references and are excluded from new active selections as each operational screen adopts the status contract.
 
+## Process Configuration (Task 2.6)
+
+`process_item_configurations` is an optional, company-scoped extension of the canonical `process_items` identity. It stores only the future execution capability: `Internal`, `External`, or `Both`. Existing processes have no required configuration row, so legacy production behavior remains unchanged until an administrator saves configuration.
+
+`process_item_material_configurations` links a Process to one or more canonical active `item_type` records as `Input` or `Output`. The legacy `entry_name` and `output_name` columns remain readable compatibility labels; they are not rewritten or backfilled. `process_item_allowed_next` records possible company-scoped next Process relationships. It rejects duplicates, self-relations, inactive references, and cross-company references.
+
+Allowed-next relationships are a configuration/validation possibility only. `workflow_definitions` → `workflow_versions` → `workflow_version_steps` remain the sole ordered Sale Order Item route snapshot. Configuration does not execute transitions, create Work Orders, or select printing before/after Coating. Both Printing positions remain expressible only through ordered Workflow Version Steps.
+
 Processes are never hard-deleted. Referenced records and core identities are protected, and the admin action is deactivate/activate. Core IDs 1–4 cannot be renamed; referenced process codes cannot be changed. This preserves historical transactions and compatibility with current fixed-ID logic.
 
 **Process Master does not define the final Sale Order Item workflow.** No workflow engine or order-specific route sequencing is implemented here. **Printing position must not be globally defined relative to Coating.** No `print_position` or before/after-Coating rule exists; future routing may place Printing before or after Coating per Sale Order Item.
@@ -21,3 +29,5 @@ Processes are never hard-deleted. Referenced records and core identities are pro
 ## Administration
 
 Admin CRUD, filters, and status transitions use `processes.view/create/update/delete/activate/deactivate`. The resource is admin-only in the permission catalog, so Frontend User Department Access is not used to manage this master. All routes are server-side permission mapped and meaningful mutations are recorded by the centralized Audit Log.
+
+The Process List has a compact Configure page. It reuses `processes.view` to read and `processes.update` to save configuration; no new permission or navigation hierarchy is needed.

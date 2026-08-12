@@ -451,6 +451,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/shifts/{shift}/deactivate', [ShiftController::class, 'deactivate'])->name('shifts.deactivate');
         Route::resource('office-ips', OfficeIpController::class)->except(['show']);
         Route::resource('process-items', ProcessItemController::class)->except(['show']);
+        Route::get('/process-items/{process_item}/configuration', [ProcessItemController::class, 'configuration'])->name('process-items.configuration');
+        Route::put('/process-items/{process_item}/configuration', [ProcessItemController::class, 'updateConfiguration'])->name('process-items.configuration.update');
         Route::patch('/process-items/{process_item}/activate', [ProcessItemController::class, 'activate'])->name('process-items.activate');
         Route::patch('/process-items/{process_item}/deactivate', [ProcessItemController::class, 'deactivate'])->name('process-items.deactivate');
         if (config('features.workflow_definitions')) {

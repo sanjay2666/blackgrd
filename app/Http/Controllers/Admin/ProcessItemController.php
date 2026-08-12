@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\RecordStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
+use App\Models\ItemType;
 use App\Models\ProcessItem;
 use App\Rules\RecordStatusRule;
 use App\Services\CurrentOrganizationContext;
 use App\Services\ProcessMasterService;
+use App\Services\ProcessConfigurationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -40,7 +42,7 @@ class ProcessItemController extends Controller
 
     public function store(Request $request, ProcessMasterService $service): RedirectResponse
     {
-        $service->save(new ProcessItem, $this->validated($request));
+        $service->save(new ProcessItem(), $this->validated($request));
 
         return redirect()->route('admin.process-items.index')->with('message', 'Process added successfully.')->with('messageClass', 'successClass');
     }
@@ -50,6 +52,43 @@ class ProcessItemController extends Controller
         abort_if($process_item->status === 'Deleted', 404);
 
         return view('admin.process_items.edit', array_merge(['processItem' => $process_item], $this->formData($organization)));
+    }
+
+    public function configuration(ProcessItem $process_item): View
+    {
+        abort_if($process_item->status === 'Deleted', 404);
+
+        $processItem = $process_item->load([
+            'department',
+            'configuration',
+            'materialConfigurations.itemType',
+            'allowedNextProcesses.nextProcess',
+        ]);
+
+        return view('admin.process_items.configuration', [
+            'processItem' => $processItem,
+            'itemTypes' => ItemType::query()->active()->orderBy('display_order')->orderBy('item_type_name')->get(),
+            'nextProcesses' => ProcessItem::query()->where('status', 'Active')->whereKeyNot($processItem->getKey())
+                ->orderBy('display_order')->orderBy('process_name')->get(),
+        ]);
+    }
+
+    public function updateConfiguration(Request $request, ProcessItem $process_item, ProcessConfigurationService $service): RedirectResponse
+    {
+        abort_if($process_item->status === 'Deleted', 404);
+        $service->save($process_item, $request->validate([
+            'input_item_type_ids' => 'nullable|array',
+            'input_item_type_ids.*' => 'integer|distinct',
+            'output_item_type_ids' => 'nullable|array',
+            'output_item_type_ids.*' => 'integer|distinct',
+            'allowed_next_process_ids' => 'nullable|array',
+            'allowed_next_process_ids.*' => 'integer|distinct',
+            'execution_mode' => 'required|in:Internal,External,Both',
+        ]), $request);
+
+        return redirect()->route('admin.process-items.configuration', $process_item)
+            ->with('message', 'Process configuration updated successfully.')
+            ->with('messageClass', 'successClass');
     }
 
     public function update(Request $request, ProcessItem $process_item, ProcessMasterService $service): RedirectResponse
@@ -90,7 +129,7 @@ class ProcessItemController extends Controller
             'description' => 'nullable|string|max:5000', 'entry_name' => 'nullable|string|max:255',
             'output_name' => 'required|string|max:255', 'department_id' => 'nullable|integer',
             'display_order' => 'nullable|integer|min:0', 'process_sl_no_last' => 'nullable|integer|min:0',
-            'status' => ['required', new RecordStatusRule],
+            'status' => ['required', new RecordStatusRule()],
         ]);
     }
 

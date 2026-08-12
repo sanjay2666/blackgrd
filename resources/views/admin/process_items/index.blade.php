@@ -62,7 +62,7 @@
 														<td>{{ $processItem->output_name }}</td>
 														<td>{{ $processItem->display_order ?? '-' }}</td>
 												<td>{{ $processItem->status }}</td>
-												<td><a href="{{ route('admin.process-items.edit', enc($processItem->id)) }}"><i class="fa fa-pencil"></i></a></td>
+												<td><a href="{{ route('admin.process-items.edit', enc($processItem->id)) }}" title="Edit metadata"><i class="fa fa-pencil"></i></a> @can('processes.view')<a href="{{ route('admin.process-items.configuration', enc($processItem->id)) }}" class="btn btn-xs btn-info">Configure</a>@endcan</td>
 														<td><form method="POST" action="{{ route($processItem->status === 'Active' ? 'admin.process-items.deactivate' : 'admin.process-items.activate', enc($processItem->id)) }}">@csrf @method('PATCH')<button class="btn btn-xs {{ $processItem->status === 'Active' ? 'btn-warning' : 'btn-success' }}">{{ $processItem->status === 'Active' ? 'Deactivate' : 'Activate' }}</button></form></td>
 											</tr>
 											@empty

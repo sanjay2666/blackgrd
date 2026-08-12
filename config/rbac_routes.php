@@ -25,6 +25,7 @@ return [
         'admin.transporters.destroy' => 'masters.delete', 'admin.transporters.addresses.destroy' => 'masters.delete',
         'admin.shifts.activate' => 'masters.update', 'admin.shifts.deactivate' => 'masters.update',
         'admin.process-items.activate' => 'processes.activate', 'admin.process-items.deactivate' => 'processes.deactivate',
+        'admin.process-items.configuration' => 'processes.view', 'admin.process-items.configuration.update' => 'processes.update',
         ...(env('WORKFLOW_DEFINITIONS_ENABLED', true) ? [
             'admin.workflow-definitions.versions.store' => 'processes.create',
             'admin.workflow-definitions.versions.publish' => 'processes.update',

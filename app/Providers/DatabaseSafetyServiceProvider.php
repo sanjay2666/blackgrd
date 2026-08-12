@@ -8,6 +8,7 @@ use App\Console\Commands\ApplyReviewedForeignKeyMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOperationalStatusMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOrganizationScopeMigrationCommand;
 use App\Console\Commands\ApplyReviewedProcessMasterMigrationCommand;
+use App\Console\Commands\ApplyReviewedProcessConfigurationMigrationCommand;
 use App\Console\Commands\ApplyReviewedRuntimeFoundationRepairCommand;
 use App\Console\Commands\ApplyReviewedWorkflowDefinitionMigrationCommand;
 use App\Console\Commands\DatabaseSafetyCheckCommand;
@@ -69,6 +70,7 @@ class DatabaseSafetyServiceProvider extends ServiceProvider
                 ApplyReviewedOrganizationScopeMigrationCommand::class,
                 ApplyReviewedFinancialYearMigrationCommand::class,
                 ApplyReviewedProcessMasterMigrationCommand::class,
+                ApplyReviewedProcessConfigurationMigrationCommand::class,
                 ApplyReviewedCotingMasterMigrationCommand::class,
                 ApplyReviewedRuntimeFoundationRepairCommand::class,
                 ApplyReviewedWorkflowDefinitionMigrationCommand::class,
