@@ -15,6 +15,7 @@ final class WorkflowDefinitionService
     public function __construct(
         private readonly CurrentOrganizationContext $organization,
         private readonly AuditLogger $audit,
+        private readonly WorkflowStepTransitionRuleService $transitionRules,
     ) {
     }
 
@@ -191,9 +192,11 @@ final class WorkflowDefinitionService
             }
 
             $processIds = $steps->pluck('process_id');
-            if (ProcessItem::query()->whereIn('id', $processIds)->where('status', '!=', 'Deleted')->count() !== $processIds->count()) {
-                throw ValidationException::withMessages(['workflow_version' => 'A published version cannot contain a missing or deleted Process.']);
+            if (ProcessItem::query()->whereIn('id', $processIds)->where('status', 'Active')->count() !== $processIds->count()) {
+                throw ValidationException::withMessages(['workflow_version' => 'A published version cannot contain a missing, inactive, or deleted Process.']);
             }
+
+            $this->transitionRules->assertPublishableRoute($definition, $lockedVersion, $steps);
 
             WorkflowVersion::query()
                 ->where('workflow_definition_id', $definition->id)

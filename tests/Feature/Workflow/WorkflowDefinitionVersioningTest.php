@@ -3,6 +3,7 @@
 namespace Tests\Feature\Workflow;
 
 use App\Models\ProcessItem;
+use App\Models\ProcessItemAllowedNext;
 use App\Models\SaleOrderItem;
 use App\Models\WorkflowDefinition;
 use App\Models\WorkflowVersion;
@@ -10,6 +11,7 @@ use App\Services\AuditLogger;
 use App\Services\CurrentOrganizationContext;
 use App\Services\WorkflowDefinitionService;
 use App\Services\WorkflowAssignmentService;
+use App\Services\WorkflowStepTransitionRuleService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,13 +55,21 @@ class WorkflowDefinitionVersioningTest extends TestCase
             'status' => 'Active',
         ]);
         $organization = $this->useCompany($this->companyId);
-        $this->service = new WorkflowDefinitionService($organization, app(AuditLogger::class));
+        $this->service = new WorkflowDefinitionService(
+            $organization,
+            app(AuditLogger::class),
+            new WorkflowStepTransitionRuleService($organization),
+        );
         $this->request = Request::create('/admin/workflow-definitions', 'POST');
         $this->processes = [
             'Dyeing' => $this->createProcess('Dyeing', 'DYE'),
             'Printing' => $this->createProcess('Printing', 'PRT'),
             'Coating' => $this->createProcess('Coating', 'COA'),
         ];
+        $this->allow('Dyeing', 'Printing');
+        $this->allow('Dyeing', 'Coating');
+        $this->allow('Printing', 'Coating');
+        $this->allow('Coating', 'Printing');
     }
 
     public function test_definition_version_and_ordered_steps_are_created_and_published(): void
@@ -185,7 +195,11 @@ class WorkflowDefinitionVersioningTest extends TestCase
             'status' => 'Active',
         ]);
         $secondContext = $this->useCompany($secondCompanyId);
-        $secondService = new WorkflowDefinitionService($secondContext, app(AuditLogger::class));
+        $secondService = new WorkflowDefinitionService(
+            $secondContext,
+            app(AuditLogger::class),
+            new WorkflowStepTransitionRuleService($secondContext),
+        );
         $second = $secondService->createDefinition([
             'workflow_code' => 'COMPANY-B',
             'workflow_name' => 'Company B Route',
@@ -233,6 +247,15 @@ class WorkflowDefinitionVersioningTest extends TestCase
             'output_name' => $name.' Output',
             'process_sl_no_last' => 0,
             'status' => 'Active',
+        ]);
+    }
+
+    private function allow(string $currentProcess, string $nextProcess): void
+    {
+        ProcessItemAllowedNext::query()->create([
+            'company_id' => $this->companyId,
+            'process_item_id' => $this->processes[$currentProcess]->id,
+            'next_process_item_id' => $this->processes[$nextProcess]->id,
         ]);
     }
 
