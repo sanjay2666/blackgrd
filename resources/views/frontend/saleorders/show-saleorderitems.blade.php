@@ -105,31 +105,31 @@
                                         </thead>
                                         <tbody>
                                             @foreach($dataSOI as $data)
-                                                <?php 
+                                                <?php
                                                     $itemId = $data->item_id;
-                                                    $saleOrder = $data->saleOrder;
-                                                    $saleOrderDate = optional($saleOrder)->sale_order_date;
-                                                    $saleOrderId = $data->sale_order_id;
-                                                    $saleOrderItemId = $data->id;
-                                                    $customer = $saleOrder ? $saleOrder->customer : null;
-                                                    $cusName = $customer->name ?? $customer->company_name ?? '-';
-                                                    $itemtypeId = $data->item_type_id;
-                                                    $dyeingColor = $data->dyeing_color;
-                                                    $coatingPvc = $data->coating_type;
-                                                    $priority = $data->order_item_priority;
+                                                $saleOrder = $data->saleOrder;
+                                                $saleOrderDate = optional($saleOrder)->sale_order_date;
+                                                $saleOrderId = $data->sale_order_id;
+                                                $saleOrderItemId = $data->id;
+                                                $customer = $saleOrder ? $saleOrder->customer : null;
+                                                $cusName = $customer->name ?? $customer->company_name ?? '-';
+                                                $itemtypeId = $data->item_type_id;
+                                                $dyeingColor = $data->dyeing_color;
+                                                $coatingPvc = $data->coating_type;
+                                                $priority = $data->order_item_priority;
 
-                                                    $totGreige 		= CommonController::checkWarehouseBalanceItemStock($itemId, $itemtypeId);
-                                                    $totWOGreige 	= CommonController::getWorkOrderGreigeTypeBalance($itemId, $itemtypeId);
-                                                    $totDying 		= CommonController::checkWarehouseBalanceItemStock($itemId, $itemtypeId, $dyeingColor);
-                                                    $totCoated 		= CommonController::checkWarehouseBalanceItemStock($itemId, $itemtypeId, $dyeingColor, $coatingPvc);
-                                                    
-													$getItemInternalName 	= CommonController::getItemInternalName($data->item_id);
-                                                    $getTotaCreatedMtr 		= CommonController::getTotaCreatedMtr($saleOrderItemId);
-													
-                                                    $totDays = !empty($data->created_at) ? daysFromNowCount($data->created_at) : 0;
-                                                    $coatedPvc = strtolower(trim((string) $data->coating_type));
-                                                    $showCoatingEdit = empty($coatedPvc) || in_array($coatedPvc, ['not', 'no']);
-                                                    $remainingMeter = ($data->meter - $data->delivered_item_mtr) - ($getTotaCreatedMtr ?? 0);
+                                                $totGreige = CommonController::checkWarehouseBalanceItemStock($itemId, $itemtypeId);
+                                                $totWOGreige = CommonController::getWorkOrderGreigeTypeBalance($itemId, $itemtypeId);
+                                                $totDying = CommonController::checkWarehouseBalanceItemStock($itemId, $itemtypeId, $dyeingColor);
+                                                $totCoated = CommonController::checkWarehouseBalanceItemStock($itemId, $itemtypeId, $dyeingColor, $coatingPvc);
+
+                                                $getItemInternalName = CommonController::getItemInternalName($data->item_id);
+                                                $getTotaCreatedMtr = CommonController::getTotaCreatedMtr($saleOrderItemId);
+
+                                                $totDays = ! empty($data->created_at) ? daysFromNowCount($data->created_at) : 0;
+                                                $coatedPvc = strtolower(trim((string) $data->coating_type));
+                                                $showCoatingEdit = empty($coatedPvc) || in_array($coatedPvc, ['not', 'no']);
+                                                $remainingMeter = ($data->meter - $data->delivered_item_mtr) - ($getTotaCreatedMtr ?? 0);
                                                 ?>
 
                                                 <tr id="Mid{{ $data->id }}" @class(['danger' => $priority == 'Extreme'])>
@@ -362,7 +362,11 @@
                 }
 
                 if (form) {
-                    form.submit();
+                    if (typeof form.requestSubmit === 'function') {
+                        form.requestSubmit();
+                    } else {
+                        $(form).trigger('submit');
+                    }
                 }
             });
         });

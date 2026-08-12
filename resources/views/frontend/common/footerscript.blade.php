@@ -16,6 +16,7 @@
       <script src="{{ asset('frontend-assets/plugins/fastclick/fastclick.min.js') }}" type="text/javascript"></script>
       <!-- CRMadmin frame -->
       <script src="{{ asset('frontend-assets/dist/js/custom.js') }}" type="text/javascript"></script>
+      <script src="{{ asset('frontend-assets/dist/js/duplicate-submit-protection.js') }}" type="text/javascript"></script>
       <!-- End Core Plugins
          =====================================================================-->
       <!-- Start Page Lavel Plugins

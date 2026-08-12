@@ -6,6 +6,7 @@
 <script src="{{ asset('assets/plugins/slimScroll/jquery.slimscroll.min.js') }}" type="text/javascript"></script>
 <script src="{{ asset('assets/plugins/fastclick/fastclick.min.js') }}" type="text/javascript"></script>
 <script src="{{ asset('assets/dist/js/custom.js') }}" type="text/javascript"></script>
+<script src="{{ asset('frontend-assets/dist/js/duplicate-submit-protection.js') }}" type="text/javascript"></script>
 <script src="{{ asset('assets/plugins/chartJs/Chart.min.js') }}" type="text/javascript"></script>
 <script src="{{ asset('assets/plugins/counterup/waypoints.js') }}" type="text/javascript"></script>
 <script src="{{ asset('assets/plugins/counterup/jquery.counterup.min.js') }}" type="text/javascript"></script>

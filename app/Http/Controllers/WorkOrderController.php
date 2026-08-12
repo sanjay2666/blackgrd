@@ -487,6 +487,14 @@ class WorkOrderController extends Controller
             return redirect()->back();
         }
 
+        $saleOrderItemIds = array_values(array_map('intval', $saleOrderItemIds));
+        if (count($saleOrderItemIds) !== count(array_unique($saleOrderItemIds))) {
+            Session::put('message', 'Duplicate sale order item selected. Please refresh and try again.');
+            Session::put('messageClass', 'errorClass');
+
+            return redirect()->back()->withInput();
+        }
+
         DB::beginTransaction();
         try {
             $productionValues = array_values(array_filter($request->input('sale_order_production_value', []), fn ($value) => $value !== null && $value !== ''));
@@ -509,6 +517,7 @@ class WorkOrderController extends Controller
                 $saleOrderItem = SaleOrderItem::with('saleOrder.customer')
                     ->where('id', $saleOrderItemId)
                     ->where('status', 'Active')
+                    ->lockForUpdate()
                     ->firstOrFail();
 
                 $meter = isset($productionValues[$index]) ? (float) $productionValues[$index] : (float) $saleOrderItem->pending_item_mtr;
@@ -517,6 +526,10 @@ class WorkOrderController extends Controller
                 }
 
                 if ($workSubmit === 'Packaging') {
+                    if ((string) $saleOrderItem->is_packaging_done === '1') {
+                        throw new Exception('This sale order item has already been sent to Packaging.');
+                    }
+
                     $saleOrderItem->is_packaging_done = '1';
                     $saleOrderItem->in_packaging_send_by = Auth::id();
                     $saleOrderItem->in_packaging_send_date = now();
@@ -532,15 +545,30 @@ class WorkOrderController extends Controller
                         $query->where('process_name', 'like', '%'.$workSubmit.'%')
                             ->orWhere('entry_name', 'like', '%'.$workSubmit.'%');
                     })
+                    ->lockForUpdate()
                     ->first();
 
-                $processSlNo = app(NumberSeriesService::class)->nextInteger('work-order-'.($processItem->id ?? $fallbackProcessId));
+                $processTypeId = $processItem->id ?? $fallbackProcessId;
+                $alreadyCreated = WorkOrderItem::where('sale_order_item_id', $saleOrderItem->id)
+                    ->where('status', 'Active')
+                    ->whereHas('WorkOrder', function ($query) use ($processTypeId) {
+                        $query->where('process_type_id', $processTypeId)
+                            ->where('status', 'Active');
+                    })
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($alreadyCreated) {
+                    throw new Exception("This item's {$workSubmit} work order has already been created.");
+                }
+
+                $processSlNo = app(NumberSeriesService::class)->nextInteger('work-order-'.$processTypeId);
 
                 $workOrder = new WorkOrder();
                 $workOrder->process_type = $processCode;
                 $workOrder->process_sl_no = $processSlNo;
                 $workOrder->user_id = Auth::id() ?? 0;
-                $workOrder->process_type_id = $processItem->id ?? $fallbackProcessId;
+                $workOrder->process_type_id = $processTypeId;
                 $workOrder->item_type_id = $processItemTypeId;
                 $workOrder->item_id = $saleOrderItem->item_id;
                 $workOrder->item_name = $saleOrderItem->item_name ?? '';
