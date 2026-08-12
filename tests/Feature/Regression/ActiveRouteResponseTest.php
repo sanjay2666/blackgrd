@@ -27,6 +27,46 @@ class ActiveRouteResponseTest extends TestCase
         }
 
         $this->marker = 'route-'.bin2hex(random_bytes(5));
+        $companyId = DB::table('companies')->where('status', 'Active')->value('id');
+        if ($companyId === null) {
+            $companyId = DB::table('companies')->insertGetId([
+                'name' => "Route Response Company {$this->marker}",
+                'status' => 'Active',
+            ]);
+        }
+        DB::table('users')->insertOrIgnore([
+            'id' => 990002,
+            'user_type' => 'User',
+            'name' => 'Route Response User',
+            'email' => 'route-response@example.test',
+            'password' => 'test-password',
+            'status' => 'Active',
+        ]);
+        DB::table('user_organization_access')->insert([
+            'user_id' => 990002,
+            'company_id' => $companyId,
+            'is_default' => true,
+            'status' => 'Active',
+        ]);
+        foreach (['employees.view', 'masters.view', 'sale-orders.view'] as $permissionKey) {
+            $permissionId = DB::table('permissions')->where('permission_key', $permissionKey)->value('id');
+            if ($permissionId === null) {
+                [$resource, $action] = explode('.', $permissionKey, 2);
+                $permissionId = DB::table('permissions')->insertGetId([
+                    'permission_key' => $permissionKey,
+                    'resource' => $resource,
+                    'action' => $action,
+                    'category' => 'test',
+                    'status' => 'Active',
+                ]);
+            }
+            DB::table('user_permission_overrides')->insert([
+                'user_id' => 990002,
+                'permission_id' => $permissionId,
+                'effect' => 'Allow',
+                'status' => 'Active',
+            ]);
+        }
         $this->actingAs($this->transientUser(), 'web');
     }
 
@@ -38,6 +78,7 @@ class ActiveRouteResponseTest extends TestCase
                 'type' => 'employee',
                 'email' => "{$this->marker}@example.test",
                 'gstin' => 'GST-ACTIVE',
+                'company_id' => $this->companyId(),
                 'status' => 'Active',
             ],
             [
@@ -45,6 +86,7 @@ class ActiveRouteResponseTest extends TestCase
                 'type' => 'employee',
                 'email' => "inactive-{$this->marker}@example.test",
                 'gstin' => null,
+                'company_id' => $this->companyId(),
                 'status' => 'Inactive',
             ],
         ]);
@@ -52,22 +94,26 @@ class ActiveRouteResponseTest extends TestCase
         $itemId = DB::table('items')->insertGetId([
             'item_name' => "Active item {$this->marker}",
             'item_code' => "I-{$this->marker}",
+            'company_id' => $this->companyId(),
             'status' => 'Active',
         ]);
         DB::table('items')->insert([
             'item_name' => "Inactive item {$this->marker}",
             'item_code' => "X-{$this->marker}",
+            'company_id' => $this->companyId(),
             'status' => 'Inactive',
         ]);
 
         $saleOrderId = DB::table('sale_orders')->insertGetId([
             'sale_order_number' => "SO-{$this->marker}",
             'order_by_employee' => 1,
+            'company_id' => $this->companyId(),
             'status' => 'Active',
         ]);
         DB::table('sale_orders')->insert([
             'sale_order_number' => "SO-INACTIVE-{$this->marker}",
             'order_by_employee' => 1,
+            'company_id' => $this->companyId(),
             'status' => 'Inactive',
         ]);
 
@@ -100,6 +146,7 @@ class ActiveRouteResponseTest extends TestCase
         $individualId = DB::table('individuals')->insertGetId([
             'name' => "Customer {$this->marker}",
             'type' => 'customers',
+            'company_id' => $this->companyId(),
             'status' => 'Active',
         ]);
         DB::table('companies')->insert([
@@ -184,5 +231,10 @@ class ActiveRouteResponseTest extends TestCase
         $user->exists = true;
 
         return $user;
+    }
+
+    private function companyId(): int
+    {
+        return (int) DB::table('user_organization_access')->where('user_id', 990002)->value('company_id');
     }
 }

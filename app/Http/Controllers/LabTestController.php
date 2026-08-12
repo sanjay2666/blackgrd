@@ -1914,11 +1914,11 @@ class LabTestController extends Controller
 			$record->save();
 
 		 
-			$workOrder = WorkOrder::select('work_order_id', 'item_name', 'status')
-				->where('work_order_id', $record->work_order_id)
-				->where('status', '1')
+			$workOrder = WorkOrder::select('id', 'item_name', 'status')
+				->whereKey($record->work_order_id)
+				->where('status', 'Active')
 				->with(['WorkOrderItem' => function ($query) {
-					$query->select('woi_id', 'work_order_id', 'dyeing_color', 'sale_order_id', 'sale_order_item_id', 'customer_id');
+					$query->select('id', 'work_order_id', 'dyeing_color', 'sale_order_id', 'sale_order_item_id', 'customer_id');
 				}])
 				->first();
 

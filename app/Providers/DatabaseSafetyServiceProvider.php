@@ -2,10 +2,13 @@
 
 namespace App\Providers;
 
+use App\Console\Commands\ApplyReviewedCotingMasterMigrationCommand;
 use App\Console\Commands\ApplyReviewedFinancialYearMigrationCommand;
 use App\Console\Commands\ApplyReviewedForeignKeyMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOperationalStatusMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOrganizationScopeMigrationCommand;
+use App\Console\Commands\ApplyReviewedProcessMasterMigrationCommand;
+use App\Console\Commands\ApplyReviewedRuntimeFoundationRepairCommand;
 use App\Console\Commands\DatabaseSafetyCheckCommand;
 use App\Console\Commands\PrepareDisposableDatabaseCommand;
 use App\Console\Commands\VerifyOperationalStatusBackfillCommand;
@@ -64,6 +67,9 @@ class DatabaseSafetyServiceProvider extends ServiceProvider
                 ApplyReviewedOperationalStatusMigrationsCommand::class,
                 ApplyReviewedOrganizationScopeMigrationCommand::class,
                 ApplyReviewedFinancialYearMigrationCommand::class,
+                ApplyReviewedProcessMasterMigrationCommand::class,
+                ApplyReviewedCotingMasterMigrationCommand::class,
+                ApplyReviewedRuntimeFoundationRepairCommand::class,
                 DatabaseSafetyCheckCommand::class,
                 PrepareDisposableDatabaseCommand::class,
                 VerifyOperationalStatusMigrationsCommand::class,

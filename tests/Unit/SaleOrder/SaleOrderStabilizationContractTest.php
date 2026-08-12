@@ -11,8 +11,12 @@ class SaleOrderStabilizationContractTest extends TestCase
         $root = dirname(__DIR__, 3);
         $model = file_get_contents($root.'/app/Models/SaleOrderItem.php');
         $migration = file_get_contents($root.'/database/migrations/2026_07_19_000002_create_sale_order_items_table.php');
+        $scopeRepair = file_get_contents($root.'/database/migrations/2026_08_12_000013_add_company_scope_to_sale_order_items.php');
 
         $this->assertStringContainsString('BelongsToCompany', $model);
+        $this->assertStringContainsString("unsignedInteger('company_id')", $scopeRepair);
+        $this->assertStringContainsString("join('sale_orders as order'", $scopeRepair);
+        $this->assertStringContainsString("orWhereNull('order.company_id')", $scopeRepair);
         $this->assertStringNotContainsString('process_sequence', $migration);
         $this->assertStringNotContainsString('print_position', $migration);
     }

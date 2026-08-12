@@ -11,7 +11,7 @@
  
 <!-- Site wrapper -->
 <div class="wrapper"> @include('common.header')
-  <div class="content-wrapperd accept-warehouse-allotment-page"> 
+  <div class="content-wrapper accept-warehouse-allotment-page">
     <section class="content">
       <div class="row">
 		{!! CommonController::display_message('message') !!}

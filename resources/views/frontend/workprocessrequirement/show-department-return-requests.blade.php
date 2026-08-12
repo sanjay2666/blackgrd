@@ -7,7 +7,7 @@
 </head>
 <body class="hold-transition sidebar-mini department-return-page">
 <div class="wrapper"> @include('frontend.common.header')
-	<div class="content-wrapperd">
+	<div class="content-wrapper">
 		<section class="content">
 			<div class="row">
 				<div class="col-sm-12">

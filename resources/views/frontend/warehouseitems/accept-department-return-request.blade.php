@@ -18,7 +18,7 @@
  
 <!-- Site wrapper -->
 <div class="wrapper"> @include('frontend.common.header')
-    <div class="content-wrapperd return-request-page">
+    <div class="content-wrapper return-request-page">
     <section class="content">
       <div class="row">
         <!-- Form controls -->

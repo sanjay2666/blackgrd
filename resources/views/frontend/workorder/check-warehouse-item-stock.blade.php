@@ -12,7 +12,7 @@
 </div>
 <!-- Site wrapper -->
 <div class="wrapper"> @include('common.header')
-  <div class="content-wrapperd"> 
+  <div class="content-wrapper">
     <!-- Content Header (Page header) -->
     <!-- Main content -->
     {!! CommonController::display_message('message') !!}

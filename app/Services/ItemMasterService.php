@@ -69,7 +69,7 @@ final class ItemMasterService
             $item->save();
             $this->audit($request, $referenced ? 'deactivated' : 'deleted', $item, $old, $this->values($item));
 
-            return $item->status->value;
+            return $item->status;
         });
     }
 
@@ -88,11 +88,11 @@ final class ItemMasterService
     private function assertMasters(array $attributes, bool $allowInactive, ?Item $item = null): void
     {
         $type = ItemType::query()->whereKey($attributes['item_type_id'])->notDeleted()->first();
-        if (! $type || (! $allowInactive && $type->status->value !== RecordStatus::Active->value && (int) $type->getKey() !== (int) ($item?->item_type_id))) {
+        if (! $type || (! $allowInactive && $type->status !== RecordStatus::Active->value && (int) $type->getKey() !== (int) ($item?->item_type_id))) {
             throw ValidationException::withMessages(['item_type_id' => 'Please select a valid active Item Type.']);
         }
         $unit = UnitType::query()->whereKey($attributes['unit_type_id'])->notDeleted()->first();
-        if (! $unit || (! $allowInactive && $unit->status->value !== RecordStatus::Active->value && (int) $unit->getKey() !== (int) ($item?->unit_type_id))) {
+        if (! $unit || (! $allowInactive && $unit->status !== RecordStatus::Active->value && (int) $unit->getKey() !== (int) ($item?->unit_type_id))) {
             throw ValidationException::withMessages(['unit_type_id' => 'Please select a valid active Unit.']);
         }
         if (filled($attributes['hsn_code_id'] ?? null) && ! HsnCode::query()->whereKey($attributes['hsn_code_id'])->notDeleted()->exists()) {

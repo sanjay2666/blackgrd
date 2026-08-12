@@ -32,7 +32,7 @@
                             <div class="col-sm-4"><div class="form-group"><label>IP Address <span class="required">*</span></label><input type="text" name="ip_address" value="{{ old('ip_address', $notification->ip_address) }}" class="form-control" required></div></div>
                             <div class="col-sm-6"><div class="form-group"><label>Server Details <span class="required">*</span></label><textarea name="server_details" class="form-control" rows="3" required>{{ old('server_details', $notification->server_details) }}</textarea></div></div>
                             <div class="col-sm-4"><div class="form-group"><label>&nbsp;</label><div class="checkbox"><label><input type="checkbox" name="is_read" value="1" @checked(old('is_read', $notification->is_read))> Is Read</label></div></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', $) === 'Active')>Active</option><option value="Inactive" @selected(old('status', $) === 'Inactive')>Inactive</option></select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', $notification->status) === 'Active')>Active</option><option value="Inactive" @selected(old('status', $notification->status) === 'Inactive')>Inactive</option></select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.notifications.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
                     </form>

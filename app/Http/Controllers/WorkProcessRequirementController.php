@@ -4,15 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Domain\OperationalStatus\Actions\TransitionWorkRequirement;
 use App\Enums\WorkRequirementStatus;
-use App\Models\DyeingPlanningItem;
 use App\Models\DepartmentReturnRequest;
 use App\Models\Individual;
 use App\Models\Item;
 use App\Models\ItemType;
 use App\Models\Machine;
-use App\Models\PackagingOrder;
-use App\Models\PackagingOrderItem;
-use App\Models\PackagingProcessRequirement;
 use App\Models\ProcessItem;
 use App\Models\StockMillDispatch;
 use App\Models\User;
@@ -24,7 +20,6 @@ use App\Models\WarehouseOutItem;
 use App\Models\WorkInspectionDetail;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
-use App\Models\WorkPrintProcessRequirement;
 use App\Models\WorkProcessRequirement;
 use App\Services\CurrentOrganizationContext;
 use Auth;
@@ -241,7 +236,7 @@ class WorkProcessRequirementController extends Controller
         $FId = $request->FId;
         $dataWPR = WorkProcessRequirement::find($FId);
         $workOrdId = $dataWPR->work_order_id;
-        $dataWk = WorkOrder::where('work_order_id', '=', $workOrdId)->where('status', '=', 'Active')->first();
+        $dataWk = WorkOrder::whereKey($workOrdId)->where('status', '=', 'Active')->first();
         $itemId = $dataWk->item_id;
         $itemName = $dataWk->item_name;
         $procesTypeId = $dataWk->process_type_id;
@@ -360,8 +355,13 @@ class WorkProcessRequirementController extends Controller
 
     public function getProcessRequirementItems(Request $request)
     {
-        $workOrdId = $request->FId;
-        $dataWk = WorkOrder::where('work_order_id', '=', $workOrdId)->where('status', '=', 'Active')->first();
+        $validated = $request->validate(['FId' => ['required', 'integer']]);
+        $workOrdId = (int) $validated['FId'];
+        $dataWk = WorkOrder::whereKey($workOrdId)->where('status', 'Active')->first();
+        if ($dataWk === null) {
+            return response()->json(['message' => 'Work order not found.'], 404);
+        }
+
         $itemId = $dataWk->item_id;
         $WorkItemName = $dataWk->item_name;
         $procesTypeId = $dataWk->process_type_id;
@@ -379,6 +379,9 @@ class WorkProcessRequirementController extends Controller
 
         foreach ($dataWPR as $row) {
             $dataI = Item::where('item_id', '=', $row->item_id)->where('status', '=', 'Active')->first();
+            if ($dataI === null) {
+                continue;
+            }
             $itemName = $dataI->item_name;
             $quantity = $row->quantity;
             $unit_type_id = $dataI->unit_type_id;
@@ -506,7 +509,7 @@ class WorkProcessRequirementController extends Controller
         $toDepartment = null;
 
         foreach ($workOrderIds as $workOrderId) {
-            $workOrder = WorkOrder::where('work_order_id', $workOrderId)->with('WarehouseItem')->first();
+            $workOrder = WorkOrder::whereKey($workOrderId)->with('WarehouseItem')->first();
 
             if (! $workOrder) {
                 abort(404, 'Work Order not found.');
@@ -533,7 +536,7 @@ class WorkProcessRequirementController extends Controller
             ->where('status', 'Active')
             ->with([
                 'WarehouseOutItem' => function ($query) {
-                    $query->where('is_item_return_whouse', '0')->select(['id', 'wis_id', 'warehouse_item_id', 'item_id', 'item_type_id', 'item_qty', 'insp_taka_number', 'dyeing_lot_number', 'dyeing_taka_number', 'fabric_fault_reason_id', 'individual_id', 'receiver_id', 'work_pro_req_id', 'work_order_id', 'item_remark', 'grey_quality', 'dyeing_color', 'coated_pvc', 'is_item_return_whouse', 'status'])->with(['WarehouseItemStock' => function ($subQuery) {
+                    $query->where('is_item_return_whouse', '0')->select(['id', 'wis_id', 'warehouse_item_id', 'item_id', 'item_type_id', 'item_qty', 'insp_taka_number', 'dyeing_lot_number', 'dyeing_taka_number', 'fabric_fault_reason_id', 'individual_id', 'receiver_id', 'work_pro_req_id', 'work_order_id', 'item_remark', 'grey_quality', 'dyeing_color', 'coating_type', 'is_item_return_whouse', 'status'])->with(['WarehouseItemStock' => function ($subQuery) {
                         $subQuery->select(['wis_id', 'insp_id', 'item_id', 'insp_quan_size', 'insp_allot_quan_size', 'insp_bal_quan_size', 'beam_meter', 'vendor_id', 'invoice_number', 'dyeing_lot_number', 'item_type_id', 'unit_type_id', 'dyeing_taka_number', 'insp_taka_number', 'status']);
                     }]);
                 },
@@ -548,7 +551,7 @@ class WorkProcessRequirementController extends Controller
         }
 
         $totalAllotedQuantity = $dataWPR2->flatMap->WarehouseOutItem->sum('item_qty');
-        $data = WorkOrder::where('work_order_id', $mainWorkOrderId)->with('WorkOrderItem', 'WarehouseItem')->first();
+        $data = WorkOrder::whereKey($mainWorkOrderId)->with('WorkOrderItem', 'WarehouseItem')->first();
 
         if (! $data) {
             abort(404, 'Work Order details not found.');
@@ -580,7 +583,7 @@ class WorkProcessRequirementController extends Controller
 
         foreach ($workOrderIds as $workOrderId) {
 
-            $workOrder = WorkOrder::where('work_order_id', $workOrderId)->with('WarehouseItem')->first();
+            $workOrder = WorkOrder::whereKey($workOrderId)->with('WarehouseItem')->first();
             if (! $workOrder) {
                 abort(404, 'Work Order not found.');
             }
@@ -610,7 +613,7 @@ class WorkProcessRequirementController extends Controller
         $dataWPR2 = $query->get();
 
         $workOrderId = $dataWPR2->first()->work_order_id;
-        $data = WorkOrder::where('work_order_id', $workOrderId)->with('WarehouseItem')->first();
+        $data = WorkOrder::whereKey($workOrderId)->with('WarehouseItem')->first();
         $totalAllotedQuantity = $dataWPR2->sum('alloted_quantity');
 
         return view('frontend.workprocessrequirement.print-warehouse-item-requirement-gatepass-by-lot', compact('workOrderIds', 'dataWPR', 'totalAllotedQuantity', 'dataWPR2', 'toDepartment', 'compData', 'individual', 'data', 'wprId'));
@@ -663,6 +666,11 @@ class WorkProcessRequirementController extends Controller
 
     public function DenyWarehouseReq(Request $request, TransitionWorkRequirement $transitionRequirement)
     {
+        $obj = WorkProcessRequirement::find($request->FId);
+        if (! $obj) {
+            return response()->json(['message' => 'Work process requirement not found.'], 404);
+        }
+
         DB::beginTransaction();
 
         try {
@@ -670,12 +678,6 @@ class WorkProcessRequirementController extends Controller
             $userD = User::find($userId);
             $IndId = $userD->individual_id ?? $userId;
             $FId = $request->FId;
-            $obj = WorkProcessRequirement::find($FId);
-
-            if (! $obj) {
-                throw new \RuntimeException('Work process requirement not found.');
-            }
-
             $workOrderId = $obj->work_order_id;
             $obj->modified_by = $IndId;
             $obj->modified_at = now();
@@ -813,7 +815,7 @@ class WorkProcessRequirementController extends Controller
                 $query = WarehouseBalanceItem::where('item_id', $newItem->item_id)
                     ->where('item_type_id', $newItem->item_type_id)
                     ->where('dyeing_color', $newItem->dyeing_color)
-                    ->where('coated_pvc', $newItem->coated_pvc)
+                    ->where('coating_type', $newItem->coated_pvc)
                     ->where('print_job', $newItem->print_job)
                     ->where('extra_job', $newItem->extra_job)
                     ->orderBy('id', 'desc');
@@ -828,7 +830,7 @@ class WorkProcessRequirementController extends Controller
                 $affectedRows = WarehouseBalanceItem::where('item_id', $newItem->item_id)
                     ->where('item_type_id', $newItem->item_type_id)
                     ->where('dyeing_color', $newItem->dyeing_color)
-                    ->where('coated_pvc', $newItem->coated_pvc)
+                    ->where('coating_type', $newItem->coated_pvc)
                     ->where('print_job', $newItem->print_job)
                     ->where('extra_job', $newItem->extra_job)
                     ->where('balance_status', 1)
@@ -884,7 +886,7 @@ class WorkProcessRequirementController extends Controller
                         'acc_deny_date' => now(),
                     ]);
 
-                WorkOrder::where('work_order_id', '=', $workOrderId)->update(['is_work_require_request_accepted' => 'Yes']);
+                WorkOrder::whereKey($workOrderId)->update(['is_work_require_request_accepted' => 'Yes']);
 
                 $flag = true;
             }
@@ -2120,7 +2122,7 @@ class WorkProcessRequirementController extends Controller
         DB::beginTransaction();
         try {
             $workOrderId = $request->work_order_id_req;
-            $workOrder = WorkOrder::with('WorkOrderItem')->where('work_order_id', $workOrderId)->where('status', 'Active')->firstOrFail();
+            $workOrder = WorkOrder::with('WorkOrderItem')->whereKey($workOrderId)->where('status', 'Active')->firstOrFail();
             $dyeingColor = $workOrder->WorkOrderItem[0]->dyeing_color ?? null;
 
             $userId = Auth::id();
@@ -2166,7 +2168,7 @@ class WorkProcessRequirementController extends Controller
                     throw new \Exception('Error occurred while adding work requisition.');
                 }
 
-                WorkOrder::where('work_order_id', $workOrderId)->update([
+                WorkOrder::whereKey($workOrderId)->update([
                     'work_req_send_by' => $individualId,
                     'is_work_require_request_accepted' => null,
                     'work_req_send_date' => $currentDate,
@@ -2244,7 +2246,7 @@ class WorkProcessRequirementController extends Controller
                         $query = WarehouseBalanceItem::where('item_id', $newItem->item_id)
                             ->where('item_type_id', $newItem->item_type_id)
                             ->where('dyeing_color', $newItem->dyeing_color)
-                            ->where('coated_pvc', $newItem->coated_pvc)
+                            ->where('coating_type', $newItem->coated_pvc)
                             ->where('print_job', $newItem->print_job)
                             ->where('extra_job', $newItem->extra_job)
                             ->orderBy('id', 'desc');
@@ -2261,10 +2263,10 @@ class WorkProcessRequirementController extends Controller
                         if ($newItem->item_type_id == '3') {
                             $updateQuery->where(function ($query) {
                                 $query->whereNull('dyeing_color')->orWhere('dyeing_color', '0');
-                            })->whereNull('coated_pvc');
+                            })->whereNull('coating_type');
                         } else {
                             $updateQuery->where('dyeing_color', $newItem->dyeing_color)
-                                ->where('coated_pvc', $newItem->coated_pvc);
+                                ->where('coating_type', $newItem->coated_pvc);
                         }
 
                         $affectedRows = $updateQuery->update(['balance_status' => 0]);
@@ -2303,7 +2305,7 @@ class WorkProcessRequirementController extends Controller
 
             // Work Order Update Logic with Exception Handling
             if ($flag) {
-                $updateSuccess = WorkOrder::where('work_order_id', $workOrderId)
+                $updateSuccess = WorkOrder::whereKey($workOrderId)
                     ->update([
                         'is_work_require_request_accepted' => 'Yes',
                         'is_item_received_from_warehouse' => 'Yes',
@@ -2379,12 +2381,18 @@ class WorkProcessRequirementController extends Controller
 
     public function getWorkProcessPrintingRequirement(Request $request)
     {
-
-        $FId = $request->FId;
-        $wprData = WorkProcessRequirement::find($FId);
+        $validated = $request->validate(['FId' => ['required', 'integer']]);
+        $FId = (int) $validated['FId'];
+        $wprData = WorkProcessRequirement::whereKey($FId)->where('status', 'Active')->first();
+        if ($wprData === null) {
+            return response()->json(['message' => 'Printing requirement not found.'], 404);
+        }
         $workOrdId = $wprData->work_order_id;
 
-        $dataWk = WorkOrder::where('work_order_id', '=', $workOrdId)->where('status', '=', 'Active')->first();
+        $dataWk = WorkOrder::whereKey($workOrdId)->where('status', 'Active')->first();
+        if ($dataWk === null) {
+            return response()->json(['message' => 'Work order not found.'], 404);
+        }
         // echo "<pre>"; print_r($dataWk); exit;
         $itemId = $dataWk->item_id;
         $WorkItemName = $dataWk->item_name;
@@ -2402,7 +2410,7 @@ class WorkProcessRequirementController extends Controller
         foreach ($dataWPR as $row) {
             // echo "<pre>"; print_r($row); exit;
             $dataI = Item::where('item_id', '=', $row->item_id)->where('status', '=', 'Active')->first();
-            $itemName = $dataI->item_name;
+            $itemName = $dataI?->item_name ?? '';
             $quantity = $row->quantity;
 
             $str .= '<tr>
@@ -2422,21 +2430,22 @@ class WorkProcessRequirementController extends Controller
         $result['wprDetails'] = $str;
         $result['WorkItemName'] = $WorkItemName;
 
-        echo json_encode($result);
+        return response()->json($result);
 
     }
 
-    public function add_remark_for_deny_requisition(Request $request)
+    public function add_remark_for_deny_requisition(Request $request, TransitionWorkRequirement $transitionRequirement)
     {
         $userId = Auth::id();
         $userD = User::find($userId);
-        $IndId = $userD->individual_id;
+        $IndId = $userD->individual_id ?? $userId;
 
         // ✅ Validation
         $validator = Validator::make($request->all(), [
             'work_order_id' => 'required|numeric',
             'deny_remark' => 'required|string',
-            'wppr_id.*' => 'required|numeric',   // yaha pe wppr_id (request key jaisa)
+            'wppr_id' => 'required|array|min:1',
+            'wppr_id.*' => 'required|integer|exists:work_process_requirements,id',
         ], [
             'work_order_id.required' => 'Work Order ID is required.',
             'work_order_id.numeric' => 'Work Order ID must be a number.',
@@ -2463,19 +2472,18 @@ class WorkProcessRequirementController extends Controller
 
         try {
             foreach ($wppr_id_arr as $wprId) {
-                $obj2 = WorkPrintProcessRequirement::find($wprId);
+                $obj2 = WorkProcessRequirement::find($wprId);
                 if ($obj2) {
-                    $obj2->is_pro_acc_by_warehouse = 'No';
                     $obj2->process_deny_by = $IndId;
                     $obj2->acc_deny_date = now();
-                    $obj2->alloted_remark = $deny_remark; // aapke column ka naam ye hi hai
-                    $obj2->is_accept = 2;
-                    $obj2->save();
+                    $obj2->modified_by = $IndId;
+                    $obj2->modified_at = now();
+                    $transitionRequirement->deny($obj2, $deny_remark, $IndId);
                     $success = true;
                 }
             }
             if ($success) {
-                WorkOrder::where('work_order_id', $workOrderId)->update(['is_work_require_request_accepted' => 'No']);
+                WorkOrder::whereKey($workOrderId)->update(['is_work_require_request_accepted' => 'No']);
                 DB::commit();
                 Session::put('message', 'Printing requisition request has been denied.');
                 Session::put('messageClass', 'successClass');
@@ -2516,7 +2524,7 @@ class WorkProcessRequirementController extends Controller
             return redirect()->back()->withInput();
         }
 
-        $workOrder = WorkOrder::where('work_order_id', $wprData->work_order_id)->where('status', 'Active')->with('WorkOrderItem')->first();
+        $workOrder = WorkOrder::whereKey($wprData->work_order_id)->where('status', 'Active')->with('WorkOrderItem')->first();
         if (! $workOrder || empty($workOrder->process_type_id)) {
             Session::put('message', 'Something went wrong. Work order not found.');
             Session::put('messageClass', 'errorClass');
@@ -2533,7 +2541,7 @@ class WorkProcessRequirementController extends Controller
             ->whereIn('wis_id', $deptReqIdsArr)
             ->where('item_type_id', $itemTypeId)
             ->where('dyeing_color', $dyeingColor)
-            ->where('coated_pvc', $coatedPvc)
+            ->where('coating_type', $coatedPvc)
             ->where('dyeing_lot_number', $reqLotNo)
             ->where('is_allotted_stock', 'No')
             ->where('status', 'Active')
@@ -2552,7 +2560,7 @@ class WorkProcessRequirementController extends Controller
                 'Item:item_id,item_name,internal_item_name',
                 'WarehouseItem:id,warehouse_id',
                 'WarehouseItem.Warehouse:id,warehouse_name',
-                'WarehouseItem.WarehouseCompartment:id,warehousename',
+                'WarehouseItem.WarehouseCompartment:id,compartment_name',
             ]);
 
         $dataWPR2 = $query->get();
@@ -2615,7 +2623,7 @@ class WorkProcessRequirementController extends Controller
                     $q->where('is_item_return_whouse', '0')
                         ->select([
                             'id',  'wis_id',  'warehouse_item_id',  'item_id',  'item_type_id', 'item_qty',  'insp_taka_number', 'dyeing_lot_number', 'dyeing_taka_number',
-                            'fabric_fault_reason_id',   'individual_id', 'receiver_id',  'work_pro_req_id',  'work_order_id',  'item_remark',  'grey_quality',  'dyeing_color',  'coated_pvc',  'is_item_return_whouse', 'status',
+                            'fabric_fault_reason_id',   'individual_id', 'receiver_id',  'work_pro_req_id',  'work_order_id',  'item_remark',  'grey_quality',  'dyeing_color',  'coating_type',  'is_item_return_whouse', 'status',
                         ])
                         ->with(['WarehouseItemStock' => function ($sq) {
                             $sq->select([
@@ -2633,7 +2641,7 @@ class WorkProcessRequirementController extends Controller
         $totalAllotedQuantity = $dataWPR2->flatMap->WarehouseOutItem->sum('item_qty');
 
         $workOrderId = $dataWPR2->first()->work_order_id;
-        $data = WorkOrder::where('work_order_id', $workOrderId)->with('WorkOrderItem', 'WarehouseItem')->first();
+        $data = WorkOrder::whereKey($workOrderId)->with('WorkOrderItem', 'WarehouseItem')->first();
 
         if (! $data) {
             abort(404, 'Work Order not found.');
@@ -2647,10 +2655,10 @@ class WorkProcessRequirementController extends Controller
                 'WarehouseOutItem.WarehouseItem',
                 'Item:item_id,item_name',
                 'WorkOrder.WorkOrderItem' => function ($query) {
-                    $query->select('woi_id', 'work_order_id', 'customer_id', 'sale_order_id', 'sale_order_item_id')
+                    $query->select('id', 'work_order_id', 'customer_id', 'sale_order_id', 'sale_order_item_id')
                         ->where('status', '=', 'Active')
                         ->with(['SaleOrderItem' => function ($q) {
-                            $q->select('sale_order_item_id', 'sale_order_id', 'dyeing_color', 'coated_pvc');
+                            $q->select('id', 'sale_order_id', 'dyeing_color', 'coating_type');
                         }]);
                 },
             ])
@@ -2658,37 +2666,9 @@ class WorkProcessRequirementController extends Controller
 
         $allotedQtyTotal = $dataPur->where('item_type_id', 3)->sum('alloted_quantity');
 
-        $pprIds = DB::table('packaging_process_requirements')
-            ->where('status', 'Active')
-            ->where('is_delivered', 2)
-            ->where('is_accept', 1)
-            ->where('dyeing_lot_number', $reqLotNo)
-            ->whereNotNull('packaging_ord_id')
-            ->groupBy('packaging_ord_id')
-            ->selectRaw('MAX(ppr_id) as ppr_id')
-            ->pluck('ppr_id');
-
-        $packOrd = PackagingProcessRequirement::whereIn('ppr_id', $pprIds)
-            ->with('PackagingOrder.Individual:id,name', 'Item:item_id,item_name', 'SaleOrder:sale_order_id,sale_order_number')
-            ->get();
-
-        $packIds = $packOrd->map(function ($p) {
-            return $p->packaging_ord_id ?? ($p->PackagingOrder->id ?? null);
-        })->filter()->unique()->values()->all();
-
+        // Packaging traceability belongs to the held packaging workflow and has no active model/schema contract.
+        $packOrd = collect();
         $totals = [];
-        if (! empty($packIds)) {
-            $totals = DB::table('packaging_process_requirements')
-                ->select('packaging_ord_id', DB::raw('SUM(size_mtr) as totmtr'))
-                ->whereIn('packaging_ord_id', $packIds)
-                ->where('dyeing_lot_number', $reqLotNo)   // keep lot filter
-                ->where('status', 'Active')
-                ->where('is_delivered', 2)
-                ->where('is_accept', 1)
-                ->groupBy('packaging_ord_id')
-                ->pluck('totmtr', 'packaging_ord_id') // returns [packaging_ord_id => totmtr]
-                ->toArray();
-        }
 
         return view(
             'frontend.workprocessrequirement.print-job-card-traceability',

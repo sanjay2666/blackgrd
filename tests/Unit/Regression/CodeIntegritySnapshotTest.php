@@ -25,11 +25,6 @@ class CodeIntegritySnapshotTest extends TestCase
             'app/Http/Controllers/LabTestController.php -> App\\Models\\LabTestRequest',
             'app/Http/Controllers/LabTestController.php -> App\\Models\\LabTestResult',
             'app/Http/Controllers/LabTestController.php -> App\\Models\\LabTestStandard',
-            'app/Http/Controllers/WorkProcessRequirementController.php -> App\\Models\\DyeingPlanningItem',
-            'app/Http/Controllers/WorkProcessRequirementController.php -> App\\Models\\PackagingOrder',
-            'app/Http/Controllers/WorkProcessRequirementController.php -> App\\Models\\PackagingOrderItem',
-            'app/Http/Controllers/WorkProcessRequirementController.php -> App\\Models\\PackagingProcessRequirement',
-            'app/Http/Controllers/WorkProcessRequirementController.php -> App\\Models\\WorkPrintProcessRequirement',
         ];
 
         $this->assertSame($expected, $this->missingControllerModelImports());

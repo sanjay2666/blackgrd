@@ -434,7 +434,7 @@ class JobMillWorkController extends Controller
             ]);
 
             if (! empty($workOrderId)) {
-                WorkOrder::where('work_order_id', '=', $workOrderId)->update(['is_work_require_request_accepted' => 'Yes']);
+                WorkOrder::whereKey($workOrderId)->update(['is_work_require_request_accepted' => 'Yes']);
             }
 
             DB::commit();

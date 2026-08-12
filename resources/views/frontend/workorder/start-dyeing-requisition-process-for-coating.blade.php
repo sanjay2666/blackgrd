@@ -16,7 +16,7 @@
  
 <!-- Site wrapper -->
 <div class="wrapper"> @include('frontend.common.header')
-  <div class="content-wrapperd">
+  <div class="content-wrapper">
     <section class="content">
       <div class="row">
         <div class="col-sm-12">

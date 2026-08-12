@@ -19,7 +19,7 @@
                         @method('PUT')
                         <div class="row">
                             <div class="col-sm-4"><div class="form-group"><label>Name <span class="required">*</span></label><input type="text" name="name" value="{{ old('name', $packagingType->name) }}" class="form-control" required></div></div>
-                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', $) === 'Active')>Active</option><option value="Inactive" @selected(old('status', $) === 'Inactive')>Inactive</option></select></div></div>
+                            <div class="col-sm-4"><div class="form-group"><label>Status</label><select name="status" class="form-control"><option value="Active" @selected(old('status', $packagingType->status) === 'Active')>Active</option><option value="Inactive" @selected(old('status', $packagingType->status) === 'Inactive')>Inactive</option></select></div></div>
                         </div>
                         <div class="reset-button"><a href="{{ route('admin.packaging-types.index') }}" class="btn btn-warning">Cancel</a> <button type="submit" class="btn btn-success">Save</button></div>
                     </form>

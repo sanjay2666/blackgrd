@@ -25,8 +25,31 @@ final class PageActionPermissionManagementTest extends TestCase
         $userPermissions = file_get_contents(base_path('resources/views/admin/user-permissions/index.blade.php'));
         $service = file_get_contents(base_path('app/Services/RoleManagementService.php'));
 
+        $templateFiles = [
+            'resources/views/admin/roles/index.blade.php',
+            'resources/views/admin/roles/form.blade.php',
+            'resources/views/admin/roles/assign.blade.php',
+            'resources/views/admin/users/index.blade.php',
+            'resources/views/admin/users/form.blade.php',
+            'resources/views/admin/users/department-access.blade.php',
+            'resources/views/admin/user-permissions/index.blade.php',
+        ];
+
+        foreach ($templateFiles as $templateFile) {
+            $template = file_get_contents(base_path($templateFile));
+
+            $this->assertStringContainsString('id="preloader"', $template, $templateFile);
+            $this->assertStringContainsString('class="content-header"', $template, $templateFile);
+            $this->assertStringContainsString('class="panel panel-bd lobidrag"', $template, $templateFile);
+            $this->assertStringContainsString('admin.common.formfooterscript', $template, $templateFile);
+        }
+
         $this->assertStringContainsString('permission-module', $roleForm);
         $this->assertStringContainsString('select-visible', $roleForm);
+        $this->assertStringContainsString('admin.common.formfooterscript', $roleForm);
+        $this->assertStringContainsString('class="content-header"', $roleForm);
+        $this->assertStringContainsString('class="panel panel-bd lobidrag"', $roleForm);
+        $this->assertStringContainsString('class="reset-button"', $roleForm);
         $this->assertStringContainsString('Role:', $userPermissions);
         $this->assertStringContainsString('Override:', $userPermissions);
         $this->assertStringContainsString('Effective:', $userPermissions);

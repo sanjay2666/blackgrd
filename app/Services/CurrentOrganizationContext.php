@@ -120,8 +120,10 @@ class CurrentOrganizationContext
 
     private function authenticatedPrincipal(): ?Authenticatable
     {
-        $guard = request()->is('admin') || request()->is('admin/*') ? 'admin' : 'web';
+        if (Auth::guard('admin')->check()) {
+            return Auth::guard('admin')->user();
+        }
 
-        return Auth::guard($guard)->user();
+        return Auth::guard('web')->user();
     }
 }

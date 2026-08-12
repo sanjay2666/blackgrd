@@ -44,8 +44,8 @@
 										</div>
 										<div class="col-sm-4">
 											<div class="form-group"><label>Status</label><select name="status" class="form-control">
-													<option value="1" @selected((string) old('status', $)==='1' )>Active</option>
-													<option value="0" @selected((string) old('status', $)==='0' )>Inactive</option>
+											<option value="1" @selected((string) old('status', $allPage->status) === '1')>Active</option>
+											<option value="0" @selected((string) old('status', $allPage->status) === '0')>Inactive</option>
 												</select></div>
 										</div>
 									</div>

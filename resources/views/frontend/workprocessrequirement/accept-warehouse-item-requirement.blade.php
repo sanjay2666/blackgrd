@@ -9,7 +9,7 @@
 <body class="hold-transition sidebar-mini">
  
 <div class="wrapper"> @include('common.header')
-  <div class="content-wrapperd"> 
+  <div class="content-wrapper">
     <section class="content">
       <div class="row">
 	  {!! CommonController::display_message('message') !!}

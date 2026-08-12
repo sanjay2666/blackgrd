@@ -11,12 +11,14 @@ use App\Models\Item;
 use App\Models\ItemType;
 use App\Models\UnitType;
 use App\Models\SaleOrder;
+use App\Models\SaleOrderItem;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Models\WarehouseCompartment;
 use App\Models\WorkProcessRequirement;
 use App\Models\WarehouseBalanceItem;
 use App\Models\WarehouseItemStock;
+use App\Models\WorkInspection;
 use App\Models\WorkOrder;
 use App\Models\WorkOrderItem;
 use App\Models\ProcessItem;
@@ -37,6 +39,39 @@ class CommonController extends Controller
 		}
 
 		return Individual::where('id', $id)->value('name') ?: '';
+	}
+
+	public static function getUserName($id): string
+	{
+		if (empty($id)) {
+			return '';
+		}
+
+		return (string) (User::whereKey($id)->value('name') ?: '');
+	}
+
+	public static function calculateTotalInspectionSize($workOrderId, $lotNumber): float|string
+	{
+		$total = (float) WorkInspection::query()
+			->where('dyeing_lot_number', $lotNumber)
+			->where('work_order_id', $workOrderId)
+			->where('status', 'Active')
+			->where('is_deleted', 0)
+			->sum('insp_quan_size');
+
+		return $total > 0 ? $total : 'Not Available.';
+	}
+
+	public static function getInspectionSummary($workOrderId, $lotNumber): string
+	{
+		$createdAt = WorkInspection::query()
+			->where('dyeing_lot_number', $lotNumber)
+			->where('work_order_id', $workOrderId)
+			->where('status', 'Active')
+			->where('is_deleted', 0)
+			->value('created_at');
+
+		return $createdAt ? date('Y-m-d', strtotime((string) $createdAt)) : 'Not Available';
 	}
 
 	 

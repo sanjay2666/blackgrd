@@ -35,4 +35,30 @@ class ProcessMasterContractTest extends TestCase
         }
         $this->assertNotContains('processes.view', PermissionRegistry::frontendAssignable());
     }
+
+    public function test_live_apply_is_hash_pinned_backed_up_and_preserves_process_identity(): void
+    {
+        $command = file_get_contents(base_path('app/Console/Commands/ApplyReviewedProcessMasterMigrationCommand.php'));
+
+        $this->assertStringContainsString("private const MIGRATION = '2026_08_11_000003_harden_process_master'", $command);
+        $this->assertStringContainsString('private const HASH =', $command);
+        $this->assertStringContainsString('backup-manifest', $command);
+        $this->assertStringContainsString('writes-stopped', $command);
+        $this->assertStringContainsString('CORE_IDENTITIES', $command);
+        $this->assertStringContainsString("whereNull('company_id')", $command);
+    }
+
+    public function test_process_company_scope_uses_the_resolved_request_context_without_a_permissive_fallback(): void
+    {
+        $provider = file_get_contents(base_path('app/Providers/AppServiceProvider.php'));
+        $process = file_get_contents(base_path('app/Models/ProcessItem.php'));
+        $scope = file_get_contents(base_path('app/Models/Concerns/BelongsToCompany.php'));
+        $individuals = file_get_contents(base_path('app/Http/Controllers/Admin/IndividualController.php'));
+
+        $this->assertStringContainsString('scoped(CurrentOrganizationContext::class', $provider);
+        $this->assertStringContainsString('use BelongsToCompany;', $process);
+        $this->assertStringContainsString(".company_id', \$context->companyId()", $scope);
+        $this->assertStringNotContainsString('Schema::hasColumn', $scope);
+        $this->assertStringContainsString("Individual::with(['processItem', 'department'])", $individuals);
+    }
 }

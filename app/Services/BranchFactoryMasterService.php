@@ -14,8 +14,7 @@ final class BranchFactoryMasterService
     public function __construct(
         private readonly CurrentOrganizationContext $organization,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     public function save(Model $location, array $attributes): Model
     {
@@ -42,7 +41,7 @@ final class BranchFactoryMasterService
 
     public function transition(Model $location, string $status): void
     {
-        $before = ['status' => $location->status?->value ?? $location->getRawOriginal('status')];
+        $before = ['status' => $location->status ?? $location->getRawOriginal('status')];
         DB::transaction(function () use ($location, $status): void {
             $location->update(['status' => $status]);
         });

@@ -11,7 +11,7 @@ use App\Http\Controllers\CommonController;
 
 
 <div class="wrapper"> @include('frontend.common.header')
-  <div class="content-wrapperd">
+  <div class="content-wrapper">
     <section class="content">
       <div class="row">
         <div class="col-sm-12"> {!! display_message('message') !!}

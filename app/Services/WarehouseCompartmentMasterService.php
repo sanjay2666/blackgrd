@@ -24,8 +24,7 @@ final class WarehouseCompartmentMasterService
         private readonly DatabaseManager $database,
         private readonly CurrentOrganizationContext $organization,
         private readonly AuditLogger $audit,
-    ) {
-    }
+    ) {}
 
     public function query(): Builder
     {
@@ -46,7 +45,7 @@ final class WarehouseCompartmentMasterService
         return Warehouse::query()->where(function (Builder $query) use ($includeId): void {
             $query->where('status', RecordStatus::Active->value);
             if ($includeId !== null) {
-                $query->orWhereKey($includeId);
+                $query->orWhere($query->getModel()->getKeyName(), $includeId);
             }
         })->orderBy('warehouse_name')->get();
     }
@@ -83,7 +82,7 @@ final class WarehouseCompartmentMasterService
             throw ValidationException::withMessages(['status' => 'This Compartment cannot be deactivated while active stock still references it.']);
         }
 
-        if (! $creating && (int) $compartment->warehouse_id !== $warehouse->getKey() && $warehouse->status->value !== RecordStatus::Active->value) {
+        if (! $creating && (int) $compartment->warehouse_id !== $warehouse->getKey() && $warehouse->status !== RecordStatus::Active->value) {
             throw ValidationException::withMessages(['warehouse_id' => 'New assignments must use an active Warehouse.']);
         }
 
@@ -160,8 +159,8 @@ final class WarehouseCompartmentMasterService
     private function validWarehouse(int $warehouseId, WarehouseCompartment $compartment): Warehouse
     {
         $warehouse = Warehouse::query()->whereKey($warehouseId)->first();
-        if (! $warehouse || $warehouse->status->value === RecordStatus::Deleted->value
-            || ($warehouse->status->value !== RecordStatus::Active->value && (! $compartment->exists || (int) $compartment->warehouse_id !== $warehouseId))) {
+        if (! $warehouse || $warehouse->status === RecordStatus::Deleted->value
+            || ($warehouse->status !== RecordStatus::Active->value && (! $compartment->exists || (int) $compartment->warehouse_id !== $warehouseId))) {
             throw ValidationException::withMessages(['warehouse_id' => 'Please select a valid active Warehouse.']);
         }
 

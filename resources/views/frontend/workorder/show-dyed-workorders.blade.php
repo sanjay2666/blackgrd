@@ -10,7 +10,7 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 1;
 <body class="hold-transition sidebar-mini">
 <!-- Site wrapper -->
 <div class="wrapper"> @include('common.header')
-  <div class="content-wrapperd">
+  <div class="content-wrapper">
     <section class="content">
       <div class="row">
         <div class="col-sm-12"> {!! CommonController::display_message('message') !!}

@@ -18,13 +18,14 @@ class DocumentSettingsController extends Controller
     public function update(Request $request, DocumentSettingsService $settings): RedirectResponse
     {
         foreach (array_keys($settings->all()) as $documentKey) {
-            $settings->save($documentKey, $this->validated($request, $documentKey));
+            $settings->save($documentKey, $this->validated($request, $documentKey, $settings->for($documentKey)));
         }
+
         return back()->with('message', 'Document settings updated successfully.')->with('messageClass', 'successClass');
     }
 
     /** @return array<string, mixed> */
-    private function validated(Request $request, string $key): array
+    private function validated(Request $request, string $key, array $current): array
     {
         $prefix = 'settings.'.$key.'.';
         $data = $request->validate([
@@ -33,9 +34,10 @@ class DocumentSettingsController extends Controller
             $prefix.'signatory_label' => ['nullable', 'string', 'max:100'], $prefix.'copy_label_primary' => ['nullable', 'string', 'max:100'], $prefix.'copy_label_secondary' => ['nullable', 'string', 'max:100'], $prefix.'copy_label_tertiary' => ['nullable', 'string', 'max:100'],
         ]);
         $result = [];
-        foreach (array_keys($settings->for($key)) as $field) {
+        foreach (array_keys($current) as $field) {
             $result[$field] = $data[$prefix.$field] ?? null;
         }
+
         return $result;
     }
 }

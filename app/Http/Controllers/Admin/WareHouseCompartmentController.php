@@ -31,7 +31,7 @@ class WareHouseCompartmentController extends Controller
     public function store(Request $request, WarehouseCompartmentMasterService $service)
     {
         try {
-            $service->save(new WarehouseCompartment(), $request->validate(['compartment_name' => 'required|string|max:255', 'warehouse_id' => 'required|integer', 'ind_emp_id' => 'nullable|integer', 'status' => ['required', new RecordStatusRule()]]), $request);
+            $service->save(new WarehouseCompartment, $request->validate(['compartment_name' => 'required|string|max:255', 'warehouse_id' => 'required|integer', 'ind_emp_id' => 'nullable|integer', 'status' => ['required', new RecordStatusRule]]), $request);
         } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors())->withInput();
         }
@@ -43,7 +43,7 @@ class WareHouseCompartmentController extends Controller
     {
         $id = dec($id);
         $wareHouseCompartment = $service->findForCurrentCompany($id);
-        if ($wareHouseCompartment->status->value === RecordStatus::Deleted->value) {
+        if ($wareHouseCompartment->status === RecordStatus::Deleted->value) {
             abort(404);
         }
 
@@ -55,12 +55,12 @@ class WareHouseCompartmentController extends Controller
     {
         $id = dec($id);
         $wareHouseCompartment = $service->findForCurrentCompany($id);
-        if ($wareHouseCompartment->status->value === RecordStatus::Deleted->value) {
+        if ($wareHouseCompartment->status === RecordStatus::Deleted->value) {
             abort(404);
         }
 
         try {
-            $service->save($wareHouseCompartment, $request->validate(['compartment_name' => 'required|string|max:255', 'warehouse_id' => 'required|integer', 'ind_emp_id' => 'nullable|integer', 'status' => ['required', new RecordStatusRule()]]), $request);
+            $service->save($wareHouseCompartment, $request->validate(['compartment_name' => 'required|string|max:255', 'warehouse_id' => 'required|integer', 'ind_emp_id' => 'nullable|integer', 'status' => ['required', new RecordStatusRule]]), $request);
         } catch (ValidationException $exception) {
             return back()->withErrors($exception->errors())->withInput();
         }
@@ -72,7 +72,7 @@ class WareHouseCompartmentController extends Controller
     {
         $id = dec($id);
         $wareHouseCompartment = $service->findForCurrentCompany($id);
-        if ($wareHouseCompartment->status->value === RecordStatus::Deleted->value) {
+        if ($wareHouseCompartment->status === RecordStatus::Deleted->value) {
             abort(404);
         }
 
@@ -102,7 +102,7 @@ class WareHouseCompartmentController extends Controller
     private function find($id): WarehouseCompartment
     {
         $compartment = app(WarehouseCompartmentMasterService::class)->findForCurrentCompany(dec($id));
-        abort_if($compartment->status->value === RecordStatus::Deleted->value, 404);
+        abort_if($compartment->status === RecordStatus::Deleted->value, 404);
 
         return $compartment;
     }

@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Services\AuthorizationService;
+use Illuminate\Support\Facades\Route;
 
 final class AdminNavigation
 {
@@ -13,7 +14,7 @@ final class AdminNavigation
             static function (array $group) use ($authorization): array {
                 $group['items'] = array_values(array_filter(
                     $group['items'],
-                    static fn (array $item): bool => $authorization->can($item['permission'])
+                    static fn (array $item): bool => Route::has($item['route']) && $authorization->can($item['permission'])
                 ));
 
                 return $group;
@@ -61,7 +62,9 @@ final class AdminNavigation
                 self::item('Packaging Types', 'admin.packaging-types.index', 'masters.view', 'admin.packaging-types.*'),
                 self::item('Unit Master', 'admin.unit-types.index', 'masters.view', 'admin.unit-types.*'),
                 self::item('Processes', 'admin.process-items.index', 'processes.view', 'admin.process-items.*'),
-                self::item('Workflow Definitions', 'admin.workflow-definitions.index', 'processes.view', 'admin.workflow-definitions.*'),
+                ...(config('features.workflow_definitions', false)
+                    ? [self::item('Workflow Definitions', 'admin.workflow-definitions.index', 'processes.view', 'admin.workflow-definitions.*')]
+                    : []),
                 self::item('Machines', 'admin.machines.index', 'masters.view', 'admin.machines.*'),
                 self::item('Machine Capacity', 'admin.machine-capacities.index', 'masters.view', 'admin.machine-capacities.*'),
                 self::item('Shifts', 'admin.shifts.index', 'masters.view', 'admin.shifts.*'),

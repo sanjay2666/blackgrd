@@ -126,7 +126,7 @@ final class UserController extends Controller
             'individuals' => Individual::query()->where('status', '!=', 'Deleted')->whereIn('type', ['employee', 'master'])->orderBy('name')->get(['id', 'name', 'email']),
             'branches' => Branch::query()->where('company_id', $companyId)->where('status', 'Active')->orderBy('name')->get(),
             'factories' => Factory::query()->where('company_id', $companyId)->where('status', 'Active')->orderBy('name')->get(),
-            'departments' => Department::query()->where('company_id', $companyId)->where('status', 'Active')->orderBy('name')->get(),
+            'departments' => Department::query()->where('company_id', $companyId)->where('status', 'Active')->orderBy('department_name')->get(),
         ];
     }
 

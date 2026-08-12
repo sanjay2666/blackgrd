@@ -36,8 +36,8 @@
 											<div class="col-sm-4"><div class="form-group"><label>Description</label><input name="description" value="{{ old('description', $gstRate->description) }}" class="form-control"></div></div>
 										<div class="col-sm-4">
 											<div class="form-group"><label>Status</label><select name="status" class="form-control">
-													<option value="Active" @selected(old('status', $)==='Active' )>Active</option>
-													<option value="Inactive" @selected(old('status', $)==='Inactive' )>Inactive</option>
+											<option value="Active" @selected(old('status', $gstRate->status) === 'Active')>Active</option>
+											<option value="Inactive" @selected(old('status', $gstRate->status) === 'Inactive')>Inactive</option>
 												</select></div>
 										</div>
 									</div>

@@ -87,6 +87,7 @@ class WorkOrderController extends Controller
         if (! Session::has('workorders_return_url')) {
             Session::put('workorders_return_url', $request->fullUrl());
         }
+        $userIndId = (int) (Auth::user()?->individual_id ?? 0);
 
         $cusSearch = trim((string) $request->input('cus_search', ''));
         $individualId = trim((string) $request->input('individual_id', ''));
@@ -441,20 +442,14 @@ class WorkOrderController extends Controller
                 ->groupBy('insp_id')
                 ->pluck('total', 'insp_id');
 
+        $selectedProcessIds = array_filter((array) $search_process_id);
         $dataMas = Individual::where('type', 'master')
             ->where('status', 'Active')
-            ->when(! empty($processTypeId), function ($q) use ($processTypeId) {
-                $q->where('process_type_id', $processTypeId);
-            })
+            ->when($selectedProcessIds !== [], fn ($q) => $q->whereIn('process_type_id', $selectedProcessIds))
             ->get();
 
         $machine = Machine::where('status', 'Active')
-            ->when(! empty($processTypeId), function ($q) use ($processTypeId) {
-                $q->where('process_wise', $processTypeId);
-            })
-            ->when(empty($processTypeId) && ! empty($search_process_id), function ($q) use ($search_process_id) {
-                $q->whereIn('process_wise', array_filter((array) $search_process_id));
-            })
+            ->when($selectedProcessIds !== [], fn ($q) => $q->whereIn('process_wise', $selectedProcessIds))
             ->get();
 
         $processI = ProcessItem::where('status', '=', 'Active')->get();

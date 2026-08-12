@@ -40,8 +40,8 @@
 											<div class="form-group">
 												<label>Status</label>
 												<select name="status" class="form-control">
-													<option value="Active" @selected(old('status', $)==='Active' )>Active</option>
-													<option value="Inactive" @selected(old('status', $)==='Inactive' )>Inactive</option>
+											<option value="Active" @selected(old('status', $userWebPage->status) === 'Active')>Active</option>
+											<option value="Inactive" @selected(old('status', $userWebPage->status) === 'Inactive')>Inactive</option>
 												</select>
 											</div>
 										</div>

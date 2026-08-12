@@ -25,9 +25,7 @@ final class ChemicalMasterService
         'item_yarn_requirements',
     ];
 
-    public function __construct(private readonly DatabaseManager $database, private readonly AuditLogger $audit)
-    {
-    }
+    public function __construct(private readonly DatabaseManager $database, private readonly AuditLogger $audit) {}
 
     public function chemicalItemType(): ItemType
     {
@@ -51,7 +49,7 @@ final class ChemicalMasterService
             $type = $this->chemicalItemType();
             $this->assertMasters($attributes, $type);
             $this->assertUnique($attributes);
-            $item = new Item();
+            $item = new Item;
             $this->fill($item, $attributes, $type);
             $item->save();
             $this->audit->recordAfterCommit($this->auditPayload('chemical_created', 'Chemical created.', $item, null, $this->snapshot($item), $request));
@@ -92,7 +90,7 @@ final class ChemicalMasterService
             $item->save();
             $this->audit->recordAfterCommit($this->auditPayload($referenced ? 'chemical_deactivated' : 'chemical_deleted', $referenced ? 'Chemical deactivated.' : 'Chemical deleted.', $item, $before, $this->snapshot($item), $request));
 
-            return $item->status->value;
+            return $item->status;
         });
     }
 
@@ -114,7 +112,7 @@ final class ChemicalMasterService
             throw ValidationException::withMessages(['item_type_id' => 'Select the canonical Chemical Item Type.']);
         }
         $unit = UnitType::query()->whereKey($attributes['unit_type_id'])->notDeleted()->first();
-        if (! $unit || ($unit->status->value !== RecordStatus::Active->value && (int) $unit->getKey() !== (int) ($item?->unit_type_id))) {
+        if (! $unit || ($unit->status !== RecordStatus::Active->value && (int) $unit->getKey() !== (int) ($item?->unit_type_id))) {
             throw ValidationException::withMessages(['unit_type_id' => 'Please select a valid active Unit.']);
         }
         if (filled($attributes['hsn_code_id'] ?? null) && ! HsnCode::query()->whereKey($attributes['hsn_code_id'])->notDeleted()->exists()) {

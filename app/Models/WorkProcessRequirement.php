@@ -9,6 +9,7 @@ use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class WorkProcessRequirement extends Model
@@ -82,6 +83,12 @@ class WorkProcessRequirement extends Model
     public function WarehouseItemStock()
     {
         return $this->hasMany(WarehouseItemStock::class, 'work_pro_req_id', 'id')->where('status', 'Active');
+    }
+
+    public function WarehouseOutItem(): HasMany
+    {
+        return $this->hasMany(WarehouseOutItem::class, 'work_pro_req_id', 'id')
+            ->where('status', '!=', 'Deleted');
     }
 
     public function getQuantityAttribute()

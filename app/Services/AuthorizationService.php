@@ -17,12 +17,16 @@ final class AuthorizationService
 
     public function user(): ?Authenticatable
     {
-        return Auth::guard($this->panel() === 'Admin' ? 'admin' : 'web')->user();
+        if (Auth::guard('admin')->check()) {
+            return Auth::guard('admin')->user();
+        }
+
+        return Auth::guard('web')->user();
     }
 
     public function panel(): string
     {
-        return request()->is('admin') || request()->is('admin/*') ? 'Admin' : 'Frontend';
+        return request()->is('admin') || request()->is('admin/*') || Auth::guard('admin')->check() ? 'Admin' : 'Frontend';
     }
 
     public function can(string $permission): bool
