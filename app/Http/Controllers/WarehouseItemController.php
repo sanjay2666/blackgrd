@@ -391,7 +391,6 @@ class WarehouseItemController extends Controller
                 $obj2->item_id = $itemId;
                 $obj2->item_type_id = $itemTypeId;
                 $obj2->unit_type_id = $unitTypeId;
-                // $obj2->packet_number 			= $this->generatePacketNumber($itemTypeId);
                 $obj2->insp_taka_number = $takaNumber;
                 $obj2->created_at = $createdDateTime;
                 $obj2->updated_at = $createdDateTime;
@@ -403,6 +402,7 @@ class WarehouseItemController extends Controller
                 }
 
                 $lastInsertedStockId = $obj2->getKey();
+                $obj2->update(['packet_number' => $this->generatePacketNumber($lastInsertedStockId)]);
 
                 $stocFArr = new WarehouseItemStockFile();
                 $stocFArr->warehouse_item_id = $lastInsertId;
@@ -797,13 +797,13 @@ class WarehouseItemController extends Controller
                         'item_id' => $itemId,
                         'item_type_id' => $itemTypeId,
                         'unit_type_id' => $unitTypeId,
-                        'packet_number' => $this->generatePacketNumber($itemTypeId),
                         'created_at' => $createdDateTime,
                         'updated_at' => $createdDateTime,
                         'financial_year' => currentFinancialYear(),
                         'status' => 'Active',
                     ]);
                     $lastInsertedStockId = $newStock->id;
+                    $newStock->update(['packet_number' => $this->generatePacketNumber($lastInsertedStockId)]);
 
                     $stocFArr = new WarehouseItemStockFile();
                     $stocFArr->warehouse_item_id = $warehouseItem->id;
@@ -1404,9 +1404,9 @@ class WarehouseItemController extends Controller
         ]);
     }
 
-    private function generatePacketNumber($itemTypeId): string
+    private function generatePacketNumber(int $stockId): string
     {
-        return $itemTypeId.date('ymdHis').random_int(100, 999);
+        return 'ROL-'.$stockId;
     }
 
     public function sendItemReturnRequest(Request $request)
