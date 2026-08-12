@@ -115,7 +115,7 @@ class RegisteredRouteRuntimeTest extends TestCase
     {
         $routes = collect(app('router')->getRoutes()->getRoutes());
 
-        $this->assertCount(470, $routes);
+        $this->assertCount(483, $routes);
 
         $failures = [];
         foreach ($routes as $route) {
@@ -219,7 +219,7 @@ class RegisteredRouteRuntimeTest extends TestCase
             }
         }
 
-        $this->assertSame(187, $checked);
+        $this->assertSame(188, $checked);
         $this->assertSame([], $failures, implode(PHP_EOL, $failures));
     }
 

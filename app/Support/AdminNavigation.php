@@ -63,7 +63,10 @@ final class AdminNavigation
                 self::item('Unit Master', 'admin.unit-types.index', 'masters.view', 'admin.unit-types.*'),
                 self::item('Processes', 'admin.process-items.index', 'processes.view', 'admin.process-items.*'),
                 ...(config('features.workflow_definitions', false)
-                    ? [self::item('Workflow Definitions', 'admin.workflow-definitions.index', 'processes.view', 'admin.workflow-definitions.*')]
+                    ? [
+                        self::item('Workflow Definitions', 'admin.workflow-definitions.index', 'processes.view', 'admin.workflow-definitions.*'),
+                        self::item('Workflow Assignments', 'admin.workflow-assignments.index', 'processes.view', 'admin.workflow-assignments.*'),
+                    ]
                     : []),
                 self::item('Machines', 'admin.machines.index', 'masters.view', 'admin.machines.*'),
                 self::item('Machine Capacity', 'admin.machine-capacities.index', 'masters.view', 'admin.machine-capacities.*'),

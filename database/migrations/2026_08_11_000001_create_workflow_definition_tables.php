@@ -28,14 +28,17 @@ return new class () extends Migration {
             $table->unsignedInteger('company_id');
             $table->unsignedInteger('workflow_definition_id');
             $table->unsignedInteger('version_number');
-            $table->enum('status', ['Draft', 'Finalized'])->default('Draft');
+            $table->enum('status', ['Draft', 'Published'])->default('Draft');
+            $table->boolean('is_current')->default(false);
+            $table->date('effective_from')->nullable();
+            $table->text('remarks')->nullable();
             $table->unsignedInteger('created_by')->nullable();
-            $table->unsignedInteger('finalized_by')->nullable();
-            $table->dateTime('finalized_at')->nullable();
+            $table->unsignedInteger('published_by')->nullable();
+            $table->dateTime('published_at')->nullable();
             $table->dateTime('created_at')->nullable();
             $table->dateTime('updated_at')->nullable();
             $table->unique(['workflow_definition_id', 'version_number']);
-            $table->index(['company_id', 'status']);
+            $table->index(['company_id', 'status', 'is_current']);
             $table->foreign('company_id')->references('id')->on('companies')->restrictOnDelete();
             $table->foreign('workflow_definition_id')->references('id')->on('workflow_definitions')->restrictOnDelete();
         });
@@ -51,15 +54,31 @@ return new class () extends Migration {
             $table->dateTime('created_at')->nullable();
             $table->dateTime('updated_at')->nullable();
             $table->unique(['workflow_version_id', 'sequence']);
+            $table->unique(['workflow_version_id', 'process_id']);
             $table->index(['company_id', 'process_id']);
             $table->foreign('company_id')->references('id')->on('companies')->restrictOnDelete();
             $table->foreign('workflow_version_id')->references('id')->on('workflow_versions')->restrictOnDelete();
             $table->foreign('process_id')->references('id')->on('process_items')->restrictOnDelete();
         });
+
+        Schema::table('sale_order_items', function (Blueprint $table): void {
+            $table->unsignedInteger('workflow_definition_id')->nullable()->after('sale_order_id');
+            $table->unsignedInteger('workflow_version_id')->nullable()->after('workflow_definition_id');
+            $table->index('workflow_version_id', 'sale_order_items_workflow_version_idx');
+            $table->foreign('workflow_definition_id')->references('id')->on('workflow_definitions')->restrictOnDelete();
+            $table->foreign('workflow_version_id')->references('id')->on('workflow_versions')->restrictOnDelete();
+        });
     }
 
     public function down(): void
     {
+        Schema::table('sale_order_items', function (Blueprint $table): void {
+            $table->dropForeign(['workflow_version_id']);
+            $table->dropForeign(['workflow_definition_id']);
+            $table->dropIndex('sale_order_items_workflow_version_idx');
+            $table->dropColumn(['workflow_definition_id', 'workflow_version_id']);
+        });
+
         Schema::dropIfExists('workflow_version_steps');
         Schema::dropIfExists('workflow_versions');
         Schema::dropIfExists('workflow_definitions');

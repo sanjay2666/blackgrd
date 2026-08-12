@@ -9,7 +9,7 @@ return [
         'unit-types' => 'masters', 'fabric-qualities' => 'masters', 'fabric-fault-reasons' => 'masters', 'printing-designs' => 'masters', 'user-web-pages' => 'settings', 'warehouses' => 'warehouse',
         'ware-house-compartments' => 'warehouse', 'machines' => 'masters', 'machine-capacities' => 'masters', 'shifts' => 'masters', 'office-ips' => 'settings',
         'process-items' => 'processes', 'individuals' => 'employees', 'employees' => 'employees', 'customers' => 'customers', 'vendors' => 'purchases', 'transporters' => 'masters',
-        ...(env('WORKFLOW_DEFINITIONS_ENABLED', false) ? ['workflow-definitions' => 'processes'] : []),
+        ...(env('WORKFLOW_DEFINITIONS_ENABLED', true) ? ['workflow-definitions' => 'processes', 'workflow-assignments' => 'processes'] : []),
     ],
     'admin_custom' => [
         'admin.item-types.activate' => 'masters.update',
@@ -25,9 +25,9 @@ return [
         'admin.transporters.destroy' => 'masters.delete', 'admin.transporters.addresses.destroy' => 'masters.delete',
         'admin.shifts.activate' => 'masters.update', 'admin.shifts.deactivate' => 'masters.update',
         'admin.process-items.activate' => 'processes.activate', 'admin.process-items.deactivate' => 'processes.deactivate',
-        ...(env('WORKFLOW_DEFINITIONS_ENABLED', false) ? [
+        ...(env('WORKFLOW_DEFINITIONS_ENABLED', true) ? [
             'admin.workflow-definitions.versions.store' => 'processes.create',
-            'admin.workflow-definitions.versions.finalize' => 'processes.update',
+            'admin.workflow-definitions.versions.publish' => 'processes.update',
             'admin.workflow-definitions.steps.store' => 'processes.update',
             'admin.workflow-definitions.steps.update' => 'processes.update',
             'admin.workflow-definitions.steps.destroy' => 'processes.update',

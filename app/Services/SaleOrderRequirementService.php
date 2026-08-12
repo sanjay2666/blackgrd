@@ -6,6 +6,7 @@ use App\Models\Item;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Models\UnitType;
+use App\Models\WorkflowVersion;
 use App\Models\WorkOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -41,6 +42,24 @@ final class SaleOrderRequirementService
         if (! is_numeric($meter) || (float) $meter <= 0) {
             throw ValidationException::withMessages([$field => 'Quantity must be greater than zero.']);
         }
+    }
+
+    /** @return array{workflow_definition_id: ?int, workflow_version_id: ?int} */
+    public function workflowReference(mixed $workflowVersionId, string $field = 'workflow_version_id'): array
+    {
+        if ($workflowVersionId === null || $workflowVersionId === '') {
+            return ['workflow_definition_id' => null, 'workflow_version_id' => null];
+        }
+
+        $version = WorkflowVersion::query()->assignable()->find($workflowVersionId);
+        if ($version === null) {
+            throw ValidationException::withMessages([$field => 'Please select a published Workflow Version.']);
+        }
+
+        return [
+            'workflow_definition_id' => (int) $version->workflow_definition_id,
+            'workflow_version_id' => (int) $version->id,
+        ];
     }
 
     public function assertCanMutate(SaleOrderItem $item): void

@@ -7,6 +7,7 @@ use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class WorkflowDefinition extends Model
 {
@@ -25,8 +26,10 @@ class WorkflowDefinition extends Model
         return $this->hasMany(WorkflowVersion::class, 'workflow_definition_id')->orderByDesc('version_number');
     }
 
-    public function latestVersion(): HasMany
+    public function currentVersion(): HasOne
     {
-        return $this->hasMany(WorkflowVersion::class, 'workflow_definition_id')->orderByDesc('version_number')->limit(1);
+        return $this->hasOne(WorkflowVersion::class, 'workflow_definition_id')
+            ->where('status', 'Published')
+            ->where('is_current', true);
     }
 }

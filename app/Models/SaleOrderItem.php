@@ -6,6 +6,7 @@ use App\Models\Concerns\BelongsToCompany;
 use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SaleOrderItem extends Model
@@ -65,6 +66,16 @@ class SaleOrderItem extends Model
     public function unitType()
     {
         return $this->belongsTo(UnitType::class, 'unit_type_id', 'unit_type_id');
+    }
+
+    public function workflowDefinition(): BelongsTo
+    {
+        return $this->belongsTo(WorkflowDefinition::class, 'workflow_definition_id');
+    }
+
+    public function workflowVersion(): BelongsTo
+    {
+        return $this->belongsTo(WorkflowVersion::class, 'workflow_version_id');
     }
 
     public function CwoReason(): HasMany

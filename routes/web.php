@@ -49,6 +49,7 @@ use App\Http\Controllers\Admin\VendorController;
 use App\Http\Controllers\Admin\WareHouseCompartmentController;
 use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Admin\WorkflowDefinitionController;
+use App\Http\Controllers\Admin\WorkflowAssignmentController;
 use App\Http\Controllers\Auth\AdminAuthController;
 use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\CommonController;
@@ -453,10 +454,12 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/process-items/{process_item}/activate', [ProcessItemController::class, 'activate'])->name('process-items.activate');
         Route::patch('/process-items/{process_item}/deactivate', [ProcessItemController::class, 'deactivate'])->name('process-items.deactivate');
         if (config('features.workflow_definitions')) {
+            Route::get('/workflow-assignments', [WorkflowAssignmentController::class, 'index'])->name('workflow-assignments.index');
+            Route::patch('/workflow-assignments/{sale_order_item}', [WorkflowAssignmentController::class, 'update'])->name('workflow-assignments.update');
             Route::resource('workflow-definitions', WorkflowDefinitionController::class)->only(['index', 'create', 'store', 'update']);
             Route::get('/workflow-definitions/{workflow_definition}/versions/{workflow_version}', [WorkflowDefinitionController::class, 'show'])->name('workflow-definitions.show');
             Route::post('/workflow-definitions/{workflow_definition}/versions', [WorkflowDefinitionController::class, 'createVersion'])->name('workflow-definitions.versions.store');
-            Route::patch('/workflow-definitions/{workflow_definition}/versions/{workflow_version}/finalize', [WorkflowDefinitionController::class, 'finalizeVersion'])->name('workflow-definitions.versions.finalize');
+            Route::patch('/workflow-definitions/{workflow_definition}/versions/{workflow_version}/publish', [WorkflowDefinitionController::class, 'publishVersion'])->name('workflow-definitions.versions.publish');
             Route::post('/workflow-definitions/{workflow_definition}/versions/{workflow_version}/steps', [WorkflowDefinitionController::class, 'storeStep'])->name('workflow-definitions.steps.store');
             Route::put('/workflow-definitions/{workflow_definition}/versions/{workflow_version}/steps/{workflow_version_step}', [WorkflowDefinitionController::class, 'updateStep'])->name('workflow-definitions.steps.update');
             Route::delete('/workflow-definitions/{workflow_definition}/versions/{workflow_version}/steps/{workflow_version_step}', [WorkflowDefinitionController::class, 'destroyStep'])->name('workflow-definitions.steps.destroy');
