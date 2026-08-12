@@ -9,6 +9,7 @@ use App\Console\Commands\ApplyReviewedOperationalStatusMigrationsCommand;
 use App\Console\Commands\ApplyReviewedOrganizationScopeMigrationCommand;
 use App\Console\Commands\ApplyReviewedProcessConfigurationMigrationCommand;
 use App\Console\Commands\ApplyReviewedProcessMasterMigrationCommand;
+use App\Console\Commands\ApplyReviewedProductionGenealogyMigrationCommand;
 use App\Console\Commands\ApplyReviewedRuntimeFoundationRepairCommand;
 use App\Console\Commands\ApplyReviewedWorkflowDefinitionMigrationCommand;
 use App\Console\Commands\ApplyReviewedWorkflowOptionalStepsMigrationCommand;
@@ -71,6 +72,7 @@ class DatabaseSafetyServiceProvider extends ServiceProvider
                 ApplyReviewedOrganizationScopeMigrationCommand::class,
                 ApplyReviewedFinancialYearMigrationCommand::class,
                 ApplyReviewedProcessMasterMigrationCommand::class,
+                ApplyReviewedProductionGenealogyMigrationCommand::class,
                 ApplyReviewedProcessConfigurationMigrationCommand::class,
                 ApplyReviewedCotingMasterMigrationCommand::class,
                 ApplyReviewedRuntimeFoundationRepairCommand::class,

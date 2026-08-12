@@ -17,6 +17,7 @@ use App\Models\ItemYarnRequirement;
 use App\Models\Machine;
 use App\Models\ProcessItem;
 use App\Models\ProcessRequirement;
+use App\Models\ProductionGenealogyLink;
 use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Models\UnitType;
@@ -131,10 +132,20 @@ class WorkOrderController extends Controller
             ->where('financial_year', $selectedFinancialYear)
             ->with(['WorkOrderItem' => function ($query) {
                 $query->select(
-                    'id', 'work_order_id', 'customer_id', 'sale_order_id',
+                    'id',
+                    'work_order_id',
+                    'customer_id',
+                    'sale_order_id',
                     'sale_order_item_id',
-                    'item_id', 'meter', 'grey_quality', 'dyeing_color', 'coating_type',
-                    'extra_job', 'print_job', 'expect_delivery_date', 'order_item_priority'
+                    'item_id',
+                    'meter',
+                    'grey_quality',
+                    'dyeing_color',
+                    'coating_type',
+                    'extra_job',
+                    'print_job',
+                    'expect_delivery_date',
+                    'order_item_priority'
                 );
 
                 $query->with(['SaleOrder' => function ($q) {
@@ -276,8 +287,8 @@ class WorkOrderController extends Controller
             try {
                 $dataWI = $query->get();
 
-                $dompdf = new Dompdf;
-                $options = new Options;
+                $dompdf = new Dompdf();
+                $options = new Options();
                 $options->set('isHtml5ParserEnabled', true);
                 $options->set('isPhpEnabled', true);
                 $dompdf->setOptions($options);
@@ -525,7 +536,7 @@ class WorkOrderController extends Controller
 
                 $processSlNo = app(NumberSeriesService::class)->nextInteger('work-order-'.($processItem->id ?? $fallbackProcessId));
 
-                $workOrder = new WorkOrder;
+                $workOrder = new WorkOrder();
                 $workOrder->process_type = $processCode;
                 $workOrder->process_sl_no = $processSlNo;
                 $workOrder->user_id = Auth::id() ?? 0;
@@ -547,7 +558,7 @@ class WorkOrderController extends Controller
                 $workOrder->status = 'Active';
                 $workOrder->save();
 
-                $workOrderItem = new WorkOrderItem;
+                $workOrderItem = new WorkOrderItem();
                 $workOrderItem->work_order_id = $workOrder->id;
                 $workOrderItem->customer_id = $saleOrderItem->saleOrder->customer_id ?? null;
                 $workOrderItem->sale_order_id = $saleOrderItem->sale_order_id;
@@ -719,7 +730,7 @@ class WorkOrderController extends Controller
             $itemId = $workData->item_id;
             $itemName = Item::where('item_id', $itemId)->value('item_name') ?? $workData->item_name ?? '';
 
-            $newWorkOrder = new WorkOrder;
+            $newWorkOrder = new WorkOrder();
             $newWorkOrder->parent_work_order_id = $workData->id;
             $newWorkOrder->process_type = $processCode;
             $newWorkOrder->process_sl_no = $nextProcessSerial;
@@ -751,7 +762,7 @@ class WorkOrderController extends Controller
                     ->where('id', $woItem->sale_order_item_id)
                     ->first();
 
-                $newWorkOrderItem = new WorkOrderItem;
+                $newWorkOrderItem = new WorkOrderItem();
                 $newWorkOrderItem->work_order_id = $newWorkOrder->id;
                 $newWorkOrderItem->customer_id = $saleOrderItem->saleOrder->customer_id ?? $woItem->customer_id;
                 $newWorkOrderItem->sale_order_id = $woItem->sale_order_id;
@@ -1048,7 +1059,7 @@ class WorkOrderController extends Controller
                 $proType = CommonController::getProcessTypeName($processType);
                 $shortcode = $proType['shortcode'];
 
-                $workOrder = new WorkOrder;
+                $workOrder = new WorkOrder();
                 $workOrder->process_type = $shortcode;
                 $workOrder->process_sl_no = $proSNo + 1;
                 $workOrder->item_id = $dataWk->item_id;
@@ -1075,7 +1086,7 @@ class WorkOrderController extends Controller
 
                 if ($is_saved) {
                     foreach ($dataWk->WorkOrderItem as $woiArr) {
-                        $workOrderItem = new WorkOrderItem;
+                        $workOrderItem = new WorkOrderItem();
                         $workOrderItem->work_order_id = $newworkOrderId;
                         $workOrderItem->customer_id = $woiArr->customer_id;
                         $workOrderItem->sale_order_id = $woiArr->sale_order_id;
@@ -1846,6 +1857,41 @@ class WorkOrderController extends Controller
                 throw new Exception('Work Order details not found.');
             }
 
+            $inspection = WorkInspection::whereKey($inspId)
+                ->where('work_order_id', $workOrderId)
+                ->where('status', 'Active')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $inspection) {
+                throw new Exception('Inspection details not found for this work order.');
+            }
+
+            $companyId = (int) ($inspection->company_id ?? $workOrder->company_id ?? 0);
+            if ($companyId < 1 || (int) $workOrder->company_id !== $companyId) {
+                throw new Exception('Inspection and work order must belong to the same company.');
+            }
+
+            $inspectionDetails = WorkInspectionDetail::where('work_insp_id', $inspId)
+                ->where('status', 'Active')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+            $detailIds = array_values(array_filter(array_map('intval', (array) $request->input('work_inspection_detail_id', []))));
+            if ($detailIds === []) {
+                $detailIds = $inspectionDetails->keys()->map(fn ($id): int => (int) $id)->all();
+            }
+
+            if (count($detailIds) !== count($quantityRows) || count($detailIds) !== count(array_unique($detailIds))) {
+                throw new Exception('Inspection output rows do not match the warehouse receipt.');
+            }
+
+            foreach ($detailIds as $detailId) {
+                if (! $inspectionDetails->has($detailId)) {
+                    throw new Exception('An inspection output row is not available for this receipt.');
+                }
+            }
+
             $machineId = $request->filled('machine_id') ? $valueAt('machine_id') : ($workOrder->machine_id ?? null);
             $coatingType = $valueAt('coated_pvc');
             $dyeingColor = $valueAt('dyeing_color');
@@ -1967,7 +2013,30 @@ class WorkOrderController extends Controller
                 ];
             }
 
-            DB::table('warehouse_item_stocks')->insert($stockRows);
+            foreach ($stockRows as $index => $stockRow) {
+                $stockRow['company_id'] = $companyId;
+                $stock = WarehouseItemStock::create($stockRow);
+                $detail = $inspectionDetails->get($detailIds[$index]);
+
+                ProductionGenealogyLink::create([
+                    'company_id' => $companyId,
+                    'event_type' => 'warehouse_receipt',
+                    'relationship_type' => 'taka_to_roll',
+                    'source_type' => 'taka',
+                    'source_table' => 'work_inspection_details',
+                    'source_id' => $detail->id,
+                    'source_identity' => $detail->insp_taka_number,
+                    'result_type' => 'roll',
+                    'result_table' => 'warehouse_item_stocks',
+                    'result_id' => $stock->id,
+                    'result_identity' => $stock->packet_number ?: 'ROL-'.$stock->id,
+                    'quantity' => $stock->insp_quan_size,
+                    'work_order_id' => $workOrderId,
+                    'work_process_requirement_id' => $inspection->work_process_req_id,
+                    'work_inspection_id' => $inspId,
+                    'created_by' => $individualId,
+                ]);
+            }
 
             WorkInspection::whereKey($inspId)->update([
                 'item_interred_in_warehouse_by' => $individualId,
@@ -2067,6 +2136,41 @@ class WorkOrderController extends Controller
                 throw new Exception('Work Order details not found.');
             }
 
+            $inspection = WorkInspection::whereKey($inspId)
+                ->where('work_order_id', $workOrderId)
+                ->where('status', 'Active')
+                ->lockForUpdate()
+                ->first();
+
+            if (! $inspection) {
+                throw new Exception('Inspection details not found for this work order.');
+            }
+
+            $companyId = (int) ($inspection->company_id ?? $workOrder->company_id ?? 0);
+            if ($companyId < 1 || (int) $workOrder->company_id !== $companyId) {
+                throw new Exception('Inspection and work order must belong to the same company.');
+            }
+
+            $inspectionDetails = WorkInspectionDetail::where('work_insp_id', $inspId)
+                ->where('status', 'Active')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+            $detailIds = array_values(array_filter(array_map('intval', (array) $request->input('work_inspection_detail_id', []))));
+            if ($detailIds === []) {
+                $detailIds = $inspectionDetails->keys()->map(fn ($id): int => (int) $id)->all();
+            }
+
+            if (count($detailIds) !== count($quantityRows) || count($detailIds) !== count(array_unique($detailIds))) {
+                throw new Exception('Inspection output rows do not match the warehouse receipt.');
+            }
+
+            foreach ($detailIds as $detailId) {
+                if (! $inspectionDetails->has($detailId)) {
+                    throw new Exception('An inspection output row is not available for this receipt.');
+                }
+            }
+
             $machineId = $request->filled('machine_id') ? $valueAt('machine_id') : ($workOrder->machine_id ?? null);
             $coatingType = $valueAt('coated_pvc');
             $dyeingColor = $valueAt('dyeing_color');
@@ -2188,7 +2292,30 @@ class WorkOrderController extends Controller
                 ];
             }
 
-            DB::table('warehouse_item_stocks')->insert($stockRows);
+            foreach ($stockRows as $index => $stockRow) {
+                $stockRow['company_id'] = $companyId;
+                $stock = WarehouseItemStock::create($stockRow);
+                $detail = $inspectionDetails->get($detailIds[$index]);
+
+                ProductionGenealogyLink::create([
+                    'company_id' => $companyId,
+                    'event_type' => 'warehouse_receipt',
+                    'relationship_type' => 'taka_to_roll',
+                    'source_type' => 'taka',
+                    'source_table' => 'work_inspection_details',
+                    'source_id' => $detail->id,
+                    'source_identity' => $detail->insp_taka_number,
+                    'result_type' => 'roll',
+                    'result_table' => 'warehouse_item_stocks',
+                    'result_id' => $stock->id,
+                    'result_identity' => $stock->packet_number ?: 'ROL-'.$stock->id,
+                    'quantity' => $stock->insp_quan_size,
+                    'work_order_id' => $workOrderId,
+                    'work_process_requirement_id' => $inspection->work_process_req_id,
+                    'work_inspection_id' => $inspId,
+                    'created_by' => $individualId,
+                ]);
+            }
 
             WorkInspection::whereKey($inspId)->update([
                 'item_interred_in_warehouse_by' => $individualId,
@@ -2416,7 +2543,7 @@ class WorkOrderController extends Controller
             $quantity = count($output_quan_size);
             $outputQuanSize = array_sum($output_quan_size);
 
-            $objWI = new WorkInspection;
+            $objWI = new WorkInspection();
             $objWI->work_order_id = $workOrderId;
             $objWI->item_id = $itemId;
             $objWI->insp_quantity = '1';
@@ -2472,7 +2599,7 @@ class WorkOrderController extends Controller
                 $obj = WorkOrder::where('id', '=', $workOrderId)->update(['is_warehouse_accepted' => 'Yes', 'warehouse_accepted_by' => $IndividualId, 'warehouse_accept_date' => $curDate]);
             }
             if ($is_Insaved) {
-                $objW = new WorkOrder;
+                $objW = new WorkOrder();
                 $objW->parent_work_order_id = $workOrderId;
                 $objW->inspection_id = $lastInsertInspId;
                 $objW->process_type = $shortcode;
@@ -2502,7 +2629,7 @@ class WorkOrderController extends Controller
                         $customerId = SaleOrder::where('id', '=', $soItem->sale_order_id)->value('customer_id');
                         $unit_type_id = Item::where('item_id', '=', $soItem->item_id)->value('unit_type_id');
 
-                        $obj2 = new WorkOrderItem;
+                        $obj2 = new WorkOrderItem();
                         $obj2->work_order_id = $neworkOrderId;
                         $obj2->customer_id = $customerId;
                         $obj2->sale_order_id = $soItem->sale_order_id;
@@ -2630,7 +2757,7 @@ class WorkOrderController extends Controller
                     }
                 }
 
-                $objG = new GatePass;
+                $objG = new GatePass();
                 $objG->inspection_id = $lastInsertInspId;
                 $objG->work_order_id = $request->ins_work_order_id;
                 $objG->item_id = $itemId;
@@ -2804,7 +2931,7 @@ class WorkOrderController extends Controller
             $shortcode = $proType['shortcode'];
             $processTypeId = $dataOrder->process_type_id;
 
-            $objWI = new WorkInspection;
+            $objWI = new WorkInspection();
             $objWI->work_order_id = $workOrderId;
             $objWI->item_id = $itemId;
             $objWI->insp_quantity = '1';
@@ -2826,7 +2953,7 @@ class WorkOrderController extends Controller
             $is_Insaved = $objWI->save();
             $lastInsertInspId = $objWI->id;
 
-            $objWid = new WorkInspectionDetail;
+            $objWid = new WorkInspectionDetail();
             $objWid->work_insp_id = $lastInsertInspId;
             $objWid->item_id = $itemId;
             $objWid->work_order_id = $workOrderId;
@@ -2865,7 +2992,7 @@ class WorkOrderController extends Controller
                         if (empty($chkNxtWoid)) {
                             $valueDyeingColor = strtolower(trim($row->dyeing_color));
                             if ($valueDyeingColor !== 'no' && $valueDyeingColor !== 'not' && $valueDyeingColor !== '') {
-                                $objW = new WorkOrder;
+                                $objW = new WorkOrder();
                                 $objW->parent_work_order_id = $workOrderId;
                                 $objW->inspection_id = $lastInsertInspId;
                                 $objW->process_type = $shortcode;
@@ -2898,7 +3025,7 @@ class WorkOrderController extends Controller
                                     $saleOrdId = [];
                                     $saleOrdItemId = [];
                                     foreach ($woiSSql as $valRow) {
-                                        $objWO = new WorkOrderItem;
+                                        $objWO = new WorkOrderItem();
                                         $objWO->work_order_id = $neworkOrderId;
                                         $objWO->item_type_id = $itemTypeId;
                                         $objWO->unit_type_id = 2;
@@ -2982,7 +3109,7 @@ class WorkOrderController extends Controller
                     // }
                 }
 
-                $objG = new GatePass;
+                $objG = new GatePass();
                 $objG->inspection_id = $lastInsertInspId;
                 $objG->work_order_id = $request->ins_work_order_id;
                 $objG->item_id = $itemId;
@@ -3151,9 +3278,28 @@ class WorkOrderController extends Controller
             $processTypeId = $dataOrder->process_type_id;
             $dyingColor = WorkOrderItem::where('work_order_id', $workOrderId)->where('status', 'Active')->value('dyeing_color');
             $inspCoatingProcess = $request->insp_coating_process;
+            $companyId = (int) $dataOrder->company_id;
+            $sourceRequirement = null;
 
-            $workInspection = new WorkInspection;
+            if ($request->filled('insp_work_process_req_id')) {
+                $sourceRequirement = WorkProcessRequirement::whereKey((int) $request->insp_work_process_req_id)
+                    ->where('work_order_id', $workOrderId)
+                    ->where('company_id', $companyId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $sourceRequirement) {
+                    throw new Exception('The selected lot does not belong to this company work order.');
+                }
+
+                if ($request->filled('req_lot_no') && trim((string) $sourceRequirement->req_lot_no) !== trim((string) $request->req_lot_no)) {
+                    throw new Exception('The selected lot identity does not match the work process requirement.');
+                }
+            }
+
+            $workInspection = new WorkInspection();
             $workInspection->fill([
+                'company_id' => $companyId,
                 'work_order_id' => $workOrderId,
                 'item_id' => $itemId,
                 'insp_quantity' => '1',
@@ -3197,7 +3343,7 @@ class WorkOrderController extends Controller
                             continue;
                         }
 
-                        $workInspectionDetail = new WorkInspectionDetail;
+                        $workInspectionDetail = new WorkInspectionDetail();
                         $workInspectionDetail->fill([
                             'work_insp_id' => $lastInsertInspId,
                             'item_id' => $itemId,
@@ -3223,6 +3369,27 @@ class WorkOrderController extends Controller
                             'created_at' => now(),
                         ]);
                         $workInspectionDetail->save();
+
+                        if ($sourceRequirement) {
+                            ProductionGenealogyLink::create([
+                                'company_id' => $companyId,
+                                'event_type' => 'inspection_output',
+                                'relationship_type' => 'lot_to_taka',
+                                'source_type' => 'lot',
+                                'source_table' => 'work_process_requirements',
+                                'source_id' => $sourceRequirement->id,
+                                'source_identity' => $sourceRequirement->req_lot_no,
+                                'result_type' => 'taka',
+                                'result_table' => 'work_inspection_details',
+                                'result_id' => $workInspectionDetail->id,
+                                'result_identity' => $workInspectionDetail->insp_taka_number,
+                                'quantity' => $workInspectionDetail->output_quantity,
+                                'work_order_id' => $workOrderId,
+                                'work_process_requirement_id' => $sourceRequirement->id,
+                                'work_inspection_id' => $lastInsertInspId,
+                                'created_by' => $individualId,
+                            ]);
+                        }
                     }
                 }
             }
@@ -3236,7 +3403,7 @@ class WorkOrderController extends Controller
                             ? ($fabricFaultReasonInput[$indexRej] ?? $fabricFaultReasonId)
                             : $fabricFaultReasonId;
 
-                        $workInspRejDetail = new WorkInspectionDetail;
+                        $workInspRejDetail = new WorkInspectionDetail();
                         $workInspRejDetail->fill([
                             'work_insp_id' => $lastInsertInspId,
                             'item_id' => $itemId,
@@ -3292,7 +3459,7 @@ class WorkOrderController extends Controller
                     $chkNxtWoid = $chkNxtOrd ? $chkNxtOrd->id : null;
 
                     if (! $isUnCoated && empty($chkNxtWoid)) {
-                        $workOrder = new WorkOrder;
+                        $workOrder = new WorkOrder();
                         $workOrder->fill([
                             'parent_work_order_id' => $workOrderId,
                             'inspection_id' => $lastInsertInspId,
@@ -3322,7 +3489,7 @@ class WorkOrderController extends Controller
                         $newWorkOrderId = $workOrder->id;
 
                         foreach ($woiSSql as $valRow) {
-                            $workOrderItem = new WorkOrderItem;
+                            $workOrderItem = new WorkOrderItem();
                             $workOrderItem->fill([
                                 'work_order_id' => $newWorkOrderId,
                                 'item_type_id' => $itemTypeId,
@@ -3369,7 +3536,7 @@ class WorkOrderController extends Controller
                 }
             }
 
-            $gatePass = new GatePass;
+            $gatePass = new GatePass();
             $gatePass->fill([
                 'inspection_id' => $lastInsertInspId,
                 'work_order_id' => $request->ins_work_order_id,
@@ -3502,6 +3669,24 @@ class WorkOrderController extends Controller
             $dataPI = ProcessItem::where('id', $processType)->first();
             $proSNo = $dataPI->process_sl_no_last ?? 0;
             $shortcode = ($poType == 'JOB') ? 'JOB' : 'CP';
+            $companyId = (int) $dataOrder->company_id;
+            $sourceRequirement = null;
+
+            if ($request->filled('insp_work_process_req_id')) {
+                $sourceRequirement = WorkProcessRequirement::whereKey((int) $request->insp_work_process_req_id)
+                    ->where('work_order_id', $workOrderId)
+                    ->where('company_id', $companyId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $sourceRequirement) {
+                    throw new Exception('The selected lot does not belong to this company work order.');
+                }
+
+                if ($request->filled('req_lot_no') && trim((string) $sourceRequirement->req_lot_no) !== trim((string) $request->req_lot_no)) {
+                    throw new Exception('The selected lot identity does not match the work process requirement.');
+                }
+            }
 
             if ($inspStatus == 'Complete') {
                 WorkOrder::where('id', $workOrderId)->update([
@@ -3526,8 +3711,9 @@ class WorkOrderController extends Controller
             $coatedPvc = WorkOrderItem::where('work_order_id', $workOrderId)->where('status', 'Active')->value('coating_type');
             $dyeingColor = WorkOrderItem::where('work_order_id', $workOrderId)->where('status', 'Active')->value('dyeing_color');
 
-            $workInspection = new WorkInspection;
+            $workInspection = new WorkInspection();
             $workInspection->fill([
+                'company_id' => $companyId,
                 'work_order_id' => $workOrderId,
                 'item_id' => $itemId,
                 'insp_quantity' => 1,
@@ -3580,7 +3766,7 @@ class WorkOrderController extends Controller
                             continue;
                         }
 
-                        $workInspectionDetail = new WorkInspectionDetail;
+                        $workInspectionDetail = new WorkInspectionDetail();
                         $workInspectionDetail->fill([
                             'work_insp_id' => $lastInsertInspId,
                             'item_id' => $itemId,
@@ -3605,6 +3791,27 @@ class WorkOrderController extends Controller
                             'created_at' => now(),
                         ]);
                         $workInspectionDetail->save();
+
+                        if ($sourceRequirement) {
+                            ProductionGenealogyLink::create([
+                                'company_id' => $companyId,
+                                'event_type' => 'inspection_output',
+                                'relationship_type' => 'lot_to_taka',
+                                'source_type' => 'lot',
+                                'source_table' => 'work_process_requirements',
+                                'source_id' => $sourceRequirement->id,
+                                'source_identity' => $sourceRequirement->req_lot_no,
+                                'result_type' => 'taka',
+                                'result_table' => 'work_inspection_details',
+                                'result_id' => $workInspectionDetail->id,
+                                'result_identity' => $workInspectionDetail->insp_taka_number,
+                                'quantity' => $workInspectionDetail->output_quantity,
+                                'work_order_id' => $workOrderId,
+                                'work_process_requirement_id' => $sourceRequirement->id,
+                                'work_inspection_id' => $lastInsertInspId,
+                                'created_by' => $individualId,
+                            ]);
+                        }
                     }
                 }
             }
@@ -3627,7 +3834,7 @@ class WorkOrderController extends Controller
                     $chkNxtWoid = $chkNxtOrd ? $chkNxtOrd->id : null;
 
                     if ($printJobVal !== '' && empty($chkNxtWoid)) {
-                        $workOrder = new WorkOrder;
+                        $workOrder = new WorkOrder();
                         $workOrder->fill([
                             'parent_work_order_id' => $workOrderId,
                             'inspection_id' => $lastInsertInspId,
@@ -3660,7 +3867,7 @@ class WorkOrderController extends Controller
                         $woiSSql = WorkOrderItem::where('work_order_id', $workOrderId)->where('print_job', $row->print_job)->where('status', 'Active')->get();
 
                         foreach ($woiSSql as $valRow) {
-                            $workOrderItem = new WorkOrderItem;
+                            $workOrderItem = new WorkOrderItem();
                             $workOrderItem->fill([
                                 'work_order_id' => $newWorkOrderId,
                                 'item_type_id' => $itemTypeId,
@@ -3709,7 +3916,7 @@ class WorkOrderController extends Controller
                 ProcessItem::where('id', $proTypeId)->update(['process_sl_no_last' => $lastPsnl]);
             }
 
-            $gatePass = new GatePass;
+            $gatePass = new GatePass();
             $gatePass->fill([
                 'inspection_id' => $lastInsertInspId,
                 'work_order_id' => $workOrderId,
@@ -3865,7 +4072,7 @@ class WorkOrderController extends Controller
                 ->select('coating_type', 'dyeing_color', 'print_job', 'extra_job')
                 ->first();
 
-            $workInspection = new WorkInspection;
+            $workInspection = new WorkInspection();
             $workInspection->fill([
                 'work_order_id' => $workOrderId,
                 'item_id' => $itemId,
@@ -3913,7 +4120,7 @@ class WorkOrderController extends Controller
 
                     $breakSizes = explode('+', $breakSizeStr);
                     foreach ($breakSizes as $breakSize) {
-                        $workInspectionDetail = new WorkInspectionDetail;
+                        $workInspectionDetail = new WorkInspectionDetail();
                         $workInspectionDetail->fill([
                             'work_insp_id' => $lastInsertInspId,
                             'item_id' => $itemId,
@@ -3940,7 +4147,7 @@ class WorkOrderController extends Controller
                 }
             }
 
-            $gatePass = new GatePass;
+            $gatePass = new GatePass();
             $gatePass->fill([
                 'inspection_id' => $lastInsertInspId,
                 'work_order_id' => $workOrderId,
@@ -4069,7 +4276,7 @@ class WorkOrderController extends Controller
         }
 
         if ($recLotNumSerch !== '') {
-            $gatePassTable = (new GatePass)->getTable();
+            $gatePassTable = (new GatePass())->getTable();
 
             $query->whereExists(function ($q) use ($gatePassTable, $recLotNumSerch) {
                 $q->selectRaw('1')
