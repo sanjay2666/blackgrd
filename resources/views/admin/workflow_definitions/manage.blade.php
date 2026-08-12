@@ -97,6 +97,7 @@
                             <tr class="info">
                                 <th style="width:100px">Step</th>
                                 <th>Process</th>
+                                <th style="width:130px">Requirement</th>
                                 <th>Label</th>
                                 <th>Description</th>
                                 <th style="width:150px">Action</th>
@@ -114,6 +115,7 @@
                                                 @endforeach
                                             </select>
                                         </td>
+                                        <td><select form="update-step-{{ $step->id }}" name="is_required" class="form-control" required><option value="1" @selected($step->is_required)>Required</option><option value="0" @selected(! $step->is_required)>Optional</option></select></td>
                                         <td><input form="update-step-{{ $step->id }}" name="step_label" value="{{ $step->step_label }}" class="form-control" maxlength="255"></td>
                                         <td><input form="update-step-{{ $step->id }}" name="description" value="{{ $step->description }}" class="form-control" maxlength="5000"></td>
                                         <td>
@@ -131,13 +133,14 @@
                                     @else
                                         <td>{{ $step->sequence }}</td>
                                         <td>{{ $step->process->process_name ?? $step->process_id }}</td>
+                                        <td><span class="label {{ $step->is_required ? 'label-primary' : 'label-info' }}">{{ $step->is_required ? 'Required' : 'Optional' }}</span></td>
                                         <td>{{ $step->step_label ?: '-' }}</td>
                                         <td>{{ $step->description ?: '-' }}</td>
                                         <td><span class="label label-default">Locked</span></td>
                                     @endif
                                 </tr>
                             @empty
-                                <tr><td colspan="5" class="text-center">No steps yet. Add consecutive steps before publishing.</td></tr>
+                                <tr><td colspan="6" class="text-center">No steps yet. Add consecutive steps before publishing.</td></tr>
                             @endforelse
                             </tbody>
                         </table>
@@ -156,8 +159,9 @@
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-sm-3"><input name="step_label" value="{{ old('step_label') }}" class="form-control" maxlength="255" placeholder="Step label (optional)"></div>
-                            <div class="col-sm-3"><input name="description" value="{{ old('description') }}" class="form-control" maxlength="5000" placeholder="Description (optional)"></div>
+                            <div class="col-sm-2"><select name="is_required" class="form-control" required><option value="1" @selected(old('is_required', '1') === '1')>Required</option><option value="0" @selected(old('is_required') === '0')>Optional</option></select></div>
+                            <div class="col-sm-2"><input name="step_label" value="{{ old('step_label') }}" class="form-control" maxlength="255" placeholder="Step label"></div>
+                            <div class="col-sm-2"><input name="description" value="{{ old('description') }}" class="form-control" maxlength="5000" placeholder="Description"></div>
                             <div class="col-sm-1"><button class="btn btn-success"><i class="fa fa-plus"></i></button></div>
                         </form>
 

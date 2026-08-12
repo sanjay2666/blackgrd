@@ -107,7 +107,7 @@ class WorkflowDefinitionController extends Controller
 
     public function storeStep(Request $request, WorkflowDefinition $workflow_definition, WorkflowVersion $workflow_version, WorkflowDefinitionService $service): RedirectResponse
     {
-        $attributes = $request->validate(['process_id' => 'required|integer', 'sequence' => 'required|integer|min:1', 'step_label' => 'nullable|string|max:255', 'description' => 'nullable|string|max:5000']);
+        $attributes = $request->validate(['process_id' => 'required|integer', 'sequence' => 'required|integer|min:1', 'is_required' => 'required|boolean', 'step_label' => 'nullable|string|max:255', 'description' => 'nullable|string|max:5000']);
         $service->addStep($workflow_definition, $workflow_version, $attributes, $request);
 
         return back()->with('message', 'Workflow step added.')->with('messageClass', 'successClass');
@@ -115,7 +115,7 @@ class WorkflowDefinitionController extends Controller
 
     public function updateStep(Request $request, WorkflowDefinition $workflow_definition, WorkflowVersion $workflow_version, WorkflowVersionStep $workflow_version_step, WorkflowDefinitionService $service): RedirectResponse
     {
-        $attributes = $request->validate(['process_id' => 'required|integer', 'sequence' => 'required|integer|min:1', 'step_label' => 'nullable|string|max:255', 'description' => 'nullable|string|max:5000']);
+        $attributes = $request->validate(['process_id' => 'required|integer', 'sequence' => 'required|integer|min:1', 'is_required' => 'required|boolean', 'step_label' => 'nullable|string|max:255', 'description' => 'nullable|string|max:5000']);
         $service->updateStep($workflow_definition, $workflow_version, $workflow_version_step, $attributes, $request);
 
         return back()->with('message', 'Workflow step updated.')->with('messageClass', 'successClass');

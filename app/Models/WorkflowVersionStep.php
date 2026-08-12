@@ -4,8 +4,8 @@ namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WorkflowVersionStep extends Model
 {
@@ -17,6 +17,10 @@ class WorkflowVersionStep extends Model
     public $timestamps = false;
 
     protected $guarded = [];
+
+    protected $casts = [
+        'is_required' => 'boolean',
+    ];
 
     public function version(): BelongsTo
     {

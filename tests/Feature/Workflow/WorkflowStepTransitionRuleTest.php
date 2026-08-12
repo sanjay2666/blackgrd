@@ -109,6 +109,81 @@ class WorkflowStepTransitionRuleTest extends TestCase
         $this->assertValidation(fn (): mixed => $this->rules->resolveNextStep($item, $this->processes['Packaging']), 'current_process_id');
     }
 
+    public function test_optional_step_allows_normal_execution_and_configured_skip_but_required_step_cannot_be_skipped(): void
+    {
+        [, $optionalVersion] = $this->publishedRoute([
+            ['Dyeing', true],
+            ['Printing', false],
+            ['Coating', true],
+        ]);
+        $optionalItem = $this->itemFor($optionalVersion);
+
+        $this->assertSame($this->processes['Printing']->id, $this->rules->resolveNextStep($optionalItem, $this->processes['Dyeing'])->process_id);
+        $this->assertSame($this->processes['Printing']->id, $this->rules->validateTransition($optionalItem, $this->processes['Dyeing'], $this->processes['Printing'])->process_id);
+        $this->assertSame($this->processes['Coating']->id, $this->rules->validateTransition($optionalItem, $this->processes['Dyeing'], $this->processes['Coating'])->process_id);
+
+        [, $requiredVersion] = $this->publishedRoute(['Dyeing', 'Printing', 'Coating']);
+        $this->assertValidation(
+            fn (): mixed => $this->rules->validateTransition($this->itemFor($requiredVersion), $this->processes['Dyeing'], $this->processes['Coating']),
+            'next_process_id',
+        );
+    }
+
+    public function test_consecutive_optional_steps_resolve_only_configured_forward_candidates(): void
+    {
+        $this->allow('Dyeing', 'Inspection');
+        [, $version] = $this->publishedRoute([
+            ['Dyeing', true],
+            ['Printing', false],
+            ['Coating', false],
+            ['Inspection', true],
+        ]);
+        $item = $this->itemFor($version);
+
+        $this->assertSame(
+            [$this->processes['Printing']->id, $this->processes['Coating']->id, $this->processes['Inspection']->id],
+            $this->rules->allowedNextSteps($item, $this->processes['Dyeing'])->pluck('process_id')->all(),
+        );
+        $this->assertSame($this->processes['Inspection']->id, $this->rules->validateTransition($item, $this->processes['Dyeing'], $this->processes['Inspection'])->process_id);
+    }
+
+    public function test_repeated_process_occurrences_require_step_identity_when_process_lookup_is_ambiguous(): void
+    {
+        $this->allow('Printing', 'Dyeing');
+        [, $version] = $this->publishedRoute(['Dyeing', 'Printing', 'Dyeing', 'Coating']);
+        $item = $this->itemFor($version);
+        $steps = $version->steps()->get();
+        $firstDyeing = $steps->firstWhere('sequence', 1);
+        $secondDyeing = $steps->firstWhere('sequence', 3);
+
+        $this->assertNotSame($firstDyeing->id, $secondDyeing->id);
+        $this->assertSame($this->processes['Printing']->id, $this->rules->resolveNextStep($item, $firstDyeing)->process_id);
+        $this->assertSame($this->processes['Coating']->id, $this->rules->resolveNextStep($item, $secondDyeing)->process_id);
+        $this->assertSame($this->processes['Coating']->id, $this->rules->validateTransition($item, $secondDyeing, $this->processes['Coating'])->process_id);
+        $this->assertValidation(fn (): mixed => $this->rules->resolveNextStep($item, $this->processes['Dyeing']), 'current_process_id');
+    }
+
+    public function test_publication_rejects_optional_skip_without_an_explicit_process_configuration_edge(): void
+    {
+        $this->allow('Warping', 'Printing');
+        $this->allow('Printing', 'Dyeing');
+        $created = $this->definitions->createDefinition([
+            'workflow_code' => 'OPTIONAL-SKIP-'.bin2hex(random_bytes(3)),
+            'workflow_name' => 'Optional Skip Configuration Route',
+            'description' => null,
+        ], null, $this->request);
+        $this->addRoute($created['definition'], $created['version'], [
+            ['Warping', true],
+            ['Printing', false],
+            ['Dyeing', true],
+        ]);
+
+        $this->assertValidation(
+            fn (): mixed => $this->definitions->publishVersion($created['definition'], $created['version'], [], null, $this->request),
+            'workflow_version',
+        );
+    }
+
     public function test_publication_rejects_an_adjacent_edge_that_process_configuration_does_not_allow(): void
     {
         $created = $this->definitions->createDefinition([
@@ -190,13 +265,15 @@ class WorkflowStepTransitionRuleTest extends TestCase
         return [$created['definition'], $created['version']];
     }
 
-    /** @param list<string> $processNames */
+    /** @param list<string|array{0:string,1:bool}> $processNames */
     private function addRoute(WorkflowDefinition $definition, WorkflowVersion $version, array $processNames): void
     {
-        foreach ($processNames as $index => $name) {
+        foreach ($processNames as $index => $step) {
+            [$name, $isRequired] = is_array($step) ? $step : [$step, true];
             $this->definitions->addStep($definition, $version, [
                 'process_id' => $this->processes[$name]->id,
                 'sequence' => $index + 1,
+                'is_required' => $isRequired,
                 'step_label' => null,
                 'description' => null,
             ], $this->request);

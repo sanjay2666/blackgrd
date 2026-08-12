@@ -139,6 +139,7 @@ final class WorkflowDefinitionService
                     'company_id' => $this->organization->companyId(),
                     'process_id' => $sourceStep->process_id,
                     'sequence' => $sourceStep->sequence,
+                    'is_required' => $sourceStep->is_required,
                     'step_label' => $sourceStep->step_label,
                     'description' => $sourceStep->description,
                     'created_at' => now(),
@@ -187,11 +188,7 @@ final class WorkflowDefinitionService
             if ($steps->isEmpty() || $steps->pluck('sequence')->map(fn ($sequence): int => (int) $sequence)->all() !== $expectedSequence) {
                 throw ValidationException::withMessages(['workflow_version' => 'Published versions require consecutive steps starting at 1.']);
             }
-            if ($steps->pluck('process_id')->unique()->count() !== $steps->count()) {
-                throw ValidationException::withMessages(['workflow_version' => 'A Process cannot be repeated in the same Workflow Version.']);
-            }
-
-            $processIds = $steps->pluck('process_id');
+            $processIds = $steps->pluck('process_id')->unique()->values();
             if (ProcessItem::query()->whereIn('id', $processIds)->where('status', 'Active')->count() !== $processIds->count()) {
                 throw ValidationException::withMessages(['workflow_version' => 'A published version cannot contain a missing, inactive, or deleted Process.']);
             }
@@ -243,6 +240,7 @@ final class WorkflowDefinitionService
 
         $step = $version->steps()->create([
             ...$attributes,
+            'is_required' => $attributes['is_required'] ?? true,
             'company_id' => $this->organization->companyId(),
             'created_at' => now(),
             'updated_at' => now(),
@@ -255,7 +253,7 @@ final class WorkflowDefinitionService
             'description' => 'Workflow Version step added.',
             'auditable_type' => $step->getMorphClass(),
             'auditable_id' => $step->id,
-            'new_values' => $step->only(['workflow_version_id', 'process_id', 'sequence', 'step_label', 'description']),
+            'new_values' => $step->only(['workflow_version_id', 'process_id', 'sequence', 'is_required', 'step_label', 'description']),
             'request' => $request,
         ]);
 
@@ -275,7 +273,7 @@ final class WorkflowDefinitionService
         }
         $this->validateStep($version, $attributes, $step);
 
-        $before = $step->only(['process_id', 'sequence', 'step_label', 'description']);
+        $before = $step->only(['process_id', 'sequence', 'is_required', 'step_label', 'description']);
         $step->fill([...$attributes, 'updated_at' => now()])->save();
         $this->audit->recordAfterCommit([
             'module' => 'processes',
@@ -285,7 +283,7 @@ final class WorkflowDefinitionService
             'auditable_type' => $step->getMorphClass(),
             'auditable_id' => $step->id,
             'old_values' => $before,
-            'new_values' => $step->only(['process_id', 'sequence', 'step_label', 'description']),
+            'new_values' => $step->only(['process_id', 'sequence', 'is_required', 'step_label', 'description']),
             'request' => $request,
         ]);
     }
@@ -301,7 +299,7 @@ final class WorkflowDefinitionService
             abort(404);
         }
 
-        $before = $step->only(['workflow_version_id', 'process_id', 'sequence', 'step_label', 'description']);
+        $before = $step->only(['workflow_version_id', 'process_id', 'sequence', 'is_required', 'step_label', 'description']);
         $stepId = $step->id;
         $step->delete();
         $this->audit->recordAfterCommit([
@@ -355,16 +353,11 @@ final class WorkflowDefinitionService
         }
 
         $duplicateSequence = $version->steps()->where('sequence', $attributes['sequence']);
-        $duplicateProcess = $version->steps()->where('process_id', $attributes['process_id']);
         if ($existing !== null) {
             $duplicateSequence->whereKeyNot($existing->id);
-            $duplicateProcess->whereKeyNot($existing->id);
         }
         if ($duplicateSequence->exists()) {
             throw ValidationException::withMessages(['sequence' => 'Step numbers must be unique within a version.']);
-        }
-        if ($duplicateProcess->exists()) {
-            throw ValidationException::withMessages(['process_id' => 'A Process cannot be repeated in the same Workflow Version.']);
         }
     }
 

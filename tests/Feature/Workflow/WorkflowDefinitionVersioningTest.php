@@ -9,8 +9,8 @@ use App\Models\WorkflowDefinition;
 use App\Models\WorkflowVersion;
 use App\Services\AuditLogger;
 use App\Services\CurrentOrganizationContext;
-use App\Services\WorkflowDefinitionService;
 use App\Services\WorkflowAssignmentService;
+use App\Services\WorkflowDefinitionService;
 use App\Services\WorkflowStepTransitionRuleService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\Request;
@@ -109,7 +109,7 @@ class WorkflowDefinitionVersioningTest extends TestCase
         );
     }
 
-    public function test_duplicate_process_and_step_number_are_rejected(): void
+    public function test_duplicate_step_numbers_are_rejected_but_processes_can_repeat_at_distinct_occurrences(): void
     {
         [$definition, $version] = $this->draft('VALIDATION', 'Validation Route');
         $this->service->addStep($definition, $version, [
@@ -131,13 +131,19 @@ class WorkflowDefinitionVersioningTest extends TestCase
             $this->assertArrayHasKey('sequence', $exception->errors());
         }
 
-        $this->expectException(ValidationException::class);
         $this->service->addStep($definition, $version, [
             'process_id' => $this->processes['Dyeing']->id,
             'sequence' => 2,
+            'is_required' => false,
             'step_label' => null,
             'description' => null,
         ], $this->request);
+
+        $this->assertSame(
+            [$this->processes['Dyeing']->id, $this->processes['Dyeing']->id],
+            $version->steps()->pluck('process_id')->all(),
+        );
+        $this->assertSame([true, false], $version->steps()->pluck('is_required')->map(fn ($value): bool => (bool) $value)->all());
     }
 
     public function test_published_version_is_immutable_and_new_version_is_a_copy(): void
@@ -159,6 +165,10 @@ class WorkflowDefinitionVersioningTest extends TestCase
         $this->assertSame(
             $versionOne->steps()->pluck('process_id')->all(),
             $versionTwo->steps()->pluck('process_id')->all(),
+        );
+        $this->assertSame(
+            $versionOne->steps()->pluck('is_required')->map(fn ($value): bool => (bool) $value)->all(),
+            $versionTwo->steps()->pluck('is_required')->map(fn ($value): bool => (bool) $value)->all(),
         );
         $this->assertSame('Published', $versionOne->fresh()->status);
     }
