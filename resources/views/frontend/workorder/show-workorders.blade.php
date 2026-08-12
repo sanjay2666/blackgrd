@@ -236,6 +236,9 @@ foreach ($processI as $process) {
                         $WorkRequireReqAccepted = $data->is_work_require_request_accepted;
                         $IsGatePassGenrated = $data->is_gatepass_genrated_by_warehouse;
                         $isItemReceivedFromWarehouse = $data->is_item_received_from_warehouse;
+                        $isDirectPrintingRoute = ! empty($parentWorkOrderId)
+                            && in_array($printPosition, ['before', 'after'], true)
+                            && (in_array((int) $proTypeId, $printingProcessIds, true) || in_array((int) $proTypeId, $coatingProcessIds, true));
                         $GatePassGenratedBy = $data['GatepassGenratedByWarehouseUser'] ? $data['GatepassGenratedByWarehouseUser']->name : 'N/A';
                         $ReqSendBy = $data['WorkReqSend'] ? $data['WorkReqSend']->name : 'N/A';
                         $internalName = $data['Item']->internal_item_name ?? null;
@@ -822,7 +825,7 @@ foreach ($processI as $process) {
                         ?>
                       <?php if ($WorkRequireReqAccepted == 'Yes') {  ?>
                       <?php if (empty($masterIndId)) { ?>
-                      <?php if ($IsGatePassGenrated == 'Yes' && $isItemReceivedFromWarehouse == 'Yes') {  ?>
+                      <?php if (($IsGatePassGenrated == 'Yes' || $isDirectPrintingRoute) && $isItemReceivedFromWarehouse == 'Yes') {  ?>
 
 						<?php if ($proTypeId > 2) { ?>
 						<a href="javascript:void(0);" onClick="StartProcess({{ $Id }})" class="btn btn-success btn-xs">Start Process </a>
@@ -840,11 +843,11 @@ foreach ($processI as $process) {
 					  <?php } ?>
 
                       <?php } elseif ($inspWorkStatusProcess == 'Pending') { ?>
-                      <?php if ($proTypeId == 7) { ?>
+                      <?php if (in_array((int) $proTypeId, $printingProcessIds, true)) { ?>
                       <a href="javascript:void(0);" onClick="CoatingPrintInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>
                       <?php } elseif ($proTypeId == 4) { ?>
                       <a href="javascript:void(0);" onClick="CoatingInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>
-                      <?php } elseif ($proTypeId == 3 || $proTypeId == 6) { ?>
+                      <?php } elseif ($proTypeId == 3) { ?>
                       <a href="javascript:void(0);" onClick="DyeingInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>
                       <?php } elseif ($proTypeId == 2) { ?>
                       <a href="javascript:void(0);" onClick="WeavingInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>

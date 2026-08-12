@@ -1344,24 +1344,29 @@ var siteUrl = "{{url('/')}}";
       cache: false,
       success: function(response) {
         response = JSON.parse(response);
-        console.log(response);
 
-        // set values into *_print IDs (names untouched)
+        if (response.status !== 'success') {
+          alert(response.message || 'Unable to load the Printing work order.');
+          return;
+        }
+
         $("#coating_ins_item_id_print").val(response.itemId);
         $("#coating_ins_work_order_id_print").val(response.workOrdId);
         $("#coating_ItemName_print").html(response.ItemName);
-        $("#coating_InsoutputNext_print")?.html ? $("#coating_InsoutputNext_print").html(response.outputNextPro) : null;
-        $("#coating_InsoutputUnit_print")?.html ? $("#coating_InsoutputUnit_print").html(response.outputUnit) : null;
         $("#coating_processtext_print").html(response.processtext);
-        $("#coating_outputUnitType_print")?.html ? $("#coating_outputUnitType_print").html(response.outputUnitType) : null;
-        $("#coating_workRequirement_print1").html(response.workRequirement);
-        // warehouses HTML (keeps <option> list) - ensure you pass proper html from backend
         $("#coating_insp_work_warehouseId_print").html(response.warehouses || '');
-        // $("#MachineNameC_print").html(response.MachineName);
-        $("#inspTakaNumberC_print").html(response.inspTakaNumber);
-
-        // clear any existing rows/totals in this print table
-        $('#myTableCoatedPrint tbody').html('<tr class="table-row2"> </tr>');
+        $("#MachineNameC_print").text(response.MachineName || 'Not allocated');
+        $("#machineIdC_print").val(response.machineId || '');
+        $('#myTableCoatedPrint tbody').html(
+          '<tr class="table-row2">' +
+          '<td><input type="text" class="form-control" name="dyeing_taka_number[]" value="1" required></td>' +
+          '<td><input type="text" class="form-control" name="insp_taka_number[]" required></td>' +
+          '<td><input type="number" min="0" step="0.01" class="form-control greige_item_qty" name="greige_item_qty[]" required></td>' +
+          '<td><input type="text" class="form-control output_quan_break_size" name="output_quan_break_size[]"></td>' +
+          '<td><input type="number" min="0" step="0.01" class="form-control output_quan_size" name="output_quan_size[]" required></td>' +
+          '<td><input type="number" min="0" step="0.01" class="form-control shrinkage_quan_size" name="shrinkage_quan_size[]" value="0"></td>' +
+          '</tr>'
+        );
         $('#toGreigeItemQty_print').text('0');
         $('#totalOutput_print').text('0');
       }

@@ -202,6 +202,13 @@ class WorkOrderController extends Controller
             ->map(fn ($id): int => (int) $id)
             ->all();
 
+        $printingProcessIds = ProcessItem::query()
+            ->whereIn('id', $allowedProcessIds)
+            ->where('process_name', 'like', '%Printing%')
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
         if ($workStatus == '1' || $workStatus == '') {
             $query->where('inspection_status', InspectionStatus::Pending->value);
         }
@@ -481,7 +488,7 @@ class WorkOrderController extends Controller
         $dataI = Item::where('status', '=', 'Active')->get();
         $priorityArr = config('global.priorityArr');
 
-        return view('frontend.workorder.show-workorders', compact('dataWI', 'totSumMtr', 'cusSearch', 'individualId', 'itemSearch', 'ordNumSearch', 'priority', 'dataMas', 'machine', 'processI', 'dataW', 'dataF', 'dataIT', 'dataI', 'dataITP', 'priorityArr', 'search_process_id', 'fromDate', 'toDate', 'workStatus', 'colorSearch', 'LotNumSearch', 'userIndId', 'proceStatus', 'recLotNumSerch', 'yearRecord', 'availableTakaCounts', 'childLotNumbersByWorkOrder', 'totalChildWorkByWorkOrder', 'customerNamesById', 'allotedStocksByWorkOrder', 'coatingProcessIds'));
+        return view('frontend.workorder.show-workorders', compact('dataWI', 'totSumMtr', 'cusSearch', 'individualId', 'itemSearch', 'ordNumSearch', 'priority', 'dataMas', 'machine', 'processI', 'dataW', 'dataF', 'dataIT', 'dataI', 'dataITP', 'priorityArr', 'search_process_id', 'fromDate', 'toDate', 'workStatus', 'colorSearch', 'LotNumSearch', 'userIndId', 'proceStatus', 'recLotNumSerch', 'yearRecord', 'availableTakaCounts', 'childLotNumbersByWorkOrder', 'totalChildWorkByWorkOrder', 'customerNamesById', 'allotedStocksByWorkOrder', 'coatingProcessIds', 'printingProcessIds'));
 
     }
 
@@ -1525,7 +1532,7 @@ class WorkOrderController extends Controller
         return response(json_encode($payload));
     }
 
-    public function updateworkorder(Request $request, TransitionWorkOrder $transitionWorkOrder) // checking
+    public function updateworkorder(Request $request, TransitionWorkOrder $transitionWorkOrder, DepartmentAccessService $departmentAccess) // checking
     {
         $validator = Validator::make($request->all(), [
             'work_order_id' => 'required|integer',
@@ -1554,10 +1561,19 @@ class WorkOrderController extends Controller
             $individualId = $user->individual_id ?? Auth::id();
             $workOrderId = (int) $request->work_order_id;
 
-            $workOrder = WorkOrder::whereKey($workOrderId)->where('item_id', (int) $request->itemId)->where('status', 'Active')->first();
+            $workOrder = WorkOrder::whereKey($workOrderId)
+                ->where('item_id', (int) $request->itemId)
+                ->whereIn('process_type_id', $departmentAccess->allowedProcessIds())
+                ->where('status', 'Active')
+                ->lockForUpdate()
+                ->first();
 
             if (! $workOrder) {
                 throw new \RuntimeException('Work order not found.');
+            }
+
+            if (! empty($workOrder->process_started_by) || ! empty($workOrder->process_started_date)) {
+                throw new \RuntimeException('This work order has already been started.');
             }
 
             $isProcessMaster = Individual::where('id', (int) $request->masterId)
@@ -3898,6 +3914,7 @@ class WorkOrderController extends Controller
                             'meter' => $row->totMeter,
                             'print_position' => 'after',
                             'is_item_received_from_warehouse' => 'Yes',
+                            'is_work_require_request_accepted' => 'Yes',
                             'process_started_by' => 0,
                             'process_ended_by' => 0,
                             'process_inspected_by' => 0,
@@ -4014,19 +4031,24 @@ class WorkOrderController extends Controller
         }
     }
 
-    public function updateCoatingPrintInspecProcess(Request $request)
+    public function updateCoatingPrintInspecProcess(Request $request, DepartmentAccessService $departmentAccess)
     {
         // echo "<pre>"; print_r($request->all()); exit;
         $validator = Validator::make($request->all(), [
             'ins_item_id' => 'required',
             'ins_work_order_id' => 'required',
             'dyeing_taka_number' => 'required|array|min:1',
+            'dyeing_taka_number.*' => 'required|string|max:100',
             'insp_taka_number' => 'required|array|min:1',
+            'insp_taka_number.*' => 'required|string|max:100',
             'greige_item_qty' => 'required|array|min:1',
+            'greige_item_qty.*' => 'required|numeric|min:0',
             'output_quan_size' => 'required|array|min:1',
+            'output_quan_size.*' => 'required|numeric|min:0',
             'inspec_comment' => 'required',
             'work_status' => 'required',
             'insp_work_warehouseId' => 'required|integer',
+            'submission_token' => 'nullable|string|max:100',
         ], [
             'ins_item_id.required' => 'Item Not Found.',
             'ins_work_order_id.required' => 'Work order Not Found.',
@@ -4054,6 +4076,16 @@ class WorkOrderController extends Controller
             return redirect()->back()->withInput();
         }
 
+        $token = $request->input('submission_token');
+
+        if (! empty($token) && Cache::has($token)) {
+            return redirect()->back()->with('message', 'Duplicate submission detected.')->withInput();
+        }
+
+        if (! empty($token)) {
+            Cache::put($token, true, 300);
+        }
+
         DB::beginTransaction();
         try {
             $userId = Auth::id();
@@ -4072,7 +4104,28 @@ class WorkOrderController extends Controller
             $warehouseId = $request->insp_work_warehouseId;
             $inspStatus = ($workStatusProcess == 'Yes') ? 'Complete' : 'Pending';
 
-            $dataOrder = WorkOrder::where('id', $workOrderId)->with('WorkOrderItem')->first();
+            $dataOrder = WorkOrder::whereKey($workOrderId)
+                ->with(['WorkOrderItem', 'ProcessType'])
+                ->whereIn('process_type_id', $departmentAccess->allowedProcessIds())
+                ->lockForUpdate()
+                ->first();
+
+            if (! $dataOrder || ! str_contains(strtolower((string) $dataOrder->ProcessType?->process_name), 'printing')) {
+                throw new Exception('Only an authorized Printing user can update this work order.');
+            }
+
+            if ((int) $dataOrder->item_id !== (int) $itemId) {
+                throw new Exception('The selected item does not belong to this Printing work order.');
+            }
+
+            if ($dataOrder->inspection_status === InspectionStatus::Completed) {
+                throw new Exception('This Printing work order has already been completed.');
+            }
+
+            if (empty($dataOrder->master_ind_id) || empty($dataOrder->process_started_date)) {
+                throw new Exception('Start the Printing work order before recording inspection output.');
+            }
+
             $processTypeId = $dataOrder->process_type_id;
 
             // echo "<pre>"; print_r($dataOrder);
@@ -4088,11 +4141,6 @@ class WorkOrderController extends Controller
             $dataPr = ProcessRequirement::where('process_type_id', $proTypeId ?? null)->where('status', 'Active')->first();
             $itemTypeId = $dataPr->item_type_id ?? null;
 
-            $processType = 7;
-            $dataPI = ProcessItem::where('id', $processType)->first();
-            $proSNo = $dataPI->process_sl_no_last ?? 0;
-            $shortcode = 'CP';
-
             if ($inspStatus == 'Complete') {
                 WorkOrder::where('id', $workOrderId)->update([
                     'insp_status' => $inspStatus,
@@ -4103,7 +4151,7 @@ class WorkOrderController extends Controller
                 ]);
             }
 
-            if ($workStatus == 'Completed') {
+            if ($workStatus == 'Completed' && $printPosition !== 'before') {
                 $woiData = WorkOrderItem::where('work_order_id', $workOrderId)->where('status', 'Active')->get();
                 foreach ($woiData as $rowVal) {
                     SaleOrderItem::where('id', $rowVal->sale_order_item_id)->update(['is_work_completed' => 1]);
@@ -4122,6 +4170,7 @@ class WorkOrderController extends Controller
 
             $workInspection = new WorkInspection();
             $workInspection->fill([
+                'company_id' => $dataOrder->company_id,
                 'work_order_id' => $workOrderId,
                 'item_id' => $itemId,
                 'insp_quantity' => 1,
@@ -4154,19 +4203,22 @@ class WorkOrderController extends Controller
             $inspTakaNumbers = [];
             $greigeItemQtys = [];
             $dyeingTakaNumbers = [];
-            foreach ($outputQuanSize as $index => $quantity) {
-                if (! empty($quantity)) {
+            foreach ($outputQuanSize as $index => $outputQuantity) {
+                if ($outputQuantity !== null && $outputQuantity !== '') {
                     $inspTaka = $request->insp_taka_number[$index] ?? null;
                     $greigeQty = $request->greige_item_qty[$index] ?? null;
                     $dyeingTaka = $request->dyeing_taka_number[$index] ?? null;
                     $shrinkageQty = $request->shrinkage_quan_size[$index] ?? null;
-                    $breakSizeStr = $request->output_quan_break_size[$index] ?? '';
+                    $breakSizeStr = $request->output_quan_break_size[$index] ?? $outputQuantity;
 
                     $inspTakaNumbers[] = $inspTaka;
                     $greigeItemQtys[] = $greigeQty;
                     $dyeingTakaNumbers[] = $dyeingTaka;
 
-                    $breakSizes = explode('+', $breakSizeStr);
+                    $breakSizes = array_filter(explode('+', (string) $breakSizeStr), fn ($breakSize) => trim($breakSize) !== '');
+                    if ($breakSizes === []) {
+                        $breakSizes = [$outputQuantity];
+                    }
                     foreach ($breakSizes as $breakSize) {
                         $workInspectionDetail = new WorkInspectionDetail();
                         $workInspectionDetail->fill([
@@ -4191,6 +4243,69 @@ class WorkOrderController extends Controller
                             'created_at' => now(),
                         ]);
                         $workInspectionDetail->save();
+                    }
+                }
+            }
+
+            if ($inspStatus === 'Complete' && $printPosition === 'before') {
+                $coatingProcess = ProcessItem::query()
+                    ->where('status', 'Active')
+                    ->where(function ($processQuery) {
+                        $processQuery->where('process_name', 'like', '%Coating%')
+                            ->orWhere('entry_name', 'like', '%Coating%');
+                    })
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $coatingProcess) {
+                    throw new Exception('The Coating process is not configured.');
+                }
+
+                $existingCoating = WorkOrder::where('parent_work_order_id', $dataOrder->id)
+                    ->where('process_type_id', $coatingProcess->id)
+                    ->where('status', 'Active')
+                    ->lockForUpdate()
+                    ->exists();
+
+                if (! $existingCoating) {
+                    $coatingSerial = app(NumberSeriesService::class)->nextInteger('work-order-'.$coatingProcess->id);
+                    $coatingWorkOrder = new WorkOrder();
+                    $coatingWorkOrder->fill([
+                        'company_id' => $dataOrder->company_id,
+                        'parent_work_order_id' => $dataOrder->id,
+                        'inspection_id' => $lastInsertInspId,
+                        'process_type' => CommonController::getProcessTypeName($coatingProcess->id)['shortcode'] ?? 'COA',
+                        'process_sl_no' => $coatingSerial,
+                        'user_id' => $individualId,
+                        'process_type_id' => $coatingProcess->id,
+                        'item_type_id' => $dataOrder->item_type_id,
+                        'item_id' => $dataOrder->item_id,
+                        'item_name' => $dataOrder->item_name,
+                        'pcs' => $dataOrder->pcs,
+                        'cut' => $dataOrder->cut,
+                        'meter' => $dataOrder->meter,
+                        'print_position' => 'before',
+                        'is_item_received_from_warehouse' => 'Yes',
+                        'is_work_require_request_accepted' => 'Yes',
+                        'process_started_by' => 0,
+                        'process_ended_by' => 0,
+                        'process_inspected_by' => 0,
+                        'process_started_remarks' => '',
+                        'process_ended_remarks' => '',
+                        'financial_year' => $dataOrder->financial_year,
+                        'created_by' => $individualId,
+                        'created_at' => now(),
+                        'status' => 'Active',
+                    ]);
+                    $coatingWorkOrder->save();
+
+                    foreach (WorkOrderItem::where('work_order_id', $dataOrder->id)->where('status', 'Active')->get() as $workOrderItem) {
+                        $newWorkOrderItem = $workOrderItem->replicate(['id']);
+                        $newWorkOrderItem->work_order_id = $coatingWorkOrder->id;
+                        $newWorkOrderItem->created_by = $individualId;
+                        $newWorkOrderItem->created_at = now();
+                        $newWorkOrderItem->status = 'Active';
+                        $newWorkOrderItem->save();
                     }
                 }
             }
@@ -4688,6 +4803,7 @@ class WorkOrderController extends Controller
                     'meter' => $workOrder->meter,
                     'print_position' => 'before',
                     'is_item_received_from_warehouse' => 'Yes',
+                    'is_work_require_request_accepted' => 'Yes',
                     'process_started_by' => 0,
                     'process_ended_by' => 0,
                     'process_inspected_by' => 0,

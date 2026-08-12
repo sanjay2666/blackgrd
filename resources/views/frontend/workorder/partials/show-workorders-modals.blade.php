@@ -185,7 +185,7 @@
       </div>
     </div>
   </div>
-  <!-- ===== Modal 1 (Print) - IDs suffixed with _print ===== -->
+  <!-- Printing inspection uses the shared work-order modal pattern for both D-Printing and C-Printing. -->
   <div class="modal fade" id="CoatingPrintInspProcessPop" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
@@ -193,9 +193,9 @@
           @csrf
           <div class="modal-header modal-header-primary">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-            <h3><i class="fa fa-plus m-r-5"></i>Inspection Process</h3>
+            <h3><i class="fa fa-plus m-r-5"></i>Printing Inspection Process</h3>
           </div>
-          <input type="hidden" name="page" value="<?=htmlspecialchars($current_page); ?>">
+          <input type="hidden" name="page" value="<?= htmlspecialchars($current_page); ?>">
           <div class="modal-body">
             <div class="row">
               <div class="col-md-12">
@@ -206,33 +206,39 @@
                     <td><span id="coating_ItemName_print"></span></td>
                   </tr>
                 </table>
-                <span id="coating_workRequirement_print1"></span>
                 <table class="table table-bordered" id="myTableCoatedPrint">
                   <input type="hidden" id="coating_ins_item_id_print" name="ins_item_id">
                   <input type="hidden" id="coating_ins_work_order_id_print" name="ins_work_order_id">
-				  <input type="hidden"   id="machineIdC_print" name="insp_work_machine_id">
+				  <input type="hidden" id="machineIdC_print" name="insp_work_machine_id">
+				  <input type="hidden" name="submission_token" value="{{ Str::uuid() }}">
 
                   <thead>
-                    <tr>
-                      <p><strong>Lot Number : </strong>
-                        <input type="number" id="req_lot_no_print" name="req_lot_no"
-                          oninput="fetchWarehouseItemStockCoatingPrint(this.value, document.getElementById('coating_ins_work_order_id_print').value, 'myTableCoatedPrint')">
-                      </p>
+                    <tr class="active">
+                      <th colspan="6">Lot / Taka and Output</th>
                     </tr>
-					 <tr>
-                      <td colspan="10"><span id="coating_workRequirement_print"></span> </td>
+                    <tr>
+                      <td colspan="6"><label for="req_lot_no_print">Lot Number</label>
+                        <input type="text" class="form-control" id="req_lot_no_print" name="req_lot_no" required>
+                      </td>
                     </tr>
                     <tr>
                       <th>Sr.No.</th>
-                      <th>G.T.Number</th>
-                      <th>Greige Meter</th>
+                      <th>Source Taka / Roll</th>
+                      <th>Input Meter</th>
                       <th>Break Meter</th>
                       <th>Output</th>
                       <th>Shrinkage</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr class="table-row2"> </tr>
+                    <tr class="table-row2">
+                      <td><input type="text" class="form-control" name="dyeing_taka_number[]" value="1" required></td>
+                      <td><input type="text" class="form-control" name="insp_taka_number[]" required></td>
+                      <td><input type="number" min="0" step="0.01" class="form-control greige_item_qty" name="greige_item_qty[]" required></td>
+                      <td><input type="text" class="form-control output_quan_break_size" name="output_quan_break_size[]"></td>
+                      <td><input type="number" min="0" step="0.01" class="form-control output_quan_size" name="output_quan_size[]" required></td>
+                      <td><input type="number" min="0" step="0.01" class="form-control shrinkage_quan_size" name="shrinkage_quan_size[]" value="0"></td>
+                    </tr>
                   </tbody>
                   <tfoot>
                     <tr>
@@ -246,8 +252,7 @@
                 <table class="table table-bordered">
                   <tr>
                     <td><strong>Comment</strong>
-                      <p>Machine : <span id="MachineNameC_print"></span> </p>
-                      <p>Taka Number : <span id="inspTakaNumberC_print"></span> </p></td>
+                      <p>Machine : <span id="MachineNameC_print"></span> </p></td>
                     <td><textarea class="form-control" id="inspec_comment_print" required name="inspec_comment"></textarea></td>
                   </tr>
                   <tr>

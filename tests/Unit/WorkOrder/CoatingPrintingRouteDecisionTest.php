@@ -41,6 +41,6 @@ final class CoatingPrintingRouteDecisionTest extends TestCase
         $this->assertStringContainsString('Printing Before Coating', $view);
         $this->assertStringContainsString('Coating Before Printing', $view);
         $this->assertStringContainsString('No Printing Required', $view);
-        $this->assertStringContainsString('$proTypeId == 3 || $proTypeId == 6', $view);
+        $this->assertStringContainsString('in_array((int) $proTypeId, $printingProcessIds, true)', $view);
     }
 }
