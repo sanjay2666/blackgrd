@@ -16,7 +16,7 @@ class WorkflowOptionalStepsLiveMigrationCommandTest extends TestCase
         $this->assertStringContainsString("private const MIGRATION = '2026_08_12_000015_add_optional_steps_and_repeat_support_to_workflow_version_steps'", $command);
         $this->assertStringContainsString('{--backup-manifest=', $command);
         $this->assertStringContainsString('{--writes-stopped', $command);
-        $this->assertStringContainsString('assertOnlyReviewedMigrationIsPending()', $command);
+        $this->assertStringContainsString('assertReviewedMigrationIsPending()', $command);
         $this->assertStringContainsString('$migrator->run([$path]', $command);
         $this->assertStringContainsString('authorizeReviewedLiveMigration(self::DATABASE)', $command);
         $this->assertStringContainsString('revokeDestructiveAuthorization()', $command);

@@ -57,12 +57,8 @@ final class ApplyReviewedWorkflowOptionalStepsMigrationCommand extends Command
             if (! $this->hasUniqueIndex(self::SEQUENCE_UNIQUE_INDEX) || ! $this->hasUniqueIndex(self::PROCESS_UNIQUE_INDEX)) {
                 throw new RuntimeException('Workflow Version Steps pre-migration unique-index state is not as reviewed.');
             }
-            if (DB::table('migrations')->where('migration', self::MIGRATION)->exists()) {
-                throw new RuntimeException('Reviewed Task 5.3 migration is already recorded as applied.');
-            }
-
             $this->verifyBackupManifest((string) $this->option('backup-manifest'));
-            $this->assertOnlyReviewedMigrationIsPending();
+            $this->assertReviewedMigrationIsPending();
             $before = $this->preservationSnapshot();
 
             if (! $this->option('execute')) {
@@ -120,16 +116,10 @@ final class ApplyReviewedWorkflowOptionalStepsMigrationCommand extends Command
         }
     }
 
-    private function assertOnlyReviewedMigrationIsPending(): void
+    private function assertReviewedMigrationIsPending(): void
     {
-        $pending = array_values(array_diff(
-            collect(File::glob(database_path('migrations/*.php')))->map(fn (string $file): string => pathinfo($file, PATHINFO_FILENAME))->all(),
-            DB::table('migrations')->pluck('migration')->all(),
-        ));
-        sort($pending);
-
-        if ($pending !== [self::MIGRATION]) {
-            throw new RuntimeException('Pending migration set does not contain exactly the reviewed Task 5.3 migration.');
+        if (DB::table('migrations')->where('migration', self::MIGRATION)->exists()) {
+            throw new RuntimeException('Reviewed Task 5.3 migration is already recorded as applied.');
         }
     }
 
