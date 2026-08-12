@@ -17,6 +17,13 @@ return [
         'live',
     ],
 
+    // These names remain blocked from ordinary destructive commands. They can
+    // be used only by a reviewed, hash-pinned live-migration command after its
+    // own backup, maintenance, and exact-target checks have passed.
+    'reviewed_live_databases' => [
+        'blackgrd',
+    ],
+
     'destructive_commands' => [
         'migrate',
         'migrate:fresh',

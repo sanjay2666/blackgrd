@@ -42,7 +42,7 @@ class DatabaseSafetyCommandTest extends TestCase
         Event::dispatch(new CommandStarting(
             'migrate:fresh',
             new ArrayInput([]),
-            new BufferedOutput,
+            new BufferedOutput(),
         ));
     }
 
@@ -53,7 +53,7 @@ class DatabaseSafetyCommandTest extends TestCase
         Event::dispatch(new CommandStarting(
             'migrate',
             new ArrayInput([]),
-            new BufferedOutput,
+            new BufferedOutput(),
         ));
     }
 
@@ -64,6 +64,16 @@ class DatabaseSafetyCommandTest extends TestCase
             '--confirm-database' => 'blackgrd',
         ])
             ->expectsOutputToContain('BLOCKED')
+            ->assertExitCode(1);
+    }
+
+    public function test_reviewed_workflow_optional_steps_command_rejects_non_live_database(): void
+    {
+        $this->artisan('db:apply-reviewed-workflow-optional-steps', [
+            '--execute' => true,
+            '--confirm-database' => 'blackgrd',
+        ])
+            ->expectsOutputToContain('BLOCKED/FAILED')
             ->assertExitCode(1);
     }
 }

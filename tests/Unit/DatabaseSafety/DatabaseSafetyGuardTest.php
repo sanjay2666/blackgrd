@@ -110,6 +110,13 @@ class DatabaseSafetyGuardTest extends TestCase
         $this->guard()->assertDestructiveSqlAllowed('DROP TABLE users');
     }
 
+    public function test_reviewed_live_migration_authorization_rejects_unapproved_database(): void
+    {
+        $this->expectException(UnsafeDatabaseOperation::class);
+
+        $this->guard()->authorizeReviewedLiveMigration('blackgrd_testing');
+    }
+
     public function test_alter_table_drop_is_recognized_as_destructive_sql(): void
     {
         $this->assertTrue(

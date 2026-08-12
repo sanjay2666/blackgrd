@@ -18,7 +18,8 @@ class DatabaseSafetyGuard
     public function __construct(
         private readonly Application $app,
         private readonly DatabaseManager $databases,
-    ) {}
+    ) {
+    }
 
     public function inspect(?string $connectionName = null): DatabaseSafetySnapshot
     {
@@ -153,6 +154,34 @@ class DatabaseSafetyGuard
     public function revokeDestructiveAuthorization(): void
     {
         $this->destructiveExecutionAuthorized = false;
+    }
+
+    public function authorizeReviewedLiveMigration(string $database): DatabaseSafetySnapshot
+    {
+        $snapshot = $this->inspect();
+        $allowedDatabases = (array) config('database-safety.reviewed_live_databases', []);
+
+        if (! in_array($database, $allowedDatabases, true)) {
+            throw new UnsafeDatabaseOperation("Database [{$database}] is not approved for reviewed live migration execution.");
+        }
+
+        if ($snapshot->driver !== 'mysql' || $snapshot->connectionError !== null) {
+            throw new UnsafeDatabaseOperation('Reviewed live migration execution requires an available MySQL connection.');
+        }
+
+        foreach (['declaredDatabase', 'configuredDatabase', 'connectedDatabase'] as $field) {
+            if ($snapshot->{$field} !== $database) {
+                throw new UnsafeDatabaseOperation("{$field} must exactly equal [{$database}] for reviewed live migration execution.");
+            }
+        }
+
+        if (! $this->app->isDownForMaintenance()) {
+            throw new UnsafeDatabaseOperation('Reviewed live migration execution requires active maintenance mode.');
+        }
+
+        $this->destructiveExecutionAuthorized = true;
+
+        return $snapshot;
     }
 
     public function authorizeDisposableTarget(string $database, DatabaseSafetySnapshot $server): void
