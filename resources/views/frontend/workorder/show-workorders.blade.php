@@ -462,11 +462,9 @@ foreach ($processI as $process) {
 						<?php } ?>
 
                         <!-- 7) Requisition / Printing / Request flows -->
-                        <?php if ($inspWorkStatusProcess == 'Pending') { ?>
-                        <?php if (empty($printJob) || $proTypeId < 4) { ?>
-                        <p> <a href="<?php echo route('start-requisition-process', enc($Id)); ?>" class="btn btn-success btn-xs"> <i class="fa fa-paper-plane"></i> Request </a> </p>
-                        <?php } else { ?>
+                        <?php if ($inspWorkStatusProcess == 'Pending' && in_array((int) $proTypeId, $coatingProcessIds, true)) { ?>
                         <?php if ($printPosition == 'none') { ?>
+                        <p><span class="label label-default"><i class="fa fa-ban"></i> No Printing Required</span></p>
                         <form method="POST" action="<?php echo route('decide-printing-position'); ?>">
 						  <input type="hidden" name="_token" value="<?php echo csrf_token(); ?>">
 						  <input type="hidden" name="work_order_id" value="<?php echo htmlspecialchars($Id, ENT_QUOTES, 'UTF-8'); ?>">
@@ -481,26 +479,33 @@ foreach ($processI as $process) {
 							  <hr />
 
 							  <button type="submit" name="print_position" value="after"
-									  class="btn btn-warning btn-block btn-sm" >
-								<i class="fa fa-print" aria-hidden="true"></i>&nbsp;<strong>Print After Coating</strong>
+								  class="btn btn-warning btn-block btn-sm" >
+								<i class="fa fa-print" aria-hidden="true"></i>&nbsp;<strong>Coating Before Printing</strong>
+							  </button>
+
+							  <hr />
+
+							  <button type="submit" name="print_position" value="none"
+								  class="btn btn-default btn-block btn-sm" >
+								<i class="fa fa-ban" aria-hidden="true"></i>&nbsp;<strong>No Printing Required</strong>
 							  </button>
 							</div>
 						  </div>
 						</form>
 
                         <?php } elseif ($printPosition == 'before') { ?>
-                        <span class="btn btn-primary btn-xs">Printing <?php echo ucfirst($printPosition); ?> Coating.</span>
-                        <hr class="wo-hr-sm" />
-                        <?php /* ?> <p><a href="<?php echo route('start-requisition-for-printing-process', [enc($Id), 'dp']); ?>" class="btn btn-success btn-xs"> <i class="fa fa-paper-plane"></i> Send Request For Printing </a> </p><?php */ ?>
+                        <p><span class="label label-primary"><i class="fa fa-print"></i> Printing Before Coating</span></p>
+                        <p><small class="text-muted">Printing Work Order created. Complete Printing before starting Coating.</small></p>
+                        <?php } elseif ($printPosition == 'after') { ?>
+                        <p><span class="label label-info"><i class="fa fa-forward"></i> Coating Before Printing</span></p>
                         <p> <a href="<?php echo route('start-requisition-process', enc($Id)); ?>" class="btn btn-success btn-xs"> <i class="fa fa-paper-plane"></i> Request Item for coating </a> </p>
-                        <?php } elseif ($printPosition == 'after' && $proTypeId != '7') { ?>
-                        <p><span class="label label-info"><i class="fa fa-forward"></i> Printing will happen After Coating</span></p>
+                        <?php } else { ?>
+                        <p><span class="label label-default"><i class="fa fa-ban"></i> No Printing Required</span></p>
                         <p> <a href="<?php echo route('start-requisition-process', enc($Id)); ?>" class="btn btn-success btn-xs"> <i class="fa fa-paper-plane"></i> Request Item for coating </a> </p>
-                        <?php } elseif ($printPosition == 'after' && $proTypeId == '7') { ?>
-                        <a href="<?php echo route('start-requisition-for-printing-process', [enc($Id), 'cp']); ?>" class="btn btn-success btn-xs"> <i class="fa fa-paper-plane"></i> Send Request For Printing </a>
                         <?php } ?>
-                        <?php } // end else printJob condition?>
-                        <?php } // end inspWorkStatusProcess check?>
+                        <?php } elseif ($inspWorkStatusProcess == 'Pending') { ?>
+                        <p> <a href="<?php echo route('start-requisition-process', enc($Id)); ?>" class="btn btn-success btn-xs"> <i class="fa fa-paper-plane"></i> Request </a> </p>
+                        <?php } ?>
                         <!-- 8) Alloted stock small table -->
                         <?php if (! empty($allotedStock[0])) { ?>
                         <small>
@@ -839,7 +844,7 @@ foreach ($processI as $process) {
                       <a href="javascript:void(0);" onClick="CoatingPrintInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>
                       <?php } elseif ($proTypeId == 4) { ?>
                       <a href="javascript:void(0);" onClick="CoatingInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>
-                      <?php } elseif ($proTypeId == 3) { ?>
+                      <?php } elseif ($proTypeId == 3 || $proTypeId == 6) { ?>
                       <a href="javascript:void(0);" onClick="DyeingInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>
                       <?php } elseif ($proTypeId == 2) { ?>
                       <a href="javascript:void(0);" onClick="WeavingInspProcess({{ $Id }})" class="btn btn-success btn-xs">Start Inspection</a>

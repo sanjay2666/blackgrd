@@ -192,6 +192,16 @@ class WorkOrderController extends Controller
         $allowedProcessIds = app(DepartmentAccessService::class)->allowedProcessIds();
         $query->whereIn('process_type_id', $allowedProcessIds);
 
+        $coatingProcessIds = ProcessItem::query()
+            ->whereIn('id', $allowedProcessIds)
+            ->where(function ($processQuery) {
+                $processQuery->where('process_name', 'like', '%Coating%')
+                    ->orWhere('entry_name', 'like', '%Coating%');
+            })
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
         if ($workStatus == '1' || $workStatus == '') {
             $query->where('inspection_status', InspectionStatus::Pending->value);
         }
@@ -471,7 +481,7 @@ class WorkOrderController extends Controller
         $dataI = Item::where('status', '=', 'Active')->get();
         $priorityArr = config('global.priorityArr');
 
-        return view('frontend.workorder.show-workorders', compact('dataWI', 'totSumMtr', 'cusSearch', 'individualId', 'itemSearch', 'ordNumSearch', 'priority', 'dataMas', 'machine', 'processI', 'dataW', 'dataF', 'dataIT', 'dataI', 'dataITP', 'priorityArr', 'search_process_id', 'fromDate', 'toDate', 'workStatus', 'colorSearch', 'LotNumSearch', 'userIndId', 'proceStatus', 'recLotNumSerch', 'yearRecord', 'availableTakaCounts', 'childLotNumbersByWorkOrder', 'totalChildWorkByWorkOrder', 'customerNamesById', 'allotedStocksByWorkOrder'));
+        return view('frontend.workorder.show-workorders', compact('dataWI', 'totSumMtr', 'cusSearch', 'individualId', 'itemSearch', 'ordNumSearch', 'priority', 'dataMas', 'machine', 'processI', 'dataW', 'dataF', 'dataIT', 'dataI', 'dataITP', 'priorityArr', 'search_process_id', 'fromDate', 'toDate', 'workStatus', 'colorSearch', 'LotNumSearch', 'userIndId', 'proceStatus', 'recLotNumSerch', 'yearRecord', 'availableTakaCounts', 'childLotNumbersByWorkOrder', 'totalChildWorkByWorkOrder', 'customerNamesById', 'allotedStocksByWorkOrder', 'coatingProcessIds'));
 
     }
 
@@ -3263,7 +3273,7 @@ class WorkOrderController extends Controller
             $warehouseId = $request->insp_work_warehouseId;
             $inspStatus = ($workStatusProcess == 'Yes') ? 'Complete' : 'Pending';
 
-            $dataOrder = WorkOrder::where('id', $workOrderId)->with('WorkOrderItem')->first();
+            $dataOrder = WorkOrder::where('id', $workOrderId)->with('WorkOrderItem')->lockForUpdate()->first();
 
             if (empty($dataOrder)) {
                 throw new Exception('Work order not found.');
@@ -3286,6 +3296,16 @@ class WorkOrderController extends Controller
             $individualId = ! empty($user) ? $user->individual_id : 0;
 
             $dataPT = ProcessItem::where('id', '>', $dataOrder->process_type_id)->first();
+
+            if ($dataOrder->print_position === 'before'
+                && str_contains(strtolower((string) $dataOrder->ProcessType?->process_name), 'printing')) {
+                $dataPT = ProcessItem::where('status', 'Active')
+                    ->where(function ($processQuery) {
+                        $processQuery->where('process_name', 'like', '%Coating%')
+                            ->orWhere('entry_name', 'like', '%Coating%');
+                    })
+                    ->first();
+            }
 
             if (empty($dataPT)) {
                 throw new Exception('Next process not found.');
@@ -3478,8 +3498,8 @@ class WorkOrderController extends Controller
                     $saleOrderItemIds = $woiSSql->pluck('sale_order_item_id')->filter()->unique()->values()->toArray();
 
                     if (! empty($saleOrderItemIds)) {
-                        $chkNxtOrd = WorkOrderItem::whereIn('sale_order_item_id', $saleOrderItemIds)->whereHas('WorkOrder', function ($query) use ($workOrderId) {
-                            $query->where('process_type_id', '=', 4);
+                        $chkNxtOrd = WorkOrderItem::whereIn('sale_order_item_id', $saleOrderItemIds)->whereHas('WorkOrder', function ($query) use ($workOrderId, $dataPT) {
+                            $query->where('process_type_id', '=', $dataPT->id);
                             $query->where('parent_work_order_id', '=', $workOrderId);
                         })->with('WorkOrder')->where('status', '=', 'Active')->first();
                     }
@@ -4579,33 +4599,132 @@ class WorkOrderController extends Controller
         }
     }
 
-    public function decidePrinting(Request $request)
+    public function decidePrinting(Request $request, DepartmentAccessService $departmentAccess)
     {
+        $validator = Validator::make($request->all(), [
+            'work_order_id' => 'required|integer',
+            'print_position' => 'required|in:before,after,none',
+        ]);
+
+        if ($validator->fails()) {
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $validator->errors()->first()], 422);
+            }
+
+            return redirect()->back()->withInput()->withErrors($validator);
+        }
+
         DB::beginTransaction();
 
         try {
-            $workOrder = WorkOrder::whereKey((int) $request->input('work_order_id'))->first();
+            $workOrder = WorkOrder::whereKey((int) $request->input('work_order_id'))->lockForUpdate()->first();
 
             if (! $workOrder) {
-                DB::rollBack();
-
-                return response()->json(['success' => false, 'message' => 'Work order not found.'], 404);
+                throw new Exception('Work order not found.');
             }
 
-            $position = $request->input('print_position', $request->input('position', 'none'));
-            $workOrder->print_position = in_array($position, ['before', 'after', 'none'], true) ? $position : 'none';
+            $coatingProcess = ProcessItem::whereKey($workOrder->process_type_id)
+                ->where(function ($processQuery) {
+                    $processQuery->where('process_name', 'like', '%Coating%')
+                        ->orWhere('entry_name', 'like', '%Coating%');
+                })
+                ->first();
+
+            if (! $coatingProcess || ! in_array((int) $workOrder->process_type_id, $departmentAccess->allowedProcessIds(), true)) {
+                throw new Exception('Only an authorized Coating user can set this route decision.');
+            }
+
+            if ($workOrder->status !== 'Active' || $workOrder->inspection_status === InspectionStatus::Completed) {
+                throw new Exception('The Printing route can only be decided before Coating inspection is completed.');
+            }
+
+            if (WorkInspection::where('work_order_id', $workOrder->id)->where('status', 'Active')->exists()
+                || WorkOrder::where('parent_work_order_id', $workOrder->id)->where('status', 'Active')->exists()) {
+                throw new Exception('The Printing route cannot be changed after downstream processing has started.');
+            }
+
+            $position = $request->input('print_position');
+            $workOrder->print_position = $position;
             $workOrder->modified_by = Auth::id();
             $workOrder->modified_at = now();
             $workOrder->save();
 
+            if ($position === 'before') {
+                $printingProcess = ProcessItem::query()
+                    ->where('status', 'Active')
+                    ->where('process_name', 'like', '%Printing%')
+                    ->where('entry_name', 'like', '%Dyed%')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $printingProcess) {
+                    throw new Exception('The dyed-material Printing process is not configured.');
+                }
+
+                $existingPrinting = WorkOrder::where('parent_work_order_id', $workOrder->id)
+                    ->where('process_type_id', $printingProcess->id)
+                    ->where('status', 'Active')
+                    ->lockForUpdate()
+                    ->exists();
+
+                if ($existingPrinting) {
+                    throw new Exception('Printing has already been created for this Coating work order.');
+                }
+
+                $printingSerial = app(NumberSeriesService::class)->nextInteger('work-order-'.$printingProcess->id);
+                $printingWorkOrder = new WorkOrder;
+                $printingWorkOrder->fill([
+                    'company_id' => $workOrder->company_id,
+                    'parent_work_order_id' => $workOrder->id,
+                    'process_type' => CommonController::getProcessTypeName($printingProcess->id)['shortcode'] ?? 'DP',
+                    'process_sl_no' => $printingSerial,
+                    'user_id' => Auth::user()?->individual_id ?? $workOrder->user_id,
+                    'process_type_id' => $printingProcess->id,
+                    'item_type_id' => $workOrder->item_type_id,
+                    'item_id' => $workOrder->item_id,
+                    'item_name' => $workOrder->item_name,
+                    'pcs' => $workOrder->pcs,
+                    'cut' => $workOrder->cut,
+                    'meter' => $workOrder->meter,
+                    'print_position' => 'before',
+                    'is_item_received_from_warehouse' => 'Yes',
+                    'process_started_by' => 0,
+                    'process_ended_by' => 0,
+                    'process_inspected_by' => 0,
+                    'process_started_remarks' => '',
+                    'process_ended_remarks' => '',
+                    'financial_year' => $workOrder->financial_year,
+                    'created_by' => Auth::id() ?? 0,
+                    'created_at' => now(),
+                    'status' => 'Active',
+                ]);
+                $printingWorkOrder->save();
+
+                foreach (WorkOrderItem::where('work_order_id', $workOrder->id)->where('status', 'Active')->get() as $workOrderItem) {
+                    $newWorkOrderItem = $workOrderItem->replicate(['id']);
+                    $newWorkOrderItem->work_order_id = $printingWorkOrder->id;
+                    $newWorkOrderItem->created_by = Auth::id() ?? 0;
+                    $newWorkOrderItem->created_at = now();
+                    $newWorkOrderItem->status = 'Active';
+                    $newWorkOrderItem->save();
+                }
+            }
+
             DB::commit();
 
-            return response()->json(['success' => true, 'print_position' => $workOrder->print_position]);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            report($e);
+            if ($request->expectsJson()) {
+                return response()->json(['success' => true, 'print_position' => $workOrder->print_position]);
+            }
 
-            return response()->json(['success' => false, 'message' => 'Print decision could not be updated.'], 500);
+            return redirect()->back()->with('message', 'Printing route saved successfully.')->with('messageClass', 'successClass');
+        } catch (Exception $e) {
+            DB::rollBack();
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => 'Print decision could not be updated. '.$e->getMessage()], 422);
+            }
+
+            return redirect()->back()->withInput()->with('message', 'Print decision could not be updated. '.$e->getMessage())->with('messageClass', 'errorClass');
         }
     }
 

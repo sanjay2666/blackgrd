@@ -24,7 +24,7 @@ Allowed-next relationships are a configuration/validation possibility only. `wor
 
 Processes are never hard-deleted. Referenced records and core identities are protected, and the admin action is deactivate/activate. Core IDs 1–4 cannot be renamed; referenced process codes cannot be changed. This preserves historical transactions and compatibility with current fixed-ID logic.
 
-**Process Master does not define the final Sale Order Item workflow.** No workflow engine or order-specific route sequencing is implemented here. **Printing position must not be globally defined relative to Coating.** No `print_position` or before/after-Coating rule exists; future routing may place Printing before or after Coating per Sale Order Item.
+**Process Master does not define the final Sale Order Item workflow.** **Printing position must not be globally defined relative to Coating.** The operational `work_orders.print_position` decision is made only by an authorized Coating user for one active Coating Work Order; it never modifies Process Master, Sale Order Item workflow assignment, or a shared Published Workflow Version. D-Printing is used for that Work Order's `Printing Before Coating` path, while the existing C-Printing child path is used after Coating.
 
 ## Administration
 
