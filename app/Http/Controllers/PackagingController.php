@@ -6,11 +6,14 @@ use App\Enums\InventoryAllocationStatus;
 use App\Enums\InventoryMovementStatus;
 use App\Models\Company;
 use App\Models\FinancialYear;
+use App\Models\Individual;
+use App\Models\Item;
 use App\Models\ItemType;
 use App\Models\PackagingOrder;
 use App\Models\PackagingOrderItem;
 use App\Models\PackagingRollAllocation;
 use App\Models\PackagingType;
+use App\Models\SaleOrder;
 use App\Models\SaleOrderItem;
 use App\Models\Warehouse;
 use App\Models\WarehouseBalanceItem;
@@ -40,10 +43,10 @@ class PackagingController extends Controller
             ->where('is_work_completed', 1)
             ->where('is_work_final_completed', '0');
         if ($request->filled('financial_year_id')) {
-            $query->where('financial_year_id', (int) $request->financial_year_id);
+            $query->where('financial_year_id', (int) dec((string) $request->financial_year_id));
         }
         if ($request->filled('customer_id')) {
-            $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('customer_id', (int) $request->customer_id));
+            $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('customer_id', (int) dec((string) $request->customer_id)));
         } elseif ($request->filled('customer_name')) {
             $customerName = trim((string) $request->customer_name);
             $query->whereHas('saleOrder.customer', fn ($customer) => $customer->where(function ($search) use ($customerName) {
@@ -51,7 +54,7 @@ class PackagingController extends Controller
             }));
         }
         if ($request->filled('sale_order_id')) {
-            $query->where('sale_order_id', (int) $request->sale_order_id);
+            $query->where('sale_order_id', (int) dec((string) $request->sale_order_id));
         } elseif ($request->filled('sale_order')) {
             $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('sale_order_number', 'like', '%'.trim($request->sale_order).'%'));
         }
@@ -59,10 +62,10 @@ class PackagingController extends Controller
             $query->where('development_type', $request->development_type);
         }
         if ($request->filled('item_type_id')) {
-            $query->where('item_type_id', (int) $request->item_type_id);
+            $query->where('item_type_id', (int) dec((string) $request->item_type_id));
         }
         if ($request->filled('item_id')) {
-            $query->where('item_id', (int) $request->item_id);
+            $query->where('item_id', (int) dec((string) $request->item_id));
         } elseif ($request->filled('item')) {
             $query->where(function ($item) use ($request) {
                 $item->where('item_name', 'like', '%'.trim($request->item).'%')
@@ -138,10 +141,10 @@ class PackagingController extends Controller
             'items.salesChallanItems.salesChallan',
         ])->where('company_id', $companyId)->where('status', 'Active');
         if ($request->filled('financial_year_id')) {
-            $query->where('financial_year_id', (int) $request->financial_year_id);
+            $query->where('financial_year_id', (int) dec((string) $request->financial_year_id));
         }
         if ($request->filled('customer_id')) {
-            $query->where('customer_id', (int) $request->customer_id);
+            $query->where('customer_id', (int) dec((string) $request->customer_id));
         } elseif ($request->filled('customer_name')) {
             $customerName = trim((string) $request->customer_name);
             $query->whereHas('customer', fn ($customer) => $customer->where(function ($search) use ($customerName) {
@@ -155,17 +158,17 @@ class PackagingController extends Controller
                 ->where('challan_number', 'like', '%'.$challanNumber.'%'));
         }
         if ($request->filled('sale_order_id')) {
-            $query->whereHas('items', fn ($item) => $item->where('sale_order_id', (int) $request->sale_order_id));
+            $query->whereHas('items', fn ($item) => $item->where('sale_order_id', (int) dec((string) $request->sale_order_id)));
         } elseif ($request->filled('sale_order')) {
             $query->whereHas('items.saleOrderItem.saleOrder', fn ($saleOrder) => $saleOrder->where('sale_order_number', 'like', '%'.trim($request->sale_order).'%'));
         }
         if ($request->filled('item_id')) {
-            $query->whereHas('items', fn ($item) => $item->where('item_id', (int) $request->item_id));
+            $query->whereHas('items', fn ($item) => $item->where('item_id', (int) dec((string) $request->item_id)));
         } elseif ($request->filled('item')) {
             $query->whereHas('items', fn ($item) => $item->where('item_name', 'like', '%'.trim($request->item).'%'));
         }
         if ($request->filled('item_type_id')) {
-            $query->whereHas('items', fn ($item) => $item->where('item_type_id', (int) $request->item_type_id));
+            $query->whereHas('items', fn ($item) => $item->where('item_type_id', (int) dec((string) $request->item_type_id)));
         }
         if ($request->filled('quality')) {
             $query->whereHas('items', fn ($item) => $item->where('grey_quality', 'like', '%'.trim($request->quality).'%'));
@@ -220,6 +223,47 @@ class PackagingController extends Controller
         return view('frontend.packaging.history', compact('packagingOrders', 'itemTypes', 'priorities', 'financialYears'));
     }
 
+    public function listPackagingCustomers(Request $request)
+    {
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+
+        $term = trim((string) $request->input('term', ''));
+        $customers = Individual::where('company_id', $context->companyId())->where('status', 'Active')->where('type', 'customers')
+            ->when($term !== '', fn ($query) => $query->where(fn ($search) => $search->where('name', 'like', '%'.$term.'%')->orWhere('company_name', 'like', '%'.$term.'%')->orWhere('phone', 'like', '%'.$term.'%')))
+            ->orderBy('id')->limit(10)->get(['id', 'name', 'company_name']);
+
+        return response()->json($customers->map(fn (Individual $customer) => [
+            'id' => enc($customer->id), 'name' => $customer->name, 'company_name' => $customer->company_name,
+        ])->values());
+    }
+
+    public function listPackagingItems(Request $request)
+    {
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+
+        $term = trim((string) $request->input('term', ''));
+        $items = Item::where('company_id', $context->companyId())->where('status', 'Active')
+            ->when($term !== '', fn ($query) => $query->where(fn ($search) => $search->where('item_name', 'like', '%'.$term.'%')->orWhere('item_code', 'like', '%'.$term.'%')->orWhere('internal_item_name', 'like', '%'.$term.'%')->orWhere('hsncode', 'like', '%'.$term.'%')))
+            ->orderBy('item_name')->orderBy('item_id')->limit(20)->get(['item_id', 'item_name']);
+
+        return response()->json($items->map(fn (Item $item) => ['item_id' => enc($item->item_id), 'item_name' => $item->item_name])->values());
+    }
+
+    public function listPackagingSaleOrders(Request $request)
+    {
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+
+        $term = trim((string) $request->input('term', ''));
+        $orders = SaleOrder::where('company_id', $context->companyId())->where('status', '!=', 'Deleted')->whereNotNull('sale_order_number')
+            ->when($term !== '', fn ($query) => $query->where('sale_order_number', 'like', '%'.$term.'%'))
+            ->orderByDesc('id')->limit(12)->get(['id', 'sale_order_number']);
+
+        return response()->json($orders->map(fn (SaleOrder $order) => ['id' => enc($order->id), 'sale_order_number' => $order->sale_order_number])->values());
+    }
+
     public function listPackagingLots(Request $request)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
@@ -243,8 +287,8 @@ class PackagingController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'sale_order_item_ids' => 'required|array|min:1',
-            'sale_order_item_ids.*' => 'required|integer|distinct',
-            'warehouse_id' => 'nullable|integer',
+            'sale_order_item_ids.*' => 'required|string|distinct',
+            'warehouse_id' => 'nullable|string',
         ]);
         if ($validator->fails()) {
             return response()->json(['message' => $validator->errors()->first()], 422);
@@ -253,14 +297,17 @@ class PackagingController extends Controller
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
         $companyId = $context->companyId();
-        $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
+        $saleOrderItemIds = array_map(fn ($id) => (int) dec((string) $id), array_values($request->sale_order_item_ids));
+        if (count($saleOrderItemIds) !== count(array_unique($saleOrderItemIds))) {
+            return response()->json(['message' => 'Sale Order Items must be unique.'], 422);
+        }
         $saleOrderItems = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')
             ->whereIn('id', $saleOrderItemIds)->get()->keyBy('id');
         if ($saleOrderItems->count() !== count($saleOrderItemIds)) {
             return response()->json(['message' => 'One or more Sale Order Items are no longer available for Packaging.'], 422);
         }
 
-        $warehouseId = $request->filled('warehouse_id') ? (int) $request->warehouse_id : null;
+        $warehouseId = $request->filled('warehouse_id') ? (int) dec((string) $request->warehouse_id) : null;
         $stocks = collect();
         foreach ($saleOrderItems as $saleOrderItem) {
             $matchedStocks = WarehouseItemStock::where('company_id', $companyId)->where('status', 'Active')->where('entry_type', 'IN')
@@ -279,9 +326,9 @@ class PackagingController extends Controller
             ->groupBy('warehouse_item_stock_id')->pluck('reserved_quantity', 'warehouse_item_stock_id');
 
         return response()->json(['stocks' => $stocks->map(fn (WarehouseItemStock $stock) => [
-            'id' => $stock->id,
-            'sale_order_item_id' => $stock->sale_order_item_id,
-            'warehouse_id' => $stock->warehouse_id,
+            'id' => enc($stock->id),
+            'sale_order_item_id' => enc($stock->sale_order_item_id),
+            'warehouse_id' => enc($stock->warehouse_id),
             'dyeing_lot_number' => $stock->dyeing_lot_number,
             'packet_number' => $stock->packet_number ?: 'ROL-'.$stock->id,
             'insp_taka_number' => $stock->insp_taka_number,
@@ -289,17 +336,18 @@ class PackagingController extends Controller
         ])->filter(fn (array $stock) => $stock['available_quantity'] > 0)->values()]);
     }
 
-    public function openPackagingCartForSaleOrderItem(Request $request, int $saleOrderItem)
+    public function openPackagingCartForSaleOrderItem(Request $request, string $saleOrderItem)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
 
-        SaleOrderItem::where('company_id', $context->companyId())->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')->findOrFail($saleOrderItem);
+        $saleOrderItemId = (int) dec($saleOrderItem);
+        SaleOrderItem::where('company_id', $context->companyId())->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')->findOrFail($saleOrderItemId);
 
         return redirect()->route('packaging.show-order-cart', [
-            'sale_order_item_ids' => [$saleOrderItem],
+            'sale_order_item_ids' => [enc($saleOrderItemId)],
             'packaging_mode' => $request->input('packaging_mode', 'bulk'),
-            'warehouse_id' => $request->warehouse_id,
+            'warehouse_id' => $request->filled('warehouse_id') ? enc((int) dec((string) $request->warehouse_id)) : null,
         ]);
     }
 
@@ -310,9 +358,9 @@ class PackagingController extends Controller
 
         $validator = Validator::make($request->all(), [
             'sale_order_item_ids' => 'required|array|min:1',
-            'sale_order_item_ids.*' => 'required|integer|distinct',
+            'sale_order_item_ids.*' => 'required|string|distinct',
             'packaging_mode' => 'nullable|in:bulk,sample',
-            'warehouse_id' => 'nullable|integer',
+            'warehouse_id' => 'nullable|string',
         ]);
         if ($validator->fails()) {
             Session::put('message', $validator->errors()->first());
@@ -322,7 +370,13 @@ class PackagingController extends Controller
         }
 
         $companyId = $context->companyId();
-        $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
+        $saleOrderItemIds = array_map(fn ($id) => (int) dec((string) $id), array_values($request->sale_order_item_ids));
+        if (count($saleOrderItemIds) !== count(array_unique($saleOrderItemIds))) {
+            Session::put('message', 'Sale Order Items must be unique.');
+            Session::put('messageClass', 'errorClass');
+
+            return redirect()->route('packaging.show-available-orders');
+        }
         sort($saleOrderItemIds);
         $saleOrderItems = SaleOrderItem::with(['saleOrder.customer', 'item', 'itemType', 'unitType'])
             ->where('company_id', $companyId)->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')
@@ -346,7 +400,7 @@ class PackagingController extends Controller
             $activeItems = $existingItems->get($saleOrderItem->id, collect())->filter(fn (PackagingOrderItem $item) => $item->packagingOrder && $item->packagingOrder->packaging_status !== 'cancelled');
             $saleOrderItem->packaging_remaining_quantity = max(0, round((float) $saleOrderItem->meter - (float) $activeItems->sum('allocated_quantity'), 2));
         }
-        $warehouseId = $request->filled('warehouse_id') ? (int) $request->warehouse_id : null;
+        $warehouseId = $request->filled('warehouse_id') ? (int) dec((string) $request->warehouse_id) : null;
         $stocks = collect();
         foreach ($saleOrderItems as $saleOrderItem) {
             $matchedStocks = WarehouseItemStock::with(['Warehouse', 'WarehouseCompartment'])
@@ -384,20 +438,31 @@ class PackagingController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'sale_order_item_ids' => 'required|array|min:1',
-            'sale_order_item_ids.*' => 'required|integer|distinct',
-            'packaging_type_id' => 'required|integer',
+            'sale_order_item_ids.*' => 'required|string|distinct',
+            'packaging_type_id' => 'required|string',
             'packaging_mode' => 'required|in:bulk,sample',
             'parcel_count' => 'nullable|integer|min:1',
             'warehouse_item_stock_ids' => 'required|array|min:1',
-            'warehouse_item_stock_ids.*' => 'required|integer|distinct',
+            'warehouse_item_stock_ids.*' => 'required|string|distinct',
             'allocation_sale_order_item_ids' => 'required|array|min:1',
-            'allocation_sale_order_item_ids.*' => 'required|integer',
+            'allocation_sale_order_item_ids.*' => 'required|string',
             'quantities' => 'required|array|min:1',
             'quantities.*' => 'required|numeric|gt:0',
             'remarks' => 'nullable|string|max:1000',
         ]);
         if ($validator->fails()) {
             Session::put('message', $validator->errors()->first());
+            Session::put('messageClass', 'errorClass');
+
+            return back()->withInput();
+        }
+
+        $saleOrderItemIds = array_map(fn ($id) => (int) dec((string) $id), array_values($request->sale_order_item_ids));
+        $stockIds = array_map(fn ($id) => (int) dec((string) $id), array_values($request->warehouse_item_stock_ids));
+        $allocationSaleOrderItemIds = array_map(fn ($id) => (int) dec((string) $id), array_values($request->allocation_sale_order_item_ids));
+        $packagingTypeId = (int) dec((string) $request->packaging_type_id);
+        if (count($saleOrderItemIds) !== count(array_unique($saleOrderItemIds)) || count($stockIds) !== count(array_unique($stockIds))) {
+            Session::put('message', 'Selected Sale Order Items and Roll/Taka records must be unique.');
             Session::put('messageClass', 'errorClass');
 
             return back()->withInput();
@@ -411,10 +476,7 @@ class PackagingController extends Controller
             }
             $companyId = $context->companyId();
             $financialYear = $financialYears->current($companyId);
-            $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
             sort($saleOrderItemIds);
-            $stockIds = array_map('intval', array_values($request->warehouse_item_stock_ids));
-            $allocationSaleOrderItemIds = array_map('intval', array_values($request->allocation_sale_order_item_ids));
             $quantities = array_map(fn ($quantity) => round((float) $quantity, 2), array_values($request->quantities));
             if (count($stockIds) !== count($quantities) || count($stockIds) !== count($allocationSaleOrderItemIds)) {
                 throw new \Exception('Each selected Roll/Taka must have one packaging quantity.');
@@ -429,7 +491,7 @@ class PackagingController extends Controller
                 throw new \Exception('Different customers cannot be combined in one Packaging Order.');
             }
             $packagingType = PackagingType::where('company_id', $companyId)->where('status', 'Active')
-                ->whereKey((int) $request->packaging_type_id)->lockForUpdate()->first();
+                ->whereKey($packagingTypeId)->lockForUpdate()->first();
             if (! $packagingType) {
                 throw new \Exception('Selected packaging type is not available.');
             }
@@ -552,7 +614,7 @@ class PackagingController extends Controller
             Session::put('message', 'Packaging order created. Warehouse acceptance is required before stock is issued.');
             Session::put('messageClass', 'successClass');
 
-            return redirect()->route('packaging.show-order-details', $packagingOrder->id);
+            return redirect()->route('packaging.show-order-details', enc($packagingOrder->id));
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
@@ -563,11 +625,12 @@ class PackagingController extends Controller
         }
     }
 
-    public function showPackagingOrderDetails(Request $request, int $packagingOrder)
+    public function showPackagingOrderDetails(Request $request, string $packagingOrder)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
 
+        $packagingOrderId = (int) dec($packagingOrder);
         $packagingOrder = PackagingOrder::with([
             'customer',
             'items.saleOrderItem.saleOrder',
@@ -577,24 +640,25 @@ class PackagingController extends Controller
             'items.rollAllocations.warehouseItemStock.WarehouseCompartment',
             'items.rollAllocations.warehouseOutItem',
             'rollAllocations',
-        ])->where('company_id', $context->companyId())->where('status', 'Active')->findOrFail($packagingOrder);
+        ])->where('company_id', $context->companyId())->where('status', 'Active')->findOrFail($packagingOrderId);
         $packagingOrder->dispatchable_quantity = round((float) $packagingOrder->rollAllocations
             ->sum(fn (PackagingRollAllocation $allocation) => max(0, (float) $allocation->packed_quantity - (float) $allocation->dispatched_quantity)), 2);
 
         return view('frontend.packaging.show', compact('packagingOrder'));
     }
 
-    public function printPackagingSlip(Request $request, int $packagingOrder)
+    public function printPackagingSlip(Request $request, string $packagingOrder)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
 
+        $packagingOrderId = (int) dec($packagingOrder);
         $packagingOrder = PackagingOrder::with([
             'customer',
             'items.saleOrderItem.saleOrder',
             'items.packagingType',
             'items.rollAllocations',
-        ])->where('company_id', $context->companyId())->where('status', 'Active')->findOrFail($packagingOrder);
+        ])->where('company_id', $context->companyId())->where('status', 'Active')->findOrFail($packagingOrderId);
         $company = Company::whereKey($context->companyId())->firstOrFail();
         $lotTotals = $packagingOrder->items->flatMap(fn (PackagingOrderItem $item) => $item->rollAllocations)
             ->groupBy(fn (PackagingRollAllocation $allocation) => $allocation->dyeing_lot_number ?: 'Unspecified')
@@ -607,8 +671,9 @@ class PackagingController extends Controller
         return view('frontend.packaging.print', compact('packagingOrder', 'company', 'lotTotals'));
     }
 
-    public function acceptPackagingWarehouseStock(Request $request, int $packagingOrder)
+    public function acceptPackagingWarehouseStock(Request $request, string $packagingOrder)
     {
+        $packagingOrderId = (int) dec($packagingOrder);
         DB::beginTransaction();
         try {
             $context = $request->attributes->get(CurrentOrganizationContext::class);
@@ -616,7 +681,7 @@ class PackagingController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
-            $packagingOrder = PackagingOrder::where('company_id', $companyId)->where('status', 'Active')->whereKey($packagingOrder)->lockForUpdate()->first();
+            $packagingOrder = PackagingOrder::where('company_id', $companyId)->where('status', 'Active')->whereKey($packagingOrderId)->lockForUpdate()->first();
             if (! $packagingOrder || $packagingOrder->packaging_status !== 'draft') {
                 throw new \Exception('Only a draft packaging order can be accepted once.');
             }
@@ -762,7 +827,7 @@ class PackagingController extends Controller
             Session::put('message', 'Packaging order accepted and physical warehouse stock issued.');
             Session::put('messageClass', 'successClass');
 
-            return redirect()->route('packaging.show-order-details', $packagingOrder->id);
+            return redirect()->route('packaging.show-order-details', enc($packagingOrder->id));
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
@@ -773,16 +838,25 @@ class PackagingController extends Controller
         }
     }
 
-    public function updatePackagingPackedQuantity(Request $request, int $packagingOrder)
+    public function updatePackagingPackedQuantity(Request $request, string $packagingOrder)
     {
         $validator = Validator::make($request->all(), [
             'packaging_roll_allocation_ids' => 'required|array|min:1',
-            'packaging_roll_allocation_ids.*' => 'required|integer|distinct',
+            'packaging_roll_allocation_ids.*' => 'required|string|distinct',
             'packed_quantities' => 'required|array|min:1',
             'packed_quantities.*' => 'required|numeric|gt:0',
         ]);
         if ($validator->fails()) {
             Session::put('message', $validator->errors()->first());
+            Session::put('messageClass', 'errorClass');
+
+            return back()->withInput();
+        }
+
+        $packagingOrderId = (int) dec($packagingOrder);
+        $allocationIds = array_map(fn ($id) => (int) dec((string) $id), array_values($request->packaging_roll_allocation_ids));
+        if (count($allocationIds) !== count(array_unique($allocationIds))) {
+            Session::put('message', 'Packaging allocations must be unique.');
             Session::put('messageClass', 'errorClass');
 
             return back()->withInput();
@@ -795,12 +869,11 @@ class PackagingController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
-            $allocationIds = array_map('intval', array_values($request->packaging_roll_allocation_ids));
             $packedQuantities = array_map(fn ($quantity) => round((float) $quantity, 2), array_values($request->packed_quantities));
             if (count($allocationIds) !== count($packedQuantities)) {
                 throw new \Exception('Each selected allocation must have one packed quantity.');
             }
-            $packagingOrder = PackagingOrder::where('company_id', $companyId)->where('status', 'Active')->whereKey($packagingOrder)->lockForUpdate()->first();
+            $packagingOrder = PackagingOrder::where('company_id', $companyId)->where('status', 'Active')->whereKey($packagingOrderId)->lockForUpdate()->first();
             if (! $packagingOrder || ! in_array($packagingOrder->packaging_status, ['accepted', 'packed'], true)) {
                 throw new \Exception('Only an accepted packaging order can be packed.');
             }
@@ -857,7 +930,7 @@ class PackagingController extends Controller
             Session::put('message', 'Packaging quantity updated. No sales delivery quantity has been changed.');
             Session::put('messageClass', 'successClass');
 
-            return redirect()->route('packaging.show-order-details', $packagingOrder->id);
+            return redirect()->route('packaging.show-order-details', enc($packagingOrder->id));
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
@@ -868,7 +941,7 @@ class PackagingController extends Controller
         }
     }
 
-    public function cancelPackagingOrderAndRestoreStock(Request $request, int $packagingOrder)
+    public function cancelPackagingOrderAndRestoreStock(Request $request, string $packagingOrder)
     {
         $validator = Validator::make($request->all(), ['reversal_reason' => 'required|string|max:1000']);
         if ($validator->fails()) {
@@ -878,6 +951,7 @@ class PackagingController extends Controller
             return back()->withInput();
         }
 
+        $packagingOrderId = (int) dec($packagingOrder);
         DB::beginTransaction();
         try {
             $context = $request->attributes->get(CurrentOrganizationContext::class);
@@ -885,7 +959,7 @@ class PackagingController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
-            $packagingOrder = PackagingOrder::where('company_id', $companyId)->where('status', 'Active')->whereKey($packagingOrder)->lockForUpdate()->first();
+            $packagingOrder = PackagingOrder::where('company_id', $companyId)->where('status', 'Active')->whereKey($packagingOrderId)->lockForUpdate()->first();
             if (! $packagingOrder || ! in_array($packagingOrder->packaging_status, ['draft', 'accepted', 'packed'], true) || (float) $packagingOrder->dispatched_quantity > 0) {
                 throw new \Exception('Only an undispatched packaging order can be safely cancelled or unpacked.');
             }

@@ -19,7 +19,7 @@ class SalesChallanFlowContractTest extends TestCase
         $this->assertStringContainsString("'pending_item_mtr'", $source);
         $this->assertStringContainsString("'status' => 'Cancelled'", $source);
         $this->assertStringContainsString("'financial_year_id' => \$financialYear->id", $source);
-        $this->assertStringContainsString("where('financial_year_id', (int) \$request->financial_year_id)", $source);
+        $this->assertStringContainsString("where('financial_year_id', (int) dec((string) \$request->financial_year_id))", $source);
         $this->assertStringNotContainsString('WarehouseOutItem::create(', $source);
         $this->assertStringNotContainsString("'remaining_quantity' => max(0, round((float) \$allocation->accepted_quantity - (float) \$allocation->packed_quantity, 2))", $source);
     }

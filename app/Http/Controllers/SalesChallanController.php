@@ -34,7 +34,7 @@ class SalesChallanController extends Controller
         $challans = SalesChallan::with('customer')->where('company_id', $context->companyId())->where('record_status', 'Active')
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
             ->when($request->filled('challan_number'), fn ($query) => $query->where('challan_number', 'like', '%'.trim($request->challan_number).'%'))
-            ->when($request->filled('financial_year_id'), fn ($query) => $query->where('financial_year_id', (int) $request->financial_year_id))
+            ->when($request->filled('financial_year_id'), fn ($query) => $query->where('financial_year_id', (int) dec((string) $request->financial_year_id)))
             ->orderByDesc('id')->paginate(config('app.pagination_limit'));
         $financialYears = FinancialYear::where('company_id', $context->companyId())->where('status', 'Active')
             ->orderByDesc('start_date')->get(['id', 'display_name']);
@@ -65,16 +65,22 @@ class SalesChallanController extends Controller
     public function store(Request $request, NumberSeriesService $numberSeries, FinancialYearResolver $financialYears, DepartmentAccessService $departmentAccess)
     {
         $validator = Validator::make($request->all(), [
-            'packaging_roll_allocation_ids' => 'required|array|min:1', 'packaging_roll_allocation_ids.*' => 'required|integer|distinct',
+            'packaging_roll_allocation_ids' => 'required|array|min:1', 'packaging_roll_allocation_ids.*' => 'required|string|distinct',
             'dispatch_quantities' => 'required|array|min:1', 'dispatch_quantities.*' => 'required|numeric|gt:0',
             'submission_key' => 'required|uuid', 'challan_date' => 'required|date', 'dispatch_date' => 'nullable|date',
-            'transporter_id' => 'nullable|integer', 'billing_address' => 'nullable|string', 'shipping_address' => 'nullable|string',
+            'transporter_id' => 'nullable|string', 'billing_address' => 'nullable|string', 'shipping_address' => 'nullable|string',
             'from_station' => 'nullable|string|max:100', 'to_station' => 'nullable|string|max:100', 'parcel_count' => 'nullable|integer|min:0',
             'lr_number' => 'nullable|string|max:100', 'lr_date' => 'nullable|date', 'vehicle_number' => 'nullable|string|max:50',
             'driver_name' => 'nullable|string|max:100', 'driver_contact' => 'nullable|string|max:25', 'remarks' => 'nullable|string|max:1000',
         ]);
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
+        }
+
+        $allocationIds = array_map(fn ($id) => (int) dec((string) $id), array_values($request->packaging_roll_allocation_ids));
+        $transporterId = $request->filled('transporter_id') ? (int) dec((string) $request->transporter_id) : null;
+        if (count($allocationIds) !== count(array_unique($allocationIds))) {
+            return back()->withInput()->with('message', 'Packaging allocations must be unique.')->with('messageClass', 'errorClass');
         }
 
         DB::beginTransaction();
@@ -91,7 +97,6 @@ class SalesChallanController extends Controller
             if (SalesChallan::where('company_id', $companyId)->where('submission_key', $request->submission_key)->exists()) {
                 throw new \Exception('This dispatch submission was already recorded.');
             }
-            $allocationIds = array_map('intval', array_values($request->packaging_roll_allocation_ids));
             $quantities = array_map(fn ($quantity) => round((float) $quantity, 2), array_values($request->dispatch_quantities));
             if (count($allocationIds) !== count($quantities)) {
                 throw new \Exception('Each selected Roll/Taka requires an exact dispatch meter.');
@@ -122,7 +127,7 @@ class SalesChallanController extends Controller
             }
             $transporter = null;
             if ($request->filled('transporter_id')) {
-                $transporter = Individual::where('company_id', $companyId)->where('type', 'transport')->where('status', 'Active')->whereKey($request->transporter_id)->lockForUpdate()->first();
+                $transporter = Individual::where('company_id', $companyId)->where('type', 'transport')->where('status', 'Active')->whereKey($transporterId)->lockForUpdate()->first();
                 if (! $transporter) {
                     throw new \Exception('Selected transporter is unavailable.');
                 }
@@ -168,7 +173,7 @@ class SalesChallanController extends Controller
             }
             DB::commit();
 
-            return redirect()->route('sales-challans.show', $challan->id)->with('message', 'Sales Challan draft created. Post it to record customer dispatch.')->with('messageClass', 'successClass');
+            return redirect()->route('sales-challans.show', enc($challan->id))->with('message', 'Sales Challan draft created. Post it to record customer dispatch.')->with('messageClass', 'successClass');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -176,18 +181,20 @@ class SalesChallanController extends Controller
         }
     }
 
-    public function show(Request $request, int $salesChallan, DepartmentAccessService $departmentAccess)
+    public function show(Request $request, string $salesChallan, DepartmentAccessService $departmentAccess)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
-        $salesChallan = SalesChallan::with(['customer', 'items.rollAllocations'])->where('company_id', $context->companyId())->where('record_status', 'Active')->findOrFail($salesChallan);
+        $salesChallanId = (int) dec($salesChallan);
+        $salesChallan = SalesChallan::with(['customer', 'items.rollAllocations'])->where('company_id', $context->companyId())->where('record_status', 'Active')->findOrFail($salesChallanId);
         abort_unless($departmentAccess->mayAccess((int) $salesChallan->department_id), 403);
 
         return view('frontend.sales_challans.show', compact('salesChallan'));
     }
 
-    public function post(Request $request, int $salesChallan, DepartmentAccessService $departmentAccess)
+    public function post(Request $request, string $salesChallan, DepartmentAccessService $departmentAccess)
     {
+        $salesChallanId = (int) dec($salesChallan);
         DB::beginTransaction();
         try {
             $context = $request->attributes->get(CurrentOrganizationContext::class);
@@ -195,7 +202,7 @@ class SalesChallanController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
-            $challan = SalesChallan::where('company_id', $companyId)->where('record_status', 'Active')->whereKey($salesChallan)->lockForUpdate()->first();
+            $challan = SalesChallan::where('company_id', $companyId)->where('record_status', 'Active')->whereKey($salesChallanId)->lockForUpdate()->first();
             if (! $challan || $challan->status !== 'Draft') {
                 throw new \Exception('Only an unposted Sales Challan can be dispatched once.');
             }
@@ -249,7 +256,7 @@ class SalesChallanController extends Controller
             $challan->update(['status' => 'Posted', 'posted_by' => $user->individual_id ?? Auth::id() ?? null, 'posted_at' => now(), 'dispatch_date' => $challan->dispatch_date ?: now()->toDateString(), 'updated_at' => now()]);
             DB::commit();
 
-            return redirect()->route('sales-challans.show', $challan->id)->with('message', 'Customer Dispatch posted. Packaging stock was not issued again.')->with('messageClass', 'successClass');
+            return redirect()->route('sales-challans.show', enc($challan->id))->with('message', 'Customer Dispatch posted. Packaging stock was not issued again.')->with('messageClass', 'successClass');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -257,12 +264,13 @@ class SalesChallanController extends Controller
         }
     }
 
-    public function cancel(Request $request, int $salesChallan, DepartmentAccessService $departmentAccess)
+    public function cancel(Request $request, string $salesChallan, DepartmentAccessService $departmentAccess)
     {
         $validator = Validator::make($request->all(), ['cancellation_reason' => 'required|string|max:1000']);
         if ($validator->fails()) {
             return back()->withErrors($validator);
         }
+        $salesChallanId = (int) dec($salesChallan);
         DB::beginTransaction();
         try {
             $context = $request->attributes->get(CurrentOrganizationContext::class);
@@ -270,7 +278,7 @@ class SalesChallanController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
-            $challan = SalesChallan::where('company_id', $companyId)->where('record_status', 'Active')->whereKey($salesChallan)->lockForUpdate()->first();
+            $challan = SalesChallan::where('company_id', $companyId)->where('record_status', 'Active')->whereKey($salesChallanId)->lockForUpdate()->first();
             if (! $challan || $challan->status !== 'Posted') {
                 throw new \Exception('Only a posted Sales Challan can be cancelled once.');
             }
@@ -307,7 +315,7 @@ class SalesChallanController extends Controller
             $challan->update(['status' => 'Cancelled', 'cancelled_by' => $user->individual_id ?? Auth::id() ?? null, 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'updated_at' => now()]);
             DB::commit();
 
-            return redirect()->route('sales-challans.show', $challan->id)->with('message', 'Sales Challan cancelled; Packaging dispatch availability and Sale Order pending meter were restored. Warehouse stock was not restored.')->with('messageClass', 'successClass');
+            return redirect()->route('sales-challans.show', enc($challan->id))->with('message', 'Sales Challan cancelled; Packaging dispatch availability and Sale Order pending meter were restored. Warehouse stock was not restored.')->with('messageClass', 'successClass');
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -315,11 +323,12 @@ class SalesChallanController extends Controller
         }
     }
 
-    public function print(Request $request, int $salesChallan, DepartmentAccessService $departmentAccess)
+    public function print(Request $request, string $salesChallan, DepartmentAccessService $departmentAccess)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
-        $salesChallan = SalesChallan::with('items.rollAllocations')->where('company_id', $context->companyId())->where('record_status', 'Active')->findOrFail($salesChallan);
+        $salesChallanId = (int) dec($salesChallan);
+        $salesChallan = SalesChallan::with('items.rollAllocations')->where('company_id', $context->companyId())->where('record_status', 'Active')->findOrFail($salesChallanId);
         abort_unless($departmentAccess->mayAccess((int) $salesChallan->department_id), 403);
         $company = Company::whereKey($context->companyId())->firstOrFail();
         $lotTotals = $salesChallan->items->flatMap(fn (SalesChallanItem $item) => $item->rollAllocations)
@@ -329,15 +338,16 @@ class SalesChallanController extends Controller
         return view('frontend.sales_challans.print', compact('salesChallan', 'company', 'lotTotals'));
     }
 
-    public function incrementPrint(Request $request, int $salesChallan, DepartmentAccessService $departmentAccess)
+    public function incrementPrint(Request $request, string $salesChallan, DepartmentAccessService $departmentAccess)
     {
+        $salesChallanId = (int) dec($salesChallan);
         DB::beginTransaction();
         try {
             $context = $request->attributes->get(CurrentOrganizationContext::class);
             if (! $context instanceof CurrentOrganizationContext) {
                 throw new \Exception('An active organization context is required.');
             }
-            $challan = SalesChallan::where('company_id', $context->companyId())->where('record_status', 'Active')->whereKey($salesChallan)->lockForUpdate()->firstOrFail();
+            $challan = SalesChallan::where('company_id', $context->companyId())->where('record_status', 'Active')->whereKey($salesChallanId)->lockForUpdate()->firstOrFail();
             if (! $departmentAccess->mayAccess((int) $challan->department_id)) {
                 throw new \Exception('Packaging department dispatch access is required.');
             }

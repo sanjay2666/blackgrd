@@ -32,8 +32,8 @@ class FinancialYearOperationalTransactionsContractTest extends TestCase
 
         $this->assertStringContainsString('$financialYears->current($companyId)', $packaging);
         $this->assertStringContainsString("'financial_year_id' => \$financialYear->id", $packaging);
-        $this->assertStringContainsString("where('financial_year_id', (int) \$request->financial_year_id)", $packaging);
+        $this->assertStringContainsString("where('financial_year_id', (int) dec((string) \$request->financial_year_id))", $packaging);
         $this->assertStringContainsString("'financial_year_id' => \$financialYear->id", $challans);
-        $this->assertStringContainsString("where('financial_year_id', (int) \$request->financial_year_id)", $challans);
+        $this->assertStringContainsString("where('financial_year_id', (int) dec((string) \$request->financial_year_id))", $challans);
     }
 }

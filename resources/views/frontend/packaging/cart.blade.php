@@ -10,7 +10,7 @@
             <form method="post" action="{{ route('packaging.store-packaging-order') }}" id="packaging-cart-form">
                 @csrf
                 <input type="hidden" name="packaging_mode" value="{{ $packagingMode }}">
-                @foreach ($saleOrderItems as $saleOrderItem)<input type="hidden" name="sale_order_item_ids[]" value="{{ $saleOrderItem->id }}">@endforeach
+                @foreach ($saleOrderItems as $saleOrderItem)<input type="hidden" name="sale_order_item_ids[]" value="{{ enc($saleOrderItem->id) }}">@endforeach
                 <div class="row">
                     <div class="col-md-3">
                         <div class="panel panel-bd lobidrag">
@@ -33,15 +33,16 @@
                         <div class="panel panel-bd lobidrag">
                             <div class="panel-heading"><h4>Available Lot / Roll / Taka Stock</h4></div>
                             <div class="panel-body">
-                                <div class="row" style="margin-bottom:12px"><div class="col-sm-12"><label>Warehouse filter</label><select class="form-control input-sm" id="warehouse-filter"><option value="">All matching warehouses</option>@foreach ($warehouses as $warehouse)<option value="{{ $warehouse->id }}" @selected((int) $warehouseId === (int) $warehouse->id)>{{ $warehouse->warehouse_name }}</option>@endforeach</select></div></div>
+                                <div class="row" style="margin-bottom:12px"><div class="col-sm-12"><label>Warehouse filter</label><select class="form-control input-sm" id="warehouse-filter"><option value="">All matching warehouses</option>@foreach ($warehouses as $warehouse)<option value="{{ enc($warehouse->id) }}" @selected((int) $warehouseId === (int) $warehouse->id)>{{ $warehouse->warehouse_name }}</option>@endforeach</select></div></div>
                                 <p class="text-muted">{{ ucfirst($packagingMode) }} mode. Roll/Taka can be partially packed; a Roll cannot be used twice in this cart.</p>
                                 @forelse ($saleOrderItems as $saleOrderItem)
-                                    <div class="panel panel-default packaging-source-group" data-sale-order-item="{{ $saleOrderItem->id }}"><div class="panel-heading"><strong>{{ $saleOrderItem->saleOrder->sale_order_number }} — {{ $saleOrderItem->item->item_name ?? $saleOrderItem->item_name }}</strong></div><div class="panel-body" style="padding:8px">
+                                    @php($encryptedSaleOrderItemId = enc($saleOrderItem->id))
+                                    <div class="panel panel-default packaging-source-group" data-sale-order-item="{{ $encryptedSaleOrderItemId }}"><div class="panel-heading"><strong>{{ $saleOrderItem->saleOrder->sale_order_number }} — {{ $saleOrderItem->item->item_name ?? $saleOrderItem->item_name }}</strong></div><div class="panel-body" style="padding:8px">
                                         @forelse (($stockGroups->get($saleOrderItem->id, collect())) as $lotNumber => $lotStocks)
-                                            <h5 style="margin:8px 0">Lot: {{ $lotNumber }} <span class="lot-running-total text-muted" data-lot="{{ $saleOrderItem->id }}-{{ $lotNumber }}">0.00 Mtr</span></h5>
+                                            <h5 style="margin:8px 0">Lot: {{ $lotNumber }} <span class="lot-running-total text-muted" data-lot="{{ $encryptedSaleOrderItemId }}-{{ $lotNumber }}">0.00 Mtr</span></h5>
                                             <div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr class="info"><th>Add</th><th>Warehouse</th><th>Roll</th><th>Taka</th><th>Available</th><th>Pack Meter</th></tr></thead><tbody>
                                             @foreach ($lotStocks as $stock)
-                                                <tr class="stock-row" data-warehouse="{{ $stock->warehouse_id }}" data-stock="{{ $stock->id }}" data-source="{{ $saleOrderItem->id }}" data-lot="{{ $lotNumber }}" data-roll="{{ $stock->packet_number ?: 'ROL-'.$stock->id }}" data-taka="{{ $stock->insp_taka_number ?: '-' }}" data-available="{{ $stock->packaging_available_quantity }}">
+                                                <tr class="stock-row" data-warehouse="{{ enc($stock->warehouse_id) }}" data-stock="{{ enc($stock->id) }}" data-source="{{ $encryptedSaleOrderItemId }}" data-lot="{{ $lotNumber }}" data-roll="{{ $stock->packet_number ?: 'ROL-'.$stock->id }}" data-taka="{{ $stock->insp_taka_number ?: '-' }}" data-available="{{ $stock->packaging_available_quantity }}">
                                                     <td><input type="checkbox" class="add-roll"></td><td>{{ $stock->Warehouse->warehouse_name ?? '-' }}<br><small>{{ $stock->WarehouseCompartment->warehouse_compartment_name ?? '' }}</small></td><td>{{ $stock->packet_number ?: 'ROL-'.$stock->id }}</td><td>{{ $stock->insp_taka_number ?: '-' }}</td><td class="available-meter">{{ number_format((float) $stock->packaging_available_quantity, 2) }}</td><td><input class="form-control input-sm pack-meter" type="number" min="0.01" max="{{ $stock->packaging_available_quantity }}" step="0.01" disabled></td>
                                                 </tr>
                                             @endforeach
@@ -61,7 +62,7 @@
                             <div class="panel-heading"><h4>Packaging Cart</h4></div>
                             <div class="panel-body">
                                 <p><strong>Customer:</strong> {{ $customer->name ?? $customer->individual_name ?? '-' }}<br><strong>Mode:</strong> {{ ucfirst($packagingMode) }}</p>
-                                <div class="form-group"><label>Packaging Type</label><select class="form-control input-sm" name="packaging_type_id" required><option value="">Select</option>@foreach ($packagingTypes as $type)<option value="{{ $type->id }}">{{ $type->name }}</option>@endforeach</select></div>
+                                <div class="form-group"><label>Packaging Type</label><select class="form-control input-sm" name="packaging_type_id" required><option value="">Select</option>@foreach ($packagingTypes as $type)<option value="{{ enc($type->id) }}">{{ $type->name }}</option>@endforeach</select></div>
                                 <div class="form-group"><label>Parcels</label><input class="form-control input-sm" type="number" name="parcel_count" min="1"></div>
                                 <div class="form-group"><label>Remarks</label><textarea class="form-control input-sm" name="remarks" maxlength="1000" rows="2"></textarea></div>
                                 <div id="cart-lines" style="max-height:330px;overflow:auto"><p class="text-muted">No Roll/Taka added.</p></div>

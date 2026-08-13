@@ -10,7 +10,7 @@
                 <div class="col-sm-12">
                     {!! display_message('message') !!}
                     <div class="panel panel-bd lobidrag">
-                        <div class="panel-heading"><div class="btn-group"><a href="{{ route('packaging.show-packaged-orders') }}"><h4>Packaging Order PKG-{{ $packagingOrder->id }}</h4></a></div><a class="btn btn-default btn-xs pull-right" target="_blank" href="{{ route('packaging.print-packaging-slip', $packagingOrder->id) }}"><i class="fa fa-print"></i> Print Slip</a><a class="btn btn-default btn-xs pull-right" style="margin-right:5px" href="{{ route('packaging.show-available-orders') }}">Packaging Available</a>@if(in_array($packagingOrder->packaging_status, ['packed', 'dispatched']) && $packagingOrder->dispatchable_quantity > 0)<a class="btn btn-success btn-xs pull-right" style="margin-right:5px" href="{{ route('sales-challans.create') }}">Sales Challan</a>@endif</div>
+                        <div class="panel-heading"><div class="btn-group"><a href="{{ route('packaging.show-packaged-orders') }}"><h4>Packaging Order PKG-{{ $packagingOrder->id }}</h4></a></div><a class="btn btn-default btn-xs pull-right" target="_blank" href="{{ route('packaging.print-packaging-slip', enc($packagingOrder->id)) }}"><i class="fa fa-print"></i> Print Slip</a><a class="btn btn-default btn-xs pull-right" style="margin-right:5px" href="{{ route('packaging.show-available-orders') }}">Packaging Available</a>@if(in_array($packagingOrder->packaging_status, ['packed', 'dispatched']) && $packagingOrder->dispatchable_quantity > 0)<a class="btn btn-success btn-xs pull-right" style="margin-right:5px" href="{{ route('sales-challans.create') }}">Sales Challan</a>@endif</div>
                         <div class="panel-body">
                             <div class="row">
                                 <div class="col-sm-2"><strong>Customer:</strong> {{ $packagingOrder->customer->name ?? $packagingOrder->customer->individual_name ?? '-' }}</div>
@@ -41,7 +41,7 @@
                                                     <td>{{ number_format((float) $allocation->packed_quantity, 2) }}</td>
                                                     <td>{{ number_format((float) $allocation->dispatched_quantity, 2) }}</td>
                                                     <td>{{ number_format((float) $allocation->remaining_quantity, 2) }}</td>
-                                                    <td>{{ $allocation->warehouse_out_item_id ?: '-' }}</td>
+                                                    <td>{{ $allocation->warehouse_out_item_id ? 'Issued' : '-' }}</td>
                                                     <td>{{ ucfirst($allocation->allocation_status) }}</td>
                                                 </tr>
                                             @endforeach
@@ -50,7 +50,7 @@
                                 </div>
                             @endforeach
                             @if ($packagingOrder->packaging_status === 'draft')
-                                <form method="post" action="{{ route('packaging.accept-warehouse-stock', $packagingOrder->id) }}" class="form-inline">
+                                <form method="post" action="{{ route('packaging.accept-warehouse-stock', enc($packagingOrder->id)) }}" class="form-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-success">Accept and Issue Warehouse Stock</button>
                                 </form>
@@ -58,7 +58,7 @@
                             @if (in_array($packagingOrder->packaging_status, ['accepted', 'packed']))
                                 <hr>
                                 <h4 id="pack-quantity">Record Packed Quantity</h4>
-                                <form method="post" action="{{ route('packaging.update-packed-quantity', $packagingOrder->id) }}" class="packaging-action-form">
+                                <form method="post" action="{{ route('packaging.update-packed-quantity', enc($packagingOrder->id)) }}" class="packaging-action-form">
                                     @csrf
                                     <div class="table-responsive"><table class="table table-bordered"><thead><tr class="info"><th>Roll / Taka</th><th>Available to Pack</th><th>Pack Now</th></tr></thead><tbody>
                                         @foreach ($packagingOrder->items as $item)
@@ -68,7 +68,7 @@
                                                     <tr>
                                                         <td>{{ $allocation->packet_number ?: 'ROL-'.$allocation->warehouse_item_stock_id }} / {{ $allocation->insp_taka_number ?: '-' }}</td>
                                                         <td>{{ number_format($availableToPack, 2) }}</td>
-                                                        <td><input type="hidden" name="packaging_roll_allocation_ids[]" value="{{ $allocation->id }}"><input class="form-control" type="number" name="packed_quantities[]" min="0.01" max="{{ $availableToPack }}" step="0.01" required></td>
+                                                        <td><input type="hidden" name="packaging_roll_allocation_ids[]" value="{{ enc($allocation->id) }}"><input class="form-control" type="number" name="packed_quantities[]" min="0.01" max="{{ $availableToPack }}" step="0.01" required></td>
                                                     </tr>
                                                 @endif
                                             @endforeach
@@ -79,7 +79,7 @@
                             @endif
                             @if (in_array($packagingOrder->packaging_status, ['draft', 'accepted', 'packed']))
                                 <hr>
-                                <form method="post" action="{{ route('packaging.cancel-and-restore-stock', $packagingOrder->id) }}" class="form-inline packaging-action-form">
+                                <form method="post" action="{{ route('packaging.cancel-and-restore-stock', enc($packagingOrder->id)) }}" class="form-inline packaging-action-form">
                                     @csrf
                                     <label for="reversal_reason">Cancellation / unpack reason</label>
                                     <input class="form-control" id="reversal_reason" name="reversal_reason" maxlength="1000" required>

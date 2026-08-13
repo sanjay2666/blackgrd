@@ -35,17 +35,17 @@
         });
     }
 
-    bindPackagingAutocomplete('#packaging-customer-search', '#packaging-customer-id', '{{ route('list_customer') }}', function (item) {
+    bindPackagingAutocomplete('#packaging-customer-search', '#packaging-customer-id', '{{ route('packaging.customer-autocomplete') }}', function (item) {
         return item.name || item.company_name;
     }, function (item) {
         return item.id;
     });
-    bindPackagingAutocomplete('#packaging-item-search', '#packaging-item-id', '{{ route('list_item') }}', function (item) {
+    bindPackagingAutocomplete('#packaging-item-search', '#packaging-item-id', '{{ route('packaging.item-autocomplete') }}', function (item) {
         return item.item_name;
     }, function (item) {
         return item.item_id;
     });
-    bindPackagingAutocomplete('#packaging-sale-order-search', '#packaging-sale-order-id', '{{ route('find_saleOrderNumer') }}', function (item) {
+    bindPackagingAutocomplete('#packaging-sale-order-search', '#packaging-sale-order-id', '{{ route('packaging.sale-order-autocomplete') }}', function (item) {
         return item.sale_order_number;
     }, function (item) {
         return item.id;

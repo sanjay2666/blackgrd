@@ -15,14 +15,14 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString('public function showPackagedOrders(Request $request)', $controller);
         $this->assertStringContainsString('public function listPackagingLots(Request $request)', $controller);
         $this->assertStringContainsString('public function getPackagingAvailableStock(Request $request)', $controller);
-        $this->assertStringContainsString('public function openPackagingCartForSaleOrderItem(Request $request, int $saleOrderItem)', $controller);
+        $this->assertStringContainsString('public function openPackagingCartForSaleOrderItem(Request $request, string $saleOrderItem)', $controller);
         $this->assertStringContainsString('public function showPackagingOrderCart(Request $request)', $controller);
         $this->assertStringContainsString('public function storePackagingOrder(Request $request, FinancialYearResolver $financialYears)', $controller);
-        $this->assertStringContainsString('public function showPackagingOrderDetails(Request $request, int $packagingOrder)', $controller);
-        $this->assertStringContainsString('public function printPackagingSlip(Request $request, int $packagingOrder)', $controller);
-        $this->assertStringContainsString('public function acceptPackagingWarehouseStock(Request $request, int $packagingOrder)', $controller);
-        $this->assertStringContainsString('public function updatePackagingPackedQuantity(Request $request, int $packagingOrder)', $controller);
-        $this->assertStringContainsString('public function cancelPackagingOrderAndRestoreStock(Request $request, int $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function showPackagingOrderDetails(Request $request, string $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function printPackagingSlip(Request $request, string $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function acceptPackagingWarehouseStock(Request $request, string $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function updatePackagingPackedQuantity(Request $request, string $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function cancelPackagingOrderAndRestoreStock(Request $request, string $packagingOrder)', $controller);
         $this->assertStringContainsString("'allocation_status', 'proposed'", $controller);
         $this->assertStringContainsString("'available_quantity'", $controller);
         $this->assertStringContainsString("Route::get('/show-add-packaging-list'", $routes);
@@ -32,14 +32,14 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString("Route::get('/packaging/{packagingOrder}/print'", $routes);
         $this->assertStringContainsString("->name('packaging.get-available-stock')", $routes);
         $this->assertStringContainsString("->name('packaging.cancel-and-restore-stock')", $routes);
-        $this->assertStringContainsString("where('item_type_id', (int) \$request->item_type_id)", $controller);
+        $this->assertStringContainsString("where('item_type_id', (int) dec((string) \$request->item_type_id))", $controller);
         $this->assertStringContainsString("where('coating_type', 'like'", $controller);
         $this->assertStringContainsString("whereDate('expect_delivery_date'", $controller);
         $this->assertStringContainsString("where('challan_number', 'like'", $controller);
         $this->assertStringContainsString("where('packaging_mode', \$request->packaging_mode)", $controller);
         $this->assertStringContainsString("where('is_work_completed', 1)", $controller);
         $this->assertStringContainsString("where('is_work_final_completed', '0')", $controller);
-        $this->assertStringContainsString("where('financial_year_id', (int) \$request->financial_year_id)", $controller);
+        $this->assertStringContainsString("where('financial_year_id', (int) dec((string) \$request->financial_year_id))", $controller);
         $this->assertStringContainsString("'financial_year_id' => \$financialYear->id", $controller);
         $this->assertStringContainsString('taka_count', $controller);
     }
@@ -77,9 +77,9 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString('Reset', $history);
         $this->assertStringContainsString('minLength: 2', $filters);
         $this->assertStringContainsString(".on('input'", $filters);
-        $this->assertStringContainsString("route('list_customer')", $filters);
-        $this->assertStringContainsString("route('list_item')", $filters);
-        $this->assertStringContainsString("route('find_saleOrderNumer')", $filters);
+        $this->assertStringContainsString("route('packaging.customer-autocomplete')", $filters);
+        $this->assertStringContainsString("route('packaging.item-autocomplete')", $filters);
+        $this->assertStringContainsString("route('packaging.sale-order-autocomplete')", $filters);
         $this->assertStringContainsString('sales-challans.create', $history);
         $this->assertStringContainsString('Print Slip', $history);
         $this->assertStringContainsString('available-stock', $cart);
@@ -90,5 +90,8 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString('Lot-wise Total', $print);
         $this->assertStringContainsString('packet_number', $print);
         $this->assertStringContainsString('insp_taka_number', $print);
+        $this->assertStringContainsString('enc($saleOrderItem->id)', $available);
+        $this->assertStringContainsString('enc($stock->id)', $cart);
+        $this->assertStringContainsString('enc($allocation->id)', $detail);
     }
 }

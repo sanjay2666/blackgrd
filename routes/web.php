@@ -291,6 +291,9 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     Route::get('/show-packagings', [PackagingController::class, 'showPackagedOrders'])->name('packaging.show-packaged-orders');
     Route::get('/packaging', [PackagingController::class, 'showPackagingAvailableOrders'])->name('packaging.show-available-orders-legacy');
     Route::get('/packaging/lot-autocomplete', [PackagingController::class, 'listPackagingLots'])->name('packaging.lot-autocomplete');
+    Route::get('/packaging/customer-autocomplete', [PackagingController::class, 'listPackagingCustomers'])->name('packaging.customer-autocomplete');
+    Route::get('/packaging/item-autocomplete', [PackagingController::class, 'listPackagingItems'])->name('packaging.item-autocomplete');
+    Route::get('/packaging/sale-order-autocomplete', [PackagingController::class, 'listPackagingSaleOrders'])->name('packaging.sale-order-autocomplete');
     Route::get('/packaging/sale-order-items/{saleOrderItem}/create', [PackagingController::class, 'openPackagingCartForSaleOrderItem'])->name('packaging.open-cart-for-sale-order-item');
     Route::get('/packaging/cart', [PackagingController::class, 'showPackagingOrderCart'])->name('packaging.show-order-cart');
     Route::get('/packaging/available-stock', [PackagingController::class, 'getPackagingAvailableStock'])->name('packaging.get-available-stock');
