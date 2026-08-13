@@ -10,7 +10,7 @@
                 <div class="col-sm-12">
                     {!! display_message('message') !!}
                     <div class="panel panel-bd lobidrag">
-                        <div class="panel-heading"><div class="btn-group"><a href="{{ route('packaging.index') }}"><h4>Packaging Order PKG-{{ $packagingOrder->id }}</h4></a></div></div>
+                        <div class="panel-heading"><div class="btn-group"><a href="{{ route('packaging.show-packaged-orders') }}"><h4>Packaging Order PKG-{{ $packagingOrder->id }}</h4></a></div><a class="btn btn-default btn-xs pull-right" target="_blank" href="{{ route('packaging.print-packaging-slip', $packagingOrder->id) }}"><i class="fa fa-print"></i> Print Slip</a><a class="btn btn-default btn-xs pull-right" style="margin-right:5px" href="{{ route('packaging.show-available-orders') }}">Packaging Available</a>@if(in_array($packagingOrder->packaging_status, ['packed', 'dispatched']) && $packagingOrder->dispatchable_quantity > 0)<a class="btn btn-success btn-xs pull-right" style="margin-right:5px" href="{{ route('sales-challans.create') }}">Sales Challan</a>@endif</div>
                         <div class="panel-body">
                             <div class="row">
                                 <div class="col-sm-2"><strong>Customer:</strong> {{ $packagingOrder->customer->name ?? $packagingOrder->customer->individual_name ?? '-' }}</div>
@@ -50,15 +50,15 @@
                                 </div>
                             @endforeach
                             @if ($packagingOrder->packaging_status === 'draft')
-                                <form method="post" action="{{ route('packaging.accept', $packagingOrder->id) }}" class="form-inline">
+                                <form method="post" action="{{ route('packaging.accept-warehouse-stock', $packagingOrder->id) }}" class="form-inline">
                                     @csrf
                                     <button type="submit" class="btn btn-success">Accept and Issue Warehouse Stock</button>
                                 </form>
                             @endif
                             @if (in_array($packagingOrder->packaging_status, ['accepted', 'packed']))
                                 <hr>
-                                <h4>Record Packed Quantity</h4>
-                                <form method="post" action="{{ route('packaging.pack', $packagingOrder->id) }}">
+                                <h4 id="pack-quantity">Record Packed Quantity</h4>
+                                <form method="post" action="{{ route('packaging.update-packed-quantity', $packagingOrder->id) }}" class="packaging-action-form">
                                     @csrf
                                     <div class="table-responsive"><table class="table table-bordered"><thead><tr class="info"><th>Roll / Taka</th><th>Available to Pack</th><th>Pack Now</th></tr></thead><tbody>
                                         @foreach ($packagingOrder->items as $item)
@@ -79,14 +79,14 @@
                             @endif
                             @if (in_array($packagingOrder->packaging_status, ['draft', 'accepted', 'packed']))
                                 <hr>
-                                <form method="post" action="{{ route('packaging.reverse', $packagingOrder->id) }}" class="form-inline">
+                                <form method="post" action="{{ route('packaging.cancel-and-restore-stock', $packagingOrder->id) }}" class="form-inline packaging-action-form">
                                     @csrf
                                     <label for="reversal_reason">Cancellation / unpack reason</label>
                                     <input class="form-control" id="reversal_reason" name="reversal_reason" maxlength="1000" required>
                                     <button type="submit" class="btn btn-danger">Cancel / Return to Warehouse</button>
                                 </form>
                             @endif
-                            <p class="text-muted" style="margin-top:15px">Sales Challan, Transport and Invoice remain outside this module. No sale delivery quantity is changed here.</p>
+                            <p class="text-muted" style="margin-top:15px">Packaging issues stock only on Warehouse acceptance. Customer dispatch remains in Sales Challan and does not issue Warehouse stock again.</p>
                         </div>
                     </div>
                 </div>
@@ -96,5 +96,6 @@
     @include('frontend.common.footer')
 </div>
 @include('frontend.common.footerscript')
+<script>$(document).on('submit', '.packaging-action-form', function () { $(this).find('button[type="submit"]').prop('disabled', true).text('Processing...'); });</script>
 </body>
 </html>

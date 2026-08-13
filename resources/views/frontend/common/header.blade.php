@@ -31,7 +31,7 @@
 		 <a href="{{ route('dashboard') }}">Dashboard</a>
 	  </li>
 	   
-	  <li class="dropdown {{ request()->routeIs('sale-orders.*') || request()->routeIs('sales-challans.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
+	  <li class="dropdown {{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
 		 <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
 		   Sales <span class="caret"></span>
 		 </a>
@@ -40,6 +40,13 @@
             <li><a href="{{ route('sale-orders.create') }}">Add Sale Order</a></li>
             <li><a href="{{ route('show-saleorderitems') }}">Create Work Order</a></li>
             <li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+		 </ul>
+	  </li>
+	  <li class="dropdown {{ request()->routeIs('packaging.*') || request()->routeIs('sales-challans.*') ? 'active' : '' }}">
+		 <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">Packaging / Dispatch <span class="caret"></span></a>
+		 <ul class="dropdown-menu">
+            <li><a href="{{ route('packaging.show-available-orders') }}">Packaging Available</a></li>
+            <li><a href="{{ route('packaging.show-packaged-orders') }}">Packaged Orders</a></li>
             <li><a href="{{ route('sales-challans.index') }}">Sales Challans / Dispatch</a></li>
 		 </ul>
 	  </li>
@@ -183,13 +190,20 @@
    <ul>
       <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><a href="{{ route('dashboard') }}">Dashboard</a></li>
        
-      <li class="{{ request()->routeIs('sale-orders.*') || request()->routeIs('sales-challans.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
+      <li class="{{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
          <a href="javascript:void(0);" class="frontend-mobile-submenu-link">Sales <i class="fa fa-angle-down"></i></a>
          <ul>
             <li><a href="{{ route('sale-orders.index') }}">Sale Order List</a></li>
             <li><a href="{{ route('sale-orders.create') }}">Add Sale Order</a></li>
             <li><a href="{{ route('show-saleorderitems') }}">Create Work Order</a></li>
             <li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+         </ul>
+      </li>
+      <li class="{{ request()->routeIs('packaging.*') || request()->routeIs('sales-challans.*') ? 'active' : '' }}">
+         <a href="javascript:void(0);" class="frontend-mobile-submenu-link">Packaging / Dispatch <i class="fa fa-angle-down"></i></a>
+         <ul>
+            <li><a href="{{ route('packaging.show-available-orders') }}">Packaging Available</a></li>
+            <li><a href="{{ route('packaging.show-packaged-orders') }}">Packaged Orders</a></li>
             <li><a href="{{ route('sales-challans.index') }}">Sales Challans / Dispatch</a></li>
          </ul>
       </li>

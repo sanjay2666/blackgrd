@@ -22,6 +22,13 @@ One Packaging Order may contain multiple Sale Orders and Sale Order Items only w
 
 The cart uses `warehouse_item_stocks.insp_bal_quan_size` as the physical source and filters by company, item/type, colour, coating, print/extra job, active state, and optional warehouse. Proposed allocations reserve quantity; acceptance rechecks quantity under ordered locks.
 
+## Operational pages
+
+- **Packaging Available** (`/show-add-packaging-list`) is the paginated Sale Order Item worklist. It shows the actual required, allocated, packed and still-packable meter, and allows Bulk/Lot-wise or same-customer Sample multi-order selection.
+- **Packaging Cart** refreshes the selected item/Roll/Taka availability with the company-scoped `packaging/available-stock` AJAX endpoint when the warehouse filter changes. The server remains authoritative at save time and retains the locking and quantity checks.
+- **Packaged Orders** (`/show-packagings`) is the searchable Packaging Order history for customer, Packaging number, Sale Order, item, Lot, status and date range. It exposes detail, a print-safe packaging slip and the appropriate next operational action.
+- The Packaging Slip prints the exact Sale Order, item/quality/shade/coating, dispatch/tube width, packaging type, Lot, Roll, Taka, allocated and packed meter, plus Lot-wise totals. It has no business mutation.
+
 ## State and stock movement
 
 Proposal changes only Packaging records. It never changes Sale Order delivered or pending meter.
@@ -34,11 +41,11 @@ Draft allocation
       -> warehouse_balance_items snapshot updates
       -> warehouse_out_items link is created
   -> Pack quantity
-  -> Future Sales Challan / Transport / Dispatch
+  -> Sales Challan / Transport / Dispatch
 ```
 
 Cancellation/reversal retains Packaging and Warehouse OUT history, restores WIS and Warehouse balances, and rejects already cancelled/dispatched orders. `production_genealogy_links` and existing Roll/Taka identities are never recreated or changed.
 
-## Future dispatch boundary
+## Dispatch boundary
 
-Sales Challan, transport/LR, dispatch and invoice are intentionally not implemented here. They can link through `packaging_orders`, `packaging_order_items`, and accepted `packaging_roll_allocations.warehouse_out_item_id`; only that future approved dispatch event may update Sale Order delivery quantities.
+Sales Challan is a separate module. It consumes only packed, undispatched Packaging Roll Allocations through `packaging_orders`, `packaging_order_items`, and `packaging_roll_allocations`; the Packaging pages link to its existing create screen when dispatchable meter exists. Sales Challan owns transport/LR, customer dispatch, delivery/pending quantity updates, cancellation/reversal and future invoice integration. Packaging acceptance remains the single Warehouse issue event, so customer dispatch does not issue Warehouse stock again.

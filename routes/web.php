@@ -287,14 +287,18 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     | Packaging
     |--------------------------------------------------------------------------
     */
-    Route::get('/packaging', [PackagingController::class, 'index'])->name('packaging.index');
-    Route::get('/packaging/sale-order-items/{saleOrderItem}/create', [PackagingController::class, 'create'])->name('packaging.create');
-    Route::get('/packaging/cart', [PackagingController::class, 'cart'])->name('packaging.cart');
-    Route::post('/packaging', [PackagingController::class, 'store'])->name('packaging.store');
-    Route::get('/packaging/{packagingOrder}', [PackagingController::class, 'show'])->name('packaging.show');
-    Route::post('/packaging/{packagingOrder}/accept', [PackagingController::class, 'accept'])->name('packaging.accept');
-    Route::post('/packaging/{packagingOrder}/pack', [PackagingController::class, 'pack'])->name('packaging.pack');
-    Route::post('/packaging/{packagingOrder}/reverse', [PackagingController::class, 'reverse'])->name('packaging.reverse');
+    Route::get('/show-add-packaging-list', [PackagingController::class, 'showPackagingAvailableOrders'])->name('packaging.show-available-orders');
+    Route::get('/show-packagings', [PackagingController::class, 'showPackagedOrders'])->name('packaging.show-packaged-orders');
+    Route::get('/packaging', [PackagingController::class, 'showPackagingAvailableOrders'])->name('packaging.show-available-orders-legacy');
+    Route::get('/packaging/sale-order-items/{saleOrderItem}/create', [PackagingController::class, 'openPackagingCartForSaleOrderItem'])->name('packaging.open-cart-for-sale-order-item');
+    Route::get('/packaging/cart', [PackagingController::class, 'showPackagingOrderCart'])->name('packaging.show-order-cart');
+    Route::get('/packaging/available-stock', [PackagingController::class, 'getPackagingAvailableStock'])->name('packaging.get-available-stock');
+    Route::post('/packaging', [PackagingController::class, 'storePackagingOrder'])->name('packaging.store-packaging-order');
+    Route::get('/packaging/{packagingOrder}', [PackagingController::class, 'showPackagingOrderDetails'])->name('packaging.show-order-details');
+    Route::get('/packaging/{packagingOrder}/print', [PackagingController::class, 'printPackagingSlip'])->name('packaging.print-packaging-slip');
+    Route::post('/packaging/{packagingOrder}/accept', [PackagingController::class, 'acceptPackagingWarehouseStock'])->name('packaging.accept-warehouse-stock');
+    Route::post('/packaging/{packagingOrder}/pack', [PackagingController::class, 'updatePackagingPackedQuantity'])->name('packaging.update-packed-quantity');
+    Route::post('/packaging/{packagingOrder}/reverse', [PackagingController::class, 'cancelPackagingOrderAndRestoreStock'])->name('packaging.cancel-and-restore-stock');
 
     /* Customer dispatch is deliberately separate from Packaging stock issue. */
     Route::get('/sales-challans', [SalesChallanController::class, 'index'])->name('sales-challans.index');

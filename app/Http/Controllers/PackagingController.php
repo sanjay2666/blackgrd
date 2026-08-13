@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Enums\InventoryAllocationStatus;
 use App\Enums\InventoryMovementStatus;
+use App\Models\Company;
+use App\Models\Individual;
 use App\Models\PackagingOrder;
 use App\Models\PackagingOrderItem;
 use App\Models\PackagingRollAllocation;
 use App\Models\PackagingType;
 use App\Models\SaleOrderItem;
-use App\Models\Individual;
 use App\Models\Warehouse;
 use App\Models\WarehouseBalanceItem;
 use App\Models\WarehouseItem;
@@ -17,6 +18,7 @@ use App\Models\WarehouseItemStock;
 use App\Models\WarehouseOutItem;
 use App\Services\CurrentOrganizationContext;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
@@ -24,7 +26,7 @@ use Illuminate\Support\Facades\Validator;
 
 class PackagingController extends Controller
 {
-    public function index(Request $request)
+    public function showPackagingAvailableOrders(Request $request)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
@@ -74,26 +76,139 @@ class PackagingController extends Controller
         if ($request->filled('packaging_state')) {
             $worklist = $worklist->where('packaging_state', $request->packaging_state)->values();
         }
-        $customers = Individual::where('company_id', $companyId)->where('status', 'Active')->orderBy('name')->get();
+        $perPage = (int) config('app.pagination_limit', 20);
+        $page = LengthAwarePaginator::resolveCurrentPage();
+        $worklist = new LengthAwarePaginator(
+            $worklist->forPage($page, $perPage)->values(),
+            $worklist->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+        $customers = Individual::where('company_id', $companyId)->where('type', 'customers')->where('status', 'Active')->orderBy('name')->get();
 
         return view('frontend.packaging.index', compact('worklist', 'packagingItems', 'customers'));
     }
 
-    public function create(Request $request, int $saleOrderItem)
+    public function showPackagedOrders(Request $request)
+    {
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+
+        $companyId = $context->companyId();
+        $query = PackagingOrder::with([
+            'customer',
+            'items.saleOrderItem.saleOrder',
+            'items.packagingType',
+            'items.rollAllocations',
+        ])->where('company_id', $companyId)->where('status', 'Active');
+        if ($request->filled('customer_id')) {
+            $query->where('customer_id', (int) $request->customer_id);
+        }
+        if ($request->filled('packaging_number')) {
+            $number = (int) preg_replace('/\D+/', '', (string) $request->packaging_number);
+            if ($number > 0) {
+                $query->whereKey($number);
+            }
+        }
+        if ($request->filled('sale_order')) {
+            $query->whereHas('items.saleOrderItem.saleOrder', fn ($saleOrder) => $saleOrder->where('sale_order_number', 'like', '%'.trim($request->sale_order).'%'));
+        }
+        if ($request->filled('item')) {
+            $query->whereHas('items', fn ($item) => $item->where('item_name', 'like', '%'.trim($request->item).'%'));
+        }
+        if ($request->filled('lot')) {
+            $query->whereHas('rollAllocations', fn ($allocation) => $allocation->where('dyeing_lot_number', 'like', '%'.trim($request->lot).'%'));
+        }
+        if ($request->filled('packaging_status')) {
+            $query->where('packaging_status', $request->packaging_status);
+        }
+        if ($request->filled('from_date')) {
+            $query->whereDate('created_at', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('created_at', '<=', $request->to_date);
+        }
+        $packagingOrders = $query->orderByDesc('id')->paginate(config('app.pagination_limit'));
+        $packagingOrders->getCollection()->transform(function (PackagingOrder $order) {
+            $order->sale_order_numbers = $order->items->map(fn (PackagingOrderItem $item) => $item->saleOrderItem?->saleOrder?->sale_order_number)->filter()->unique()->values();
+            $order->item_names = $order->items->pluck('item_name')->filter()->unique()->values();
+            $order->packaging_type_names = $order->items->map(fn (PackagingOrderItem $item) => $item->packagingType?->name)->filter()->unique()->values();
+            $order->dispatchable_quantity = round((float) $order->items->flatMap(fn (PackagingOrderItem $item) => $item->rollAllocations)
+                ->sum(fn (PackagingRollAllocation $allocation) => max(0, (float) $allocation->packed_quantity - (float) $allocation->dispatched_quantity)), 2);
+
+            return $order;
+        });
+        $customers = Individual::where('company_id', $companyId)->where('type', 'customers')->where('status', 'Active')->orderBy('name')->get();
+
+        return view('frontend.packaging.history', compact('packagingOrders', 'customers'));
+    }
+
+    public function getPackagingAvailableStock(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'sale_order_item_ids' => 'required|array|min:1',
+            'sale_order_item_ids.*' => 'required|integer|distinct',
+            'warehouse_id' => 'nullable|integer',
+        ]);
+        if ($validator->fails()) {
+            return response()->json(['message' => $validator->errors()->first()], 422);
+        }
+
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+        $companyId = $context->companyId();
+        $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
+        $saleOrderItems = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')->where('is_packaging_done', '1')
+            ->whereIn('id', $saleOrderItemIds)->get()->keyBy('id');
+        if ($saleOrderItems->count() !== count($saleOrderItemIds)) {
+            return response()->json(['message' => 'One or more Sale Order Items are no longer available for Packaging.'], 422);
+        }
+
+        $warehouseId = $request->filled('warehouse_id') ? (int) $request->warehouse_id : null;
+        $stocks = collect();
+        foreach ($saleOrderItems as $saleOrderItem) {
+            $matchedStocks = WarehouseItemStock::where('company_id', $companyId)->where('status', 'Active')->where('entry_type', 'IN')
+                ->where('item_id', $saleOrderItem->item_id)->where('item_type_id', $saleOrderItem->item_type_id)
+                ->where('dyeing_color', $saleOrderItem->dyeing_color)->where('coating_type', $saleOrderItem->coating_type)
+                ->where('print_job', $saleOrderItem->print_job)->where('extra_job', $saleOrderItem->extra_job)
+                ->where('insp_bal_quan_size', '>', 0)->when($warehouseId, fn ($query) => $query->where('warehouse_id', $warehouseId))
+                ->orderBy('warehouse_id')->orderBy('dyeing_lot_number')->orderBy('id')->get();
+            foreach ($matchedStocks as $stock) {
+                $stock->sale_order_item_id = $saleOrderItem->id;
+                $stocks->push($stock);
+            }
+        }
+        $reserved = PackagingRollAllocation::where('company_id', $companyId)->whereIn('warehouse_item_stock_id', $stocks->pluck('id')->unique())
+            ->where('status', 'Active')->where('allocation_status', 'proposed')->selectRaw('warehouse_item_stock_id, SUM(allocated_quantity) as reserved_quantity')
+            ->groupBy('warehouse_item_stock_id')->pluck('reserved_quantity', 'warehouse_item_stock_id');
+
+        return response()->json(['stocks' => $stocks->map(fn (WarehouseItemStock $stock) => [
+            'id' => $stock->id,
+            'sale_order_item_id' => $stock->sale_order_item_id,
+            'warehouse_id' => $stock->warehouse_id,
+            'dyeing_lot_number' => $stock->dyeing_lot_number,
+            'packet_number' => $stock->packet_number ?: 'ROL-'.$stock->id,
+            'insp_taka_number' => $stock->insp_taka_number,
+            'available_quantity' => max(0, round((float) $stock->insp_bal_quan_size - (float) ($reserved[$stock->id] ?? 0), 2)),
+        ])->filter(fn (array $stock) => $stock['available_quantity'] > 0)->values()]);
+    }
+
+    public function openPackagingCartForSaleOrderItem(Request $request, int $saleOrderItem)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
 
         SaleOrderItem::where('company_id', $context->companyId())->where('status', 'Active')->where('is_packaging_done', '1')->findOrFail($saleOrderItem);
 
-        return redirect()->route('packaging.cart', [
+        return redirect()->route('packaging.show-order-cart', [
             'sale_order_item_ids' => [$saleOrderItem],
             'packaging_mode' => $request->input('packaging_mode', 'bulk'),
             'warehouse_id' => $request->warehouse_id,
         ]);
     }
 
-    public function cart(Request $request)
+    public function showPackagingOrderCart(Request $request)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
@@ -108,7 +223,7 @@ class PackagingController extends Controller
             Session::put('message', $validator->errors()->first());
             Session::put('messageClass', 'errorClass');
 
-            return redirect()->route('packaging.index')->withInput();
+            return redirect()->route('packaging.show-available-orders')->withInput();
         }
 
         $companyId = $context->companyId();
@@ -121,14 +236,14 @@ class PackagingController extends Controller
             Session::put('message', 'One or more Sale Order Items are no longer available for Packaging.');
             Session::put('messageClass', 'errorClass');
 
-            return redirect()->route('packaging.index');
+            return redirect()->route('packaging.show-available-orders');
         }
         $customerIds = $saleOrderItems->map(fn (SaleOrderItem $item) => (int) ($item->saleOrder?->customer_id ?? 0))->filter()->unique()->values();
         if ($customerIds->count() !== 1 || $saleOrderItems->count() !== $saleOrderItems->filter(fn (SaleOrderItem $item) => (int) ($item->saleOrder?->customer_id ?? 0) > 0)->count()) {
             Session::put('message', 'One Packaging Order can contain Sale Order Items for one customer only.');
             Session::put('messageClass', 'errorClass');
 
-            return redirect()->route('packaging.index');
+            return redirect()->route('packaging.show-available-orders');
         }
         $existingItems = PackagingOrderItem::with('packagingOrder')->where('company_id', $companyId)
             ->whereIn('sale_order_item_id', $saleOrderItemIds)->where('status', 'Active')->get()->groupBy('sale_order_item_id');
@@ -170,7 +285,7 @@ class PackagingController extends Controller
         return view('frontend.packaging.cart', compact('saleOrderItems', 'stockGroups', 'customer', 'warehouses', 'warehouseId', 'packagingTypes', 'packagingMode'));
     }
 
-    public function store(Request $request)
+    public function storePackagingOrder(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'sale_order_item_ids' => 'required|array|min:1',
@@ -338,7 +453,7 @@ class PackagingController extends Controller
             Session::put('message', 'Packaging order created. Warehouse acceptance is required before stock is issued.');
             Session::put('messageClass', 'successClass');
 
-            return redirect()->route('packaging.show', $packagingOrder->id);
+            return redirect()->route('packaging.show-order-details', $packagingOrder->id);
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
@@ -349,7 +464,7 @@ class PackagingController extends Controller
         }
     }
 
-    public function show(Request $request, int $packagingOrder)
+    public function showPackagingOrderDetails(Request $request, int $packagingOrder)
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
@@ -362,12 +477,38 @@ class PackagingController extends Controller
             'items.rollAllocations.warehouseItemStock.Warehouse',
             'items.rollAllocations.warehouseItemStock.WarehouseCompartment',
             'items.rollAllocations.warehouseOutItem',
+            'rollAllocations',
         ])->where('company_id', $context->companyId())->where('status', 'Active')->findOrFail($packagingOrder);
+        $packagingOrder->dispatchable_quantity = round((float) $packagingOrder->rollAllocations
+            ->sum(fn (PackagingRollAllocation $allocation) => max(0, (float) $allocation->packed_quantity - (float) $allocation->dispatched_quantity)), 2);
 
         return view('frontend.packaging.show', compact('packagingOrder'));
     }
 
-    public function accept(Request $request, int $packagingOrder)
+    public function printPackagingSlip(Request $request, int $packagingOrder)
+    {
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+
+        $packagingOrder = PackagingOrder::with([
+            'customer',
+            'items.saleOrderItem.saleOrder',
+            'items.packagingType',
+            'items.rollAllocations',
+        ])->where('company_id', $context->companyId())->where('status', 'Active')->findOrFail($packagingOrder);
+        $company = Company::whereKey($context->companyId())->firstOrFail();
+        $lotTotals = $packagingOrder->items->flatMap(fn (PackagingOrderItem $item) => $item->rollAllocations)
+            ->groupBy(fn (PackagingRollAllocation $allocation) => $allocation->dyeing_lot_number ?: 'Unspecified')
+            ->map(fn ($allocations) => [
+                'roll_count' => $allocations->count(),
+                'allocated_quantity' => round((float) $allocations->sum('allocated_quantity'), 2),
+                'packed_quantity' => round((float) $allocations->sum('packed_quantity'), 2),
+            ]);
+
+        return view('frontend.packaging.print', compact('packagingOrder', 'company', 'lotTotals'));
+    }
+
+    public function acceptPackagingWarehouseStock(Request $request, int $packagingOrder)
     {
         DB::beginTransaction();
         try {
@@ -522,7 +663,7 @@ class PackagingController extends Controller
             Session::put('message', 'Packaging order accepted and physical warehouse stock issued.');
             Session::put('messageClass', 'successClass');
 
-            return redirect()->route('packaging.show', $packagingOrder->id);
+            return redirect()->route('packaging.show-order-details', $packagingOrder->id);
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
@@ -533,7 +674,7 @@ class PackagingController extends Controller
         }
     }
 
-    public function pack(Request $request, int $packagingOrder)
+    public function updatePackagingPackedQuantity(Request $request, int $packagingOrder)
     {
         $validator = Validator::make($request->all(), [
             'packaging_roll_allocation_ids' => 'required|array|min:1',
@@ -617,7 +758,7 @@ class PackagingController extends Controller
             Session::put('message', 'Packaging quantity updated. No sales delivery quantity has been changed.');
             Session::put('messageClass', 'successClass');
 
-            return redirect()->route('packaging.show', $packagingOrder->id);
+            return redirect()->route('packaging.show-order-details', $packagingOrder->id);
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);
@@ -628,7 +769,7 @@ class PackagingController extends Controller
         }
     }
 
-    public function reverse(Request $request, int $packagingOrder)
+    public function cancelPackagingOrderAndRestoreStock(Request $request, int $packagingOrder)
     {
         $validator = Validator::make($request->all(), ['reversal_reason' => 'required|string|max:1000']);
         if ($validator->fails()) {
@@ -796,7 +937,7 @@ class PackagingController extends Controller
             Session::put('message', 'Packaging order cancelled and every accepted Roll/Taka quantity returned to its original warehouse stock.');
             Session::put('messageClass', 'successClass');
 
-            return redirect()->route('packaging.index');
+            return redirect()->route('packaging.show-available-orders');
         } catch (\Exception $e) {
             DB::rollBack();
             report($e);

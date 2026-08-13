@@ -1,0 +1,56 @@
+<?php
+
+namespace Tests\Unit\Packaging;
+
+use Tests\TestCase;
+
+class PackagingOperationalPagesContractTest extends TestCase
+{
+    public function test_operational_list_history_print_and_stock_refresh_stay_in_packaging_controller(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/PackagingController.php'));
+        $routes = file_get_contents(base_path('routes/web.php'));
+
+        $this->assertStringContainsString('public function showPackagingAvailableOrders(Request $request)', $controller);
+        $this->assertStringContainsString('public function showPackagedOrders(Request $request)', $controller);
+        $this->assertStringContainsString('public function getPackagingAvailableStock(Request $request)', $controller);
+        $this->assertStringContainsString('public function openPackagingCartForSaleOrderItem(Request $request, int $saleOrderItem)', $controller);
+        $this->assertStringContainsString('public function showPackagingOrderCart(Request $request)', $controller);
+        $this->assertStringContainsString('public function storePackagingOrder(Request $request)', $controller);
+        $this->assertStringContainsString('public function showPackagingOrderDetails(Request $request, int $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function printPackagingSlip(Request $request, int $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function acceptPackagingWarehouseStock(Request $request, int $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function updatePackagingPackedQuantity(Request $request, int $packagingOrder)', $controller);
+        $this->assertStringContainsString('public function cancelPackagingOrderAndRestoreStock(Request $request, int $packagingOrder)', $controller);
+        $this->assertStringContainsString("'allocation_status', 'proposed'", $controller);
+        $this->assertStringContainsString("'available_quantity'", $controller);
+        $this->assertStringContainsString("Route::get('/show-add-packaging-list'", $routes);
+        $this->assertStringContainsString("Route::get('/show-packagings'", $routes);
+        $this->assertStringContainsString("Route::get('/packaging/available-stock'", $routes);
+        $this->assertStringContainsString("Route::get('/packaging/{packagingOrder}/print'", $routes);
+        $this->assertStringContainsString("->name('packaging.get-available-stock')", $routes);
+        $this->assertStringContainsString("->name('packaging.cancel-and-restore-stock')", $routes);
+    }
+
+    public function test_operational_pages_keep_bulk_sample_roll_identity_dispatch_link_and_duplicate_submit_protection(): void
+    {
+        $available = file_get_contents(resource_path('views/frontend/packaging/index.blade.php'));
+        $history = file_get_contents(resource_path('views/frontend/packaging/history.blade.php'));
+        $cart = file_get_contents(resource_path('views/frontend/packaging/cart.blade.php'));
+        $detail = file_get_contents(resource_path('views/frontend/packaging/show.blade.php'));
+        $print = file_get_contents(resource_path('views/frontend/packaging/print.blade.php'));
+
+        $this->assertStringContainsString('Sample multi-order', $available);
+        $this->assertStringContainsString('packaging_remaining_quantity', $available);
+        $this->assertStringContainsString('sales-challans.create', $history);
+        $this->assertStringContainsString('Print Slip', $history);
+        $this->assertStringContainsString('available-stock', $cart);
+        $this->assertStringContainsString('lot-running-total', $cart);
+        $this->assertStringContainsString("prop('disabled', true).text('Saving...')", $cart);
+        $this->assertStringContainsString('Sales Challan', $detail);
+        $this->assertStringContainsString('Cancel / Return to Warehouse', $detail);
+        $this->assertStringContainsString('Lot-wise Total', $print);
+        $this->assertStringContainsString('packet_number', $print);
+        $this->assertStringContainsString('insp_taka_number', $print);
+    }
+}

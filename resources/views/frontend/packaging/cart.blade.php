@@ -7,7 +7,7 @@
     <div class="content-wrapper">
         <section class="content">
             <div class="row"><div class="col-sm-12">{!! display_message('message') !!}</div></div>
-            <form method="post" action="{{ route('packaging.store') }}" id="packaging-cart-form">
+            <form method="post" action="{{ route('packaging.store-packaging-order') }}" id="packaging-cart-form">
                 @csrf
                 <input type="hidden" name="packaging_mode" value="{{ $packagingMode }}">
                 @foreach ($saleOrderItems as $saleOrderItem)<input type="hidden" name="sale_order_item_ids[]" value="{{ $saleOrderItem->id }}">@endforeach
@@ -25,7 +25,7 @@
                                         <strong>Still packable: {{ number_format((float) $saleOrderItem->packaging_remaining_quantity, 2) }}</strong>
                                     </div>
                                 @endforeach
-                                <a class="btn btn-default btn-sm" href="{{ route('packaging.index') }}">Change selection</a>
+                                <a class="btn btn-default btn-sm" href="{{ route('packaging.show-available-orders') }}">Change selection</a>
                             </div>
                         </div>
                     </div>
@@ -42,7 +42,7 @@
                                             <div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr class="info"><th>Add</th><th>Warehouse</th><th>Roll</th><th>Taka</th><th>Available</th><th>Pack Meter</th></tr></thead><tbody>
                                             @foreach ($lotStocks as $stock)
                                                 <tr class="stock-row" data-warehouse="{{ $stock->warehouse_id }}" data-stock="{{ $stock->id }}" data-source="{{ $saleOrderItem->id }}" data-lot="{{ $lotNumber }}" data-roll="{{ $stock->packet_number ?: 'ROL-'.$stock->id }}" data-taka="{{ $stock->insp_taka_number ?: '-' }}" data-available="{{ $stock->packaging_available_quantity }}">
-                                                    <td><input type="checkbox" class="add-roll"></td><td>{{ $stock->Warehouse->warehouse_name ?? '-' }}<br><small>{{ $stock->WarehouseCompartment->warehouse_compartment_name ?? '' }}</small></td><td>{{ $stock->packet_number ?: 'ROL-'.$stock->id }}</td><td>{{ $stock->insp_taka_number ?: '-' }}</td><td>{{ number_format((float) $stock->packaging_available_quantity, 2) }}</td><td><input class="form-control input-sm pack-meter" type="number" min="0.01" max="{{ $stock->packaging_available_quantity }}" step="0.01" disabled></td>
+                                                    <td><input type="checkbox" class="add-roll"></td><td>{{ $stock->Warehouse->warehouse_name ?? '-' }}<br><small>{{ $stock->WarehouseCompartment->warehouse_compartment_name ?? '' }}</small></td><td>{{ $stock->packet_number ?: 'ROL-'.$stock->id }}</td><td>{{ $stock->insp_taka_number ?: '-' }}</td><td class="available-meter">{{ number_format((float) $stock->packaging_available_quantity, 2) }}</td><td><input class="form-control input-sm pack-meter" type="number" min="0.01" max="{{ $stock->packaging_available_quantity }}" step="0.01" disabled></td>
                                                 </tr>
                                             @endforeach
                                             </tbody></table></div>
@@ -99,10 +99,26 @@
         var row = $(this).closest('.stock-row'), checked = row.find('.add-roll').is(':checked'), input = row.find('.pack-meter');
         input.prop('disabled', !checked); if (!checked) input.val(''); refreshCart();
     });
-    $('#warehouse-filter').on('change', function () { var warehouse = $(this).val(); $('.stock-row').each(function () { $(this).toggle(!warehouse || String($(this).data('warehouse')) === warehouse); }); });
+    function refreshAvailableStock() {
+        var warehouse = $('#warehouse-filter').val(), itemIds = $('input[name="sale_order_item_ids[]"]').map(function () { return $(this).val(); }).get();
+        $.ajax({ url: @json(route('packaging.get-available-stock')), type: 'GET', dataType: 'json', data: {sale_order_item_ids: itemIds, warehouse_id: warehouse} }).done(function (response) {
+            var availability = {};
+            $.each(response.stocks || [], function (_, stock) { availability[String(stock.sale_order_item_id) + '-' + String(stock.id)] = stock; });
+            $('.stock-row').each(function () {
+                var row = $(this), key = String(row.data('source')) + '-' + String(row.data('stock')), stock = availability[key], visible = !!stock && (!warehouse || String(row.data('warehouse')) === String(warehouse));
+                row.toggle(visible);
+                if (!stock) { row.find('.add-roll').prop('checked', false); row.find('.pack-meter').val('').prop('disabled', true); return; }
+                row.data('available', stock.available_quantity); row.find('.available-meter').text(Number(stock.available_quantity).toFixed(2)); row.find('.pack-meter').attr('max', stock.available_quantity);
+                if ((parseFloat(row.find('.pack-meter').val()) || 0) > stock.available_quantity) { row.find('.pack-meter').val(stock.available_quantity); }
+            });
+            refreshCart();
+        }).fail(function (xhr) { alert((xhr.responseJSON && xhr.responseJSON.message) || 'Current packaging stock could not be refreshed.'); });
+    }
+    $('#warehouse-filter').on('change', refreshAvailableStock);
     $('#packaging-cart-form').on('submit', function (event) {
         var invalid = false; $('.stock-row .add-roll:checked').each(function () { var row = $(this).closest('.stock-row'), meter = parseFloat(row.find('.pack-meter').val()) || 0, available = parseFloat(row.data('available')) || 0; if (meter <= 0 || meter > available) invalid = true; });
-        if (!$('.stock-row .add-roll:checked').length || invalid) { event.preventDefault(); alert('Add at least one Roll/Taka and enter a meter within its available quantity.'); }
+        if (!$('.stock-row .add-roll:checked').length || invalid) { event.preventDefault(); alert('Add at least one Roll/Taka and enter a meter within its available quantity.'); return; }
+        $(this).find('button[type="submit"]').prop('disabled', true).text('Saving...');
     });
 }(jQuery));
 </script>

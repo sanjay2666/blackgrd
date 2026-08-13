@@ -12,8 +12,8 @@ class PackagingFlowContractTest extends TestCase
 
         $this->assertStringContainsString("->where('is_packaging_done', '1')", $source);
         $this->assertStringContainsString("->where('insp_bal_quan_size', '>', 0)", $source);
-        $this->assertStringContainsString("Requested packaging quantity exceeds the sale-order item remaining quantity.", $source);
-        $this->assertStringContainsString("Requested packaging quantity exceeds available stock for Roll/Taka", $source);
+        $this->assertStringContainsString('Requested packaging quantity exceeds the sale-order item remaining quantity.', $source);
+        $this->assertStringContainsString('Requested packaging quantity exceeds available stock for Roll/Taka', $source);
         $this->assertStringContainsString('\'packet_number\' => $stock->packet_number', $source);
         $this->assertStringContainsString('\'insp_taka_number\' => $stock->insp_taka_number', $source);
         $this->assertStringContainsString('lockForUpdate()', $source);
@@ -51,7 +51,7 @@ class PackagingFlowContractTest extends TestCase
         $cart = file_get_contents(resource_path('views/frontend/packaging/cart.blade.php'));
         $worklist = file_get_contents(resource_path('views/frontend/packaging/index.blade.php'));
 
-        $this->assertStringContainsString('public function cart(Request $request)', $controller);
+        $this->assertStringContainsString('public function showPackagingOrderCart(Request $request)', $controller);
         $this->assertStringContainsString("'packaging_mode' => 'nullable|in:bulk,sample'", $controller);
         $this->assertStringContainsString('One Packaging Order can contain Sale Order Items for one customer only.', $controller);
         $this->assertStringContainsString('Packaging Cart', $cart);
