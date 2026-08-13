@@ -288,6 +288,7 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     */
     Route::get('/packaging', [PackagingController::class, 'index'])->name('packaging.index');
     Route::get('/packaging/sale-order-items/{saleOrderItem}/create', [PackagingController::class, 'create'])->name('packaging.create');
+    Route::get('/packaging/cart', [PackagingController::class, 'cart'])->name('packaging.cart');
     Route::post('/packaging', [PackagingController::class, 'store'])->name('packaging.store');
     Route::get('/packaging/{packagingOrder}', [PackagingController::class, 'show'])->name('packaging.show');
     Route::post('/packaging/{packagingOrder}/accept', [PackagingController::class, 'accept'])->name('packaging.accept');

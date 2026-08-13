@@ -10,28 +10,32 @@
                 <div class="col-sm-12">
                     {!! display_message('message') !!}
                     <div class="panel panel-bd lobidrag">
-                        <div class="panel-heading"><div class="btn-group"><a href="{{ route('packaging.index') }}"><h4>Packaging Order #{{ $packagingOrder->id }}</h4></a></div></div>
+                        <div class="panel-heading"><div class="btn-group"><a href="{{ route('packaging.index') }}"><h4>Packaging Order PKG-{{ $packagingOrder->id }}</h4></a></div></div>
                         <div class="panel-body">
                             <div class="row">
-                                <div class="col-sm-3"><strong>Status:</strong> {{ ucfirst($packagingOrder->packaging_status) }}</div>
-                                <div class="col-sm-3"><strong>Allocated:</strong> {{ number_format((float) $packagingOrder->allocated_quantity, 2) }}</div>
-                                <div class="col-sm-2"><strong>Packed:</strong> {{ number_format((float) $packagingOrder->packed_quantity, 2) }}</div>
-                                <div class="col-sm-2"><strong>Dispatched:</strong> {{ number_format((float) $packagingOrder->dispatched_quantity, 2) }}</div>
+                                <div class="col-sm-2"><strong>Customer:</strong> {{ $packagingOrder->customer->name ?? $packagingOrder->customer->individual_name ?? '-' }}</div>
+                                <div class="col-sm-2"><strong>Mode:</strong> {{ ucfirst($packagingOrder->packaging_mode ?? 'bulk') }}</div>
+                                <div class="col-sm-2"><strong>Status:</strong> {{ ucfirst($packagingOrder->packaging_status) }}</div>
+                                <div class="col-sm-2"><strong>Parcels / Rolls / Lots:</strong> {{ $packagingOrder->parcel_count ?: '-' }} / {{ $packagingOrder->roll_count }} / {{ $packagingOrder->lot_count }}</div>
+                                <div class="col-sm-2"><strong>Allocated / Packed:</strong> {{ number_format((float) $packagingOrder->allocated_quantity, 2) }} / {{ number_format((float) $packagingOrder->packed_quantity, 2) }}</div>
                                 <div class="col-sm-2"><strong>Remaining:</strong> {{ number_format((float) $packagingOrder->remaining_quantity, 2) }}</div>
                             </div>
                             @if ($packagingOrder->remarks)<p class="text-muted" style="margin-top:10px">{{ $packagingOrder->remarks }}</p>@endif
                             <hr>
                             @foreach ($packagingOrder->items as $item)
-                                <h4>{{ $item->saleOrderItem->item->item_name ?? '-' }} <small>{{ $item->packagingType->name ?? '-' }}</small></h4>
+                                <h4>{{ $item->saleOrderItem->saleOrder->sale_order_number ?? '-' }} — {{ $item->item_name ?: ($item->saleOrderItem->item->item_name ?? '-') }} <small>{{ $item->packagingType->name ?? '-' }}</small></h4>
+                                <p class="text-muted">Quality: {{ $item->grey_quality ?: '-' }} | Shade: {{ $item->dyeing_color ?: '-' }} | Coating: {{ $item->coating_type ?: '-' }} | Final dispatch width: {{ $item->final_dispatch_width ?: '-' }} | Tube width: {{ $item->tube_width ?: '-' }} | {{ $item->lot_count }} Lot(s), {{ $item->roll_count }} Roll(s)</p>
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-striped">
-                                        <thead><tr class="info"><th>Warehouse</th><th>Roll</th><th>Taka</th><th>Allocated</th><th>Accepted</th><th>Packed</th><th>Dispatched</th><th>Remaining</th><th>Warehouse OUT</th><th>Status</th></tr></thead>
+                                        <thead><tr class="info"><th>Lot</th><th>Warehouse</th><th>Roll</th><th>Taka</th><th>Source Available</th><th>Allocated</th><th>Accepted</th><th>Packed</th><th>Dispatched</th><th>Remaining</th><th>Warehouse OUT</th><th>Status</th></tr></thead>
                                         <tbody>
                                             @foreach ($item->rollAllocations as $allocation)
                                                 <tr>
+                                                    <td>{{ $allocation->dyeing_lot_number ?: '-' }}</td>
                                                     <td>{{ $allocation->warehouseItemStock->Warehouse->warehouse_name ?? '-' }}</td>
                                                     <td>{{ $allocation->packet_number ?: 'ROL-'.$allocation->warehouse_item_stock_id }}</td>
                                                     <td>{{ $allocation->insp_taka_number ?: '-' }}</td>
+                                                    <td>{{ number_format((float) $allocation->source_available_quantity, 2) }}</td>
                                                     <td>{{ number_format((float) $allocation->allocated_quantity, 2) }}</td>
                                                     <td>{{ number_format((float) $allocation->accepted_quantity, 2) }}</td>
                                                     <td>{{ number_format((float) $allocation->packed_quantity, 2) }}</td>

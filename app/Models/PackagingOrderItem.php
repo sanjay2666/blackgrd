@@ -17,6 +17,15 @@ class PackagingOrderItem extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'allocated_quantity' => 'decimal:2',
+        'packed_quantity' => 'decimal:2',
+        'dispatched_quantity' => 'decimal:2',
+        'cancelled_quantity' => 'decimal:2',
+        'returned_quantity' => 'decimal:2',
+        'remaining_quantity' => 'decimal:2',
+    ];
+
     public function packagingOrder(): BelongsTo
     {
         return $this->belongsTo(PackagingOrder::class);

@@ -30,10 +30,13 @@ class PackagingSchemaIntegrationTest extends TestCase
         $this->assertTrue(Schema::hasTable('packaging_order_items'));
         $this->assertTrue(Schema::hasTable('packaging_roll_allocations'));
         $this->assertTrue(Schema::hasColumns('packaging_orders', [
-            'company_id', 'allocated_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity',
+            'company_id', 'packaging_mode', 'parcel_count', 'roll_count', 'lot_count', 'allocated_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity',
+        ]));
+        $this->assertTrue(Schema::hasColumns('packaging_order_items', [
+            'sale_order_id', 'sale_order_item_id', 'item_name', 'grey_quality', 'dyeing_color', 'coating_type', 'final_dispatch_width', 'tube_width', 'roll_count', 'lot_count',
         ]));
         $this->assertTrue(Schema::hasColumns('packaging_roll_allocations', [
-            'warehouse_item_stock_id', 'warehouse_out_item_id', 'allocated_quantity', 'accepted_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity', 'allocation_status',
+            'warehouse_item_stock_id', 'warehouse_out_item_id', 'warehouse_id', 'ware_comp_id', 'dyeing_lot_number', 'source_available_quantity', 'allocated_quantity', 'accepted_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity', 'allocation_status',
         ]));
     }
 
@@ -69,5 +72,29 @@ class PackagingSchemaIntegrationTest extends TestCase
 
         $this->expectException(QueryException::class);
         DB::table('packaging_roll_allocations')->insert($allocation);
+    }
+
+    public function test_one_customer_package_can_keep_multiple_sale_order_items_individually_traceable(): void
+    {
+        $suffix = random_int(100000, 999999);
+        $orderId = DB::table('packaging_orders')->insertGetId([
+            'company_id' => $suffix,
+            'customer_id' => $suffix,
+            'packaging_mode' => 'sample',
+            'parcel_count' => 1,
+            'roll_count' => 2,
+            'lot_count' => 2,
+            'packaging_status' => 'draft',
+            'allocated_quantity' => 35,
+            'remaining_quantity' => 35,
+            'status' => 'Active',
+        ]);
+        DB::table('packaging_order_items')->insert([
+            ['company_id' => $suffix, 'packaging_order_id' => $orderId, 'sale_order_id' => $suffix, 'sale_order_item_id' => $suffix, 'item_name' => 'Sample A', 'dyeing_color' => 'Blue', 'allocated_quantity' => 20, 'remaining_quantity' => 20, 'roll_count' => 1, 'lot_count' => 1, 'status' => 'Active'],
+            ['company_id' => $suffix, 'packaging_order_id' => $orderId, 'sale_order_id' => $suffix + 1, 'sale_order_item_id' => $suffix + 1, 'item_name' => 'Sample B', 'dyeing_color' => 'Red', 'allocated_quantity' => 15, 'remaining_quantity' => 15, 'roll_count' => 1, 'lot_count' => 1, 'status' => 'Active'],
+        ]);
+
+        $this->assertSame(2, DB::table('packaging_order_items')->where('packaging_order_id', $orderId)->count());
+        $this->assertSame(35.0, (float) DB::table('packaging_order_items')->where('packaging_order_id', $orderId)->sum('allocated_quantity'));
     }
 }

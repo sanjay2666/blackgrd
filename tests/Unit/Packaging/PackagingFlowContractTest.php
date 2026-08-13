@@ -17,6 +17,9 @@ class PackagingFlowContractTest extends TestCase
         $this->assertStringContainsString('\'packet_number\' => $stock->packet_number', $source);
         $this->assertStringContainsString('\'insp_taka_number\' => $stock->insp_taka_number', $source);
         $this->assertStringContainsString('lockForUpdate()', $source);
+        $this->assertStringContainsString('\'packaging_mode\' => $request->packaging_mode', $source);
+        $this->assertStringContainsString('Different customers cannot be combined in one Packaging Order.', $source);
+        $this->assertStringContainsString('\'dyeing_lot_number\' => $stock->dyeing_lot_number', $source);
     }
 
     public function test_warehouse_acceptance_and_reversal_keep_stock_movement_connected_and_non_negative(): void
@@ -40,5 +43,19 @@ class PackagingFlowContractTest extends TestCase
         $this->assertStringNotContainsString('delivered_item_mtr', $source);
         $this->assertStringNotContainsString('pending_item_mtr', $source);
         $this->assertStringNotContainsString('SalesChallan', $source);
+    }
+
+    public function test_bulk_and_sample_cart_remain_inside_the_packaging_controller_and_use_current_bootstrap_stack(): void
+    {
+        $controller = file_get_contents(app_path('Http/Controllers/PackagingController.php'));
+        $cart = file_get_contents(resource_path('views/frontend/packaging/cart.blade.php'));
+        $worklist = file_get_contents(resource_path('views/frontend/packaging/index.blade.php'));
+
+        $this->assertStringContainsString('public function cart(Request $request)', $controller);
+        $this->assertStringContainsString("'packaging_mode' => 'nullable|in:bulk,sample'", $controller);
+        $this->assertStringContainsString('One Packaging Order can contain Sale Order Items for one customer only.', $controller);
+        $this->assertStringContainsString('Packaging Cart', $cart);
+        $this->assertStringContainsString('lot-running-total', $cart);
+        $this->assertStringContainsString('Sample multi-order', $worklist);
     }
 }

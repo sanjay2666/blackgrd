@@ -9,6 +9,7 @@ use App\Models\PackagingOrderItem;
 use App\Models\PackagingRollAllocation;
 use App\Models\PackagingType;
 use App\Models\SaleOrderItem;
+use App\Models\Individual;
 use App\Models\Warehouse;
 use App\Models\WarehouseBalanceItem;
 use App\Models\WarehouseItem;
@@ -29,21 +30,53 @@ class PackagingController extends Controller
         abort_unless($context instanceof CurrentOrganizationContext, 403);
 
         $companyId = $context->companyId();
-        $worklist = SaleOrderItem::with(['saleOrder.customer', 'item', 'itemType'])
+        $query = SaleOrderItem::with(['saleOrder.customer', 'item', 'itemType'])
             ->where('company_id', $companyId)
             ->where('status', 'Active')
-            ->where('is_packaging_done', '1')
-            ->orderByDesc('in_packaging_send_date')
-            ->orderByDesc('id')
-            ->get();
+            ->where('is_packaging_done', '1');
+        if ($request->filled('customer_id')) {
+            $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('customer_id', (int) $request->customer_id));
+        }
+        if ($request->filled('sale_order')) {
+            $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('sale_order_number', 'like', '%'.trim($request->sale_order).'%'));
+        }
+        if ($request->filled('development_type')) {
+            $query->where('development_type', $request->development_type);
+        }
+        if ($request->filled('item')) {
+            $query->where(function ($item) use ($request) {
+                $item->where('item_name', 'like', '%'.trim($request->item).'%')
+                    ->orWhereHas('item', fn ($master) => $master->where('item_name', 'like', '%'.trim($request->item).'%'));
+            });
+        }
+        if ($request->filled('quality')) {
+            $query->where('grey_quality', 'like', '%'.trim($request->quality).'%');
+        }
+        if ($request->filled('shade')) {
+            $query->where('dyeing_color', 'like', '%'.trim($request->shade).'%');
+        }
+        $worklist = $query->orderByDesc('in_packaging_send_date')->orderByDesc('id')->get();
         $packagingItems = PackagingOrderItem::with('packagingOrder')
             ->where('company_id', $companyId)
             ->whereIn('sale_order_item_id', $worklist->pluck('id'))
             ->where('status', 'Active')
             ->get()
             ->groupBy('sale_order_item_id');
+        $worklist = $worklist->map(function (SaleOrderItem $saleOrderItem) use ($packagingItems) {
+            $activeItems = $packagingItems->get($saleOrderItem->id, collect())->filter(fn (PackagingOrderItem $item) => $item->packagingOrder && $item->packagingOrder->packaging_status !== 'cancelled');
+            $saleOrderItem->packaging_allocated_quantity = round((float) $activeItems->sum('allocated_quantity'), 2);
+            $saleOrderItem->packaging_packed_quantity = round((float) $activeItems->sum('packed_quantity'), 2);
+            $saleOrderItem->packaging_remaining_quantity = max(0, round((float) $saleOrderItem->meter - (float) $saleOrderItem->packaging_allocated_quantity, 2));
+            $saleOrderItem->packaging_state = $saleOrderItem->packaging_allocated_quantity <= 0 ? 'pending' : ($saleOrderItem->packaging_packed_quantity >= (float) $saleOrderItem->meter ? 'packed' : 'partial');
 
-        return view('frontend.packaging.index', compact('worklist', 'packagingItems'));
+            return $saleOrderItem;
+        });
+        if ($request->filled('packaging_state')) {
+            $worklist = $worklist->where('packaging_state', $request->packaging_state)->values();
+        }
+        $customers = Individual::where('company_id', $companyId)->where('status', 'Active')->orderBy('name')->get();
+
+        return view('frontend.packaging.index', compact('worklist', 'packagingItems', 'customers'));
     }
 
     public function create(Request $request, int $saleOrderItem)
@@ -51,59 +84,104 @@ class PackagingController extends Controller
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
 
+        SaleOrderItem::where('company_id', $context->companyId())->where('status', 'Active')->where('is_packaging_done', '1')->findOrFail($saleOrderItem);
+
+        return redirect()->route('packaging.cart', [
+            'sale_order_item_ids' => [$saleOrderItem],
+            'packaging_mode' => $request->input('packaging_mode', 'bulk'),
+            'warehouse_id' => $request->warehouse_id,
+        ]);
+    }
+
+    public function cart(Request $request)
+    {
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+
+        $validator = Validator::make($request->all(), [
+            'sale_order_item_ids' => 'required|array|min:1',
+            'sale_order_item_ids.*' => 'required|integer|distinct',
+            'packaging_mode' => 'nullable|in:bulk,sample',
+            'warehouse_id' => 'nullable|integer',
+        ]);
+        if ($validator->fails()) {
+            Session::put('message', $validator->errors()->first());
+            Session::put('messageClass', 'errorClass');
+
+            return redirect()->route('packaging.index')->withInput();
+        }
+
         $companyId = $context->companyId();
-        $saleOrderItem = SaleOrderItem::with(['saleOrder.customer', 'item', 'itemType', 'unitType'])
-            ->where('company_id', $companyId)
-            ->where('status', 'Active')
-            ->where('is_packaging_done', '1')
-            ->findOrFail($saleOrderItem);
+        $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
+        sort($saleOrderItemIds);
+        $saleOrderItems = SaleOrderItem::with(['saleOrder.customer', 'item', 'itemType', 'unitType'])
+            ->where('company_id', $companyId)->where('status', 'Active')->where('is_packaging_done', '1')
+            ->whereIn('id', $saleOrderItemIds)->orderBy('id')->get()->keyBy('id');
+        if ($saleOrderItems->count() !== count($saleOrderItemIds)) {
+            Session::put('message', 'One or more Sale Order Items are no longer available for Packaging.');
+            Session::put('messageClass', 'errorClass');
+
+            return redirect()->route('packaging.index');
+        }
+        $customerIds = $saleOrderItems->map(fn (SaleOrderItem $item) => (int) ($item->saleOrder?->customer_id ?? 0))->filter()->unique()->values();
+        if ($customerIds->count() !== 1 || $saleOrderItems->count() !== $saleOrderItems->filter(fn (SaleOrderItem $item) => (int) ($item->saleOrder?->customer_id ?? 0) > 0)->count()) {
+            Session::put('message', 'One Packaging Order can contain Sale Order Items for one customer only.');
+            Session::put('messageClass', 'errorClass');
+
+            return redirect()->route('packaging.index');
+        }
+        $existingItems = PackagingOrderItem::with('packagingOrder')->where('company_id', $companyId)
+            ->whereIn('sale_order_item_id', $saleOrderItemIds)->where('status', 'Active')->get()->groupBy('sale_order_item_id');
+        foreach ($saleOrderItems as $saleOrderItem) {
+            $activeItems = $existingItems->get($saleOrderItem->id, collect())->filter(fn (PackagingOrderItem $item) => $item->packagingOrder && $item->packagingOrder->packaging_status !== 'cancelled');
+            $saleOrderItem->packaging_remaining_quantity = max(0, round((float) $saleOrderItem->meter - (float) $activeItems->sum('allocated_quantity'), 2));
+        }
         $warehouseId = $request->filled('warehouse_id') ? (int) $request->warehouse_id : null;
-        $stocks = WarehouseItemStock::with(['Warehouse', 'WarehouseCompartment'])
-            ->where('company_id', $companyId)
-            ->where('status', 'Active')
-            ->where('entry_type', 'IN')
-            ->where('item_id', $saleOrderItem->item_id)
-            ->where('item_type_id', $saleOrderItem->item_type_id)
-            ->where('dyeing_color', $saleOrderItem->dyeing_color)
-            ->where('coating_type', $saleOrderItem->coating_type)
-            ->where('print_job', $saleOrderItem->print_job)
-            ->where('extra_job', $saleOrderItem->extra_job)
-            ->where('insp_bal_quan_size', '>', 0)
-            ->when($warehouseId, fn ($query) => $query->where('warehouse_id', $warehouseId))
-            ->orderBy('warehouse_id')
-            ->orderBy('id')
-            ->get();
-        $reserved = PackagingRollAllocation::where('company_id', $companyId)
-            ->whereIn('warehouse_item_stock_id', $stocks->pluck('id'))
-            ->where('status', 'Active')
-            ->where('allocation_status', 'proposed')
-            ->selectRaw('warehouse_item_stock_id, SUM(allocated_quantity) as reserved_quantity')
-            ->groupBy('warehouse_item_stock_id')
+        $stocks = collect();
+        foreach ($saleOrderItems as $saleOrderItem) {
+            $matchedStocks = WarehouseItemStock::with(['Warehouse', 'WarehouseCompartment'])
+                ->where('company_id', $companyId)->where('status', 'Active')->where('entry_type', 'IN')
+                ->where('item_id', $saleOrderItem->item_id)->where('item_type_id', $saleOrderItem->item_type_id)
+                ->where('dyeing_color', $saleOrderItem->dyeing_color)->where('coating_type', $saleOrderItem->coating_type)
+                ->where('print_job', $saleOrderItem->print_job)->where('extra_job', $saleOrderItem->extra_job)
+                ->where('insp_bal_quan_size', '>', 0)->when($warehouseId, fn ($query) => $query->where('warehouse_id', $warehouseId))
+                ->orderBy('warehouse_id')->orderBy('dyeing_lot_number')->orderBy('id')->get();
+            foreach ($matchedStocks as $stock) {
+                $stock->sale_order_item_id = $saleOrderItem->id;
+                $stock->sale_order_item = $saleOrderItem;
+                $stocks->push($stock);
+            }
+        }
+        $reserved = PackagingRollAllocation::where('company_id', $companyId)->whereIn('warehouse_item_stock_id', $stocks->pluck('id')->unique())
+            ->where('status', 'Active')->where('allocation_status', 'proposed')
+            ->selectRaw('warehouse_item_stock_id, SUM(allocated_quantity) as reserved_quantity')->groupBy('warehouse_item_stock_id')
             ->pluck('reserved_quantity', 'warehouse_item_stock_id');
         $stocks = $stocks->map(function (WarehouseItemStock $stock) use ($reserved) {
             $stock->packaging_available_quantity = max(0, round((float) $stock->insp_bal_quan_size - (float) ($reserved[$stock->id] ?? 0), 2));
 
             return $stock;
-        })->filter(fn (WarehouseItemStock $stock) => $stock->packaging_available_quantity > 0);
-        $alreadyAllocated = (float) PackagingOrderItem::where('company_id', $companyId)
-            ->where('sale_order_item_id', $saleOrderItem->id)
-            ->where('status', 'Active')
-            ->whereHas('packagingOrder', fn ($query) => $query->where('packaging_status', '!=', 'cancelled')->where('status', 'Active'))
-            ->sum('allocated_quantity');
+        })->filter(fn (WarehouseItemStock $stock) => $stock->packaging_available_quantity > 0)->values();
+        $stockGroups = $stocks->groupBy('sale_order_item_id')->map(fn ($itemStocks) => $itemStocks->groupBy(fn (WarehouseItemStock $stock) => $stock->dyeing_lot_number ?: 'Unassigned Lot'));
+        $customer = $saleOrderItems->first()->saleOrder?->customer;
         $warehouses = Warehouse::where('company_id', $companyId)->where('status', 'Active')->orderBy('warehouse_name')->get();
         $packagingTypes = PackagingType::where('company_id', $companyId)->where('status', 'Active')->orderBy('name')->get();
-        $remainingQuantity = max(0, round((float) $saleOrderItem->meter - $alreadyAllocated, 2));
+        $packagingMode = $request->input('packaging_mode', 'bulk');
 
-        return view('frontend.packaging.create', compact('saleOrderItem', 'stocks', 'warehouses', 'warehouseId', 'packagingTypes', 'remainingQuantity'));
+        return view('frontend.packaging.cart', compact('saleOrderItems', 'stockGroups', 'customer', 'warehouses', 'warehouseId', 'packagingTypes', 'packagingMode'));
     }
 
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'sale_order_item_id' => 'required|integer',
+            'sale_order_item_ids' => 'required|array|min:1',
+            'sale_order_item_ids.*' => 'required|integer|distinct',
             'packaging_type_id' => 'required|integer',
+            'packaging_mode' => 'required|in:bulk,sample',
+            'parcel_count' => 'nullable|integer|min:1',
             'warehouse_item_stock_ids' => 'required|array|min:1',
             'warehouse_item_stock_ids.*' => 'required|integer|distinct',
+            'allocation_sale_order_item_ids' => 'required|array|min:1',
+            'allocation_sale_order_item_ids.*' => 'required|integer',
             'quantities' => 'required|array|min:1',
             'quantities.*' => 'required|numeric|gt:0',
             'remarks' => 'nullable|string|max:1000',
@@ -122,31 +200,47 @@ class PackagingController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
+            $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
+            sort($saleOrderItemIds);
             $stockIds = array_map('intval', array_values($request->warehouse_item_stock_ids));
+            $allocationSaleOrderItemIds = array_map('intval', array_values($request->allocation_sale_order_item_ids));
             $quantities = array_map(fn ($quantity) => round((float) $quantity, 2), array_values($request->quantities));
-            if (count($stockIds) !== count($quantities)) {
+            if (count($stockIds) !== count($quantities) || count($stockIds) !== count($allocationSaleOrderItemIds)) {
                 throw new \Exception('Each selected Roll/Taka must have one packaging quantity.');
             }
-            $saleOrderItem = SaleOrderItem::with('saleOrder')->where('company_id', $companyId)->where('status', 'Active')
-                ->where('is_packaging_done', '1')->whereKey((int) $request->sale_order_item_id)->lockForUpdate()->first();
-            if (! $saleOrderItem) {
-                throw new \Exception('This sale-order item is not available for packaging.');
+            $saleOrderItems = SaleOrderItem::with('saleOrder')->where('company_id', $companyId)->where('status', 'Active')->where('is_packaging_done', '1')
+                ->whereIn('id', $saleOrderItemIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            if ($saleOrderItems->count() !== count($saleOrderItemIds)) {
+                throw new \Exception('One or more Sale Order Items are not available for packaging.');
+            }
+            $customerIds = $saleOrderItems->map(fn (SaleOrderItem $item) => (int) ($item->saleOrder?->customer_id ?? 0))->filter()->unique()->values();
+            if ($customerIds->count() !== 1 || $saleOrderItems->count() !== $saleOrderItems->filter(fn (SaleOrderItem $item) => (int) ($item->saleOrder?->customer_id ?? 0) > 0)->count()) {
+                throw new \Exception('Different customers cannot be combined in one Packaging Order.');
             }
             $packagingType = PackagingType::where('company_id', $companyId)->where('status', 'Active')
                 ->whereKey((int) $request->packaging_type_id)->lockForUpdate()->first();
             if (! $packagingType) {
                 throw new \Exception('Selected packaging type is not available.');
             }
-            $existingItems = PackagingOrderItem::where('company_id', $companyId)->where('sale_order_item_id', $saleOrderItem->id)
-                ->where('status', 'Active')->lockForUpdate()->get();
-            $alreadyAllocated = $existingItems->filter(function (PackagingOrderItem $item) {
-                return $item->packagingOrder && $item->packagingOrder->packaging_status !== 'cancelled';
-            })->sum('allocated_quantity');
-            $requestedTotal = round(array_sum($quantities), 2);
-            $remainingQuantity = round((float) $saleOrderItem->meter - (float) $alreadyAllocated, 2);
-            if ($requestedTotal > $remainingQuantity + 0.0001) {
-                throw new \Exception('Requested packaging quantity exceeds the sale-order item remaining quantity.');
+            $existingItems = PackagingOrderItem::where('company_id', $companyId)->whereIn('sale_order_item_id', $saleOrderItemIds)
+                ->where('status', 'Active')->orderBy('id')->lockForUpdate()->get();
+            $existingOrderIds = $existingItems->pluck('packaging_order_id')->unique()->sort()->values()->all();
+            $existingOrders = PackagingOrder::where('company_id', $companyId)->whereIn('id', $existingOrderIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            $requestedBySaleOrderItem = [];
+            foreach ($allocationSaleOrderItemIds as $index => $saleOrderItemId) {
+                if (! $saleOrderItems->has($saleOrderItemId)) {
+                    throw new \Exception('Selected Roll/Taka is not linked to the selected Sale Order Item.');
+                }
+                $requestedBySaleOrderItem[$saleOrderItemId] = round(($requestedBySaleOrderItem[$saleOrderItemId] ?? 0) + $quantities[$index], 2);
             }
+            foreach ($saleOrderItems as $saleOrderItem) {
+                $alreadyAllocated = $existingItems->filter(fn (PackagingOrderItem $item) => (int) $item->sale_order_item_id === (int) $saleOrderItem->id && ($existingOrders->get($item->packaging_order_id)?->packaging_status !== 'cancelled'))->sum('allocated_quantity');
+                $remainingQuantity = round((float) $saleOrderItem->meter - (float) $alreadyAllocated, 2);
+                if (($requestedBySaleOrderItem[$saleOrderItem->id] ?? 0) <= 0 || ($requestedBySaleOrderItem[$saleOrderItem->id] ?? 0) > $remainingQuantity + 0.0001) {
+                    throw new \Exception('Requested packaging quantity exceeds the sale-order item remaining quantity.');
+                }
+            }
+            $requestedTotal = round(array_sum($quantities), 2);
             $sortedStockIds = $stockIds;
             sort($sortedStockIds);
             $stocks = WarehouseItemStock::where('company_id', $companyId)->where('status', 'Active')->where('entry_type', 'IN')
@@ -157,6 +251,7 @@ class PackagingController extends Controller
             foreach ($stockIds as $index => $stockId) {
                 $stock = $stocks->get($stockId);
                 $quantity = $quantities[$index];
+                $saleOrderItem = $saleOrderItems->get($allocationSaleOrderItemIds[$index]);
                 if ((int) $stock->item_id !== (int) $saleOrderItem->item_id || (int) $stock->item_type_id !== (int) $saleOrderItem->item_type_id
                     || (string) $stock->dyeing_color !== (string) $saleOrderItem->dyeing_color || (string) $stock->coating_type !== (string) $saleOrderItem->coating_type
                     || (string) $stock->print_job !== (string) $saleOrderItem->print_job || (string) $stock->extra_job !== (string) $saleOrderItem->extra_job) {
@@ -173,48 +268,71 @@ class PackagingController extends Controller
             $individualId = $user->individual_id ?? Auth::id() ?? 0;
             $packagingOrder = PackagingOrder::create([
                 'company_id' => $companyId,
-                'customer_id' => $saleOrderItem->saleOrder?->customer_id,
+                'customer_id' => $customerIds->first(),
+                'packaging_mode' => $request->packaging_mode,
                 'packaging_status' => 'draft',
                 'allocated_quantity' => $requestedTotal,
                 'remaining_quantity' => $requestedTotal,
+                'parcel_count' => $request->parcel_count,
+                'roll_count' => count($stockIds),
+                'lot_count' => count(array_unique(array_map(fn ($stockId) => (string) ($stocks->get($stockId)->dyeing_lot_number ?: 'Unassigned Lot'), $stockIds))),
                 'remarks' => $request->remarks,
                 'created_by' => $individualId,
                 'created_at' => now(),
                 'updated_at' => now(),
                 'status' => 'Active',
             ]);
-            $packagingOrderItem = PackagingOrderItem::create([
-                'company_id' => $companyId,
-                'packaging_order_id' => $packagingOrder->id,
-                'sale_order_id' => $saleOrderItem->sale_order_id,
-                'sale_order_item_id' => $saleOrderItem->id,
-                'item_id' => $saleOrderItem->item_id,
-                'item_type_id' => $saleOrderItem->item_type_id,
-                'unit_type_id' => $saleOrderItem->unit_type_id,
-                'packaging_type_id' => $packagingType->id,
-                'allocated_quantity' => $requestedTotal,
-                'remaining_quantity' => $requestedTotal,
-                'created_at' => now(),
-                'updated_at' => now(),
-                'status' => 'Active',
-            ]);
-            foreach ($stockIds as $index => $stockId) {
-                $stock = $stocks->get($stockId);
-                PackagingRollAllocation::create([
+            foreach ($saleOrderItems as $saleOrderItem) {
+                $lineRows = collect($allocationSaleOrderItemIds)->keys()->filter(fn ($index) => (int) $allocationSaleOrderItemIds[$index] === (int) $saleOrderItem->id)->values();
+                $lineStockIds = $lineRows->map(fn ($index) => $stockIds[$index]);
+                $lineQuantity = round((float) $lineRows->sum(fn ($index) => $quantities[$index]), 2);
+                $packagingOrderItem = PackagingOrderItem::create([
                     'company_id' => $companyId,
                     'packaging_order_id' => $packagingOrder->id,
-                    'packaging_order_item_id' => $packagingOrderItem->id,
-                    'warehouse_item_stock_id' => $stock->id,
-                    'packet_number' => $stock->packet_number,
-                    'insp_taka_number' => $stock->insp_taka_number,
-                    'dyeing_lot_number' => $stock->dyeing_lot_number,
-                    'allocated_quantity' => $quantities[$index],
-                    'remaining_quantity' => $quantities[$index],
-                    'allocation_status' => 'proposed',
+                    'sale_order_id' => $saleOrderItem->sale_order_id,
+                    'sale_order_item_id' => $saleOrderItem->id,
+                    'item_id' => $saleOrderItem->item_id,
+                    'item_type_id' => $saleOrderItem->item_type_id,
+                    'unit_type_id' => $saleOrderItem->unit_type_id,
+                    'item_name' => $saleOrderItem->item_name,
+                    'unit' => $saleOrderItem->unit,
+                    'grey_quality' => $saleOrderItem->grey_quality,
+                    'dyeing_color' => $saleOrderItem->dyeing_color,
+                    'coating_type' => $saleOrderItem->coating_type,
+                    'print_job' => $saleOrderItem->print_job,
+                    'extra_job' => $saleOrderItem->extra_job,
+                    'final_dispatch_width' => $saleOrderItem->final_dispatch_width,
+                    'tube_width' => $saleOrderItem->tube_width,
+                    'packaging_type_id' => $packagingType->id,
+                    'allocated_quantity' => $lineQuantity,
+                    'remaining_quantity' => $lineQuantity,
+                    'roll_count' => $lineStockIds->unique()->count(),
+                    'lot_count' => $lineStockIds->map(fn ($stockId) => (string) ($stocks->get($stockId)->dyeing_lot_number ?: 'Unassigned Lot'))->unique()->count(),
                     'created_at' => now(),
                     'updated_at' => now(),
                     'status' => 'Active',
                 ]);
+                foreach ($lineRows as $index) {
+                    $stock = $stocks->get($stockIds[$index]);
+                    PackagingRollAllocation::create([
+                        'company_id' => $companyId,
+                        'packaging_order_id' => $packagingOrder->id,
+                        'packaging_order_item_id' => $packagingOrderItem->id,
+                        'warehouse_item_stock_id' => $stock->id,
+                        'warehouse_id' => $stock->warehouse_id,
+                        'ware_comp_id' => $stock->ware_comp_id,
+                        'packet_number' => $stock->packet_number,
+                        'insp_taka_number' => $stock->insp_taka_number,
+                        'dyeing_lot_number' => $stock->dyeing_lot_number,
+                        'source_available_quantity' => $stock->insp_bal_quan_size,
+                        'allocated_quantity' => $quantities[$index],
+                        'remaining_quantity' => $quantities[$index],
+                        'allocation_status' => 'proposed',
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'status' => 'Active',
+                    ]);
+                }
             }
             DB::commit();
             Session::put('message', 'Packaging order created. Warehouse acceptance is required before stock is issued.');
@@ -289,6 +407,9 @@ class PackagingController extends Controller
                 $warehouseItem = $warehouseItems->get($stock->warehouse_item_id);
                 $quantity = round((float) $allocation->allocated_quantity, 2);
                 if (! $item || ! $warehouseItem || $quantity <= 0 || (int) $stock->item_id !== (int) $item->item_id || (int) $stock->item_type_id !== (int) $item->item_type_id
+                    || (string) $stock->dyeing_color !== (string) $item->dyeing_color || (string) $stock->coating_type !== (string) $item->coating_type
+                    || (string) $stock->print_job !== (string) $item->print_job || (string) $stock->extra_job !== (string) $item->extra_job
+                    || (string) $stock->dyeing_lot_number !== (string) $allocation->dyeing_lot_number
                     || (float) $stock->insp_bal_quan_size + 0.0001 < $quantity || (float) $warehouseItem->item_qty + 0.0001 < $quantity) {
                     throw new \Exception('A selected Roll/Taka no longer has enough matching physical warehouse stock.');
                 }
