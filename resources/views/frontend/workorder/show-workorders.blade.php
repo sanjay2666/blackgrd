@@ -449,8 +449,8 @@ foreach ($processI as $process) {
 							// Current Department / Process Name
 							$requestForName = !empty($departmentName) ? $departmentName : (!empty($processName) ? $processName : 'Process');
 
-							// Request button should not show when Printing must happen before Coating
-							$showRequestButton = $isPending && (!$isCoating || $printPosition !== 'before');
+							$printingDecisionRequired = $isPending && $isCoating && ! empty($printJob) && $printPosition === '';
+							$showRequestButton = $isPending && (!$isCoating || ($printPosition !== 'before' && ! $printingDecisionRequired));
 							?>
 
 							<!-- Warehouse Request Status -->
@@ -526,7 +526,7 @@ foreach ($processI as $process) {
 							<!-- Coating Printing Decision -->
 							<?php if ($isPending && $isCoating) { ?>
 
-								<?php if (in_array($printPosition, ['', 'none'], true)) { ?>
+								<?php if ($printingDecisionRequired) { ?>
 
 									<p>
 										<span class="label label-warning">
@@ -548,11 +548,6 @@ foreach ($processI as $process) {
 										<i class="fa fa-print"></i> Coating Before Printing
 									</button>
 
-									<div style="height:4px;"></div>
-
-									<button type="submit" name="print_position" value="none" class="btn btn-default btn-block btn-sm">
-										<i class="fa fa-ban"></i> No Printing Required
-									</button>
 								</form>
 
 								<?php } elseif ($printPosition === 'before') { ?>

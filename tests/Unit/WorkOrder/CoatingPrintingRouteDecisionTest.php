@@ -33,15 +33,20 @@ final class CoatingPrintingRouteDecisionTest extends TestCase
         $this->assertStringContainsString("where('process_type_id', '=', \$dataPT->id)", $inspection);
     }
 
-    public function test_work_order_page_limits_route_controls_to_coating_and_offers_all_business_choices(): void
+    public function test_work_order_page_shows_printing_controls_only_when_a_print_job_requires_a_decision(): void
     {
         $view = file_get_contents(resource_path('views/frontend/workorder/show-workorders.blade.php'));
 
         $this->assertStringContainsString('in_array((int) $proTypeId, $coatingProcessIds, true)', $view);
+        $this->assertStringContainsString("! empty(\$printJob) && \$printPosition === ''", $view);
+        $this->assertStringContainsString('$printingDecisionRequired', $view);
         $this->assertStringContainsString('Printing Before Coating', $view);
         $this->assertStringContainsString('Coating Before Printing', $view);
-        $this->assertStringContainsString('No Printing Required', $view);
-        $this->assertStringContainsString("in_array(\$printPosition, ['', 'none'], true)", $view);
+        $this->assertStringNotContainsString('No Printing Required', $view);
+        $this->assertStringNotContainsString('name="print_position" value="none"', $view);
+        $this->assertStringContainsString("elseif (\$printPosition === 'before')", $view);
+        $this->assertStringContainsString("elseif (\$printPosition === 'after')", $view);
+        $this->assertSame(1, substr_count($view, "route('start-requisition-process'"));
         $this->assertStringContainsString('in_array((int) $proTypeId, $printingProcessIds, true)', $view);
     }
 }
