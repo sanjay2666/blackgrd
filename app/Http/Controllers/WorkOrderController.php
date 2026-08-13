@@ -1748,8 +1748,8 @@ class WorkOrderController extends Controller
     public function accept_item_for_work(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'WarehouseOutItemId.*' => 'required|integer',
-            'received_qty.*' => 'required|numeric',
+            'WarehouseOutItemId.*' => 'required|integer|distinct',
+            'received_qty.*' => 'required|numeric|gt:0',
             'work_order_Id' => 'required|integer',
         ], [
             'WarehouseOutItemId.*.required' => 'Warehouse Out Item ID is required.',
@@ -1774,6 +1774,13 @@ class WorkOrderController extends Controller
         $now = now();
         $outItemIds = array_values((array) $request->WarehouseOutItemId);
 
+        if (count($outItemIds) !== count(array_unique($outItemIds)) || count($outItemIds) !== count((array) $request->received_qty)) {
+            Session::put('message', 'Duplicate or incomplete warehouse receipt rows submitted.');
+            Session::put('messageClass', 'errorClass');
+
+            return redirect()->back()->withInput();
+        }
+
         DB::beginTransaction();
 
         try {
@@ -1796,10 +1803,37 @@ class WorkOrderController extends Controller
 
             foreach ($outItemIds as $index => $outItemId) {
                 $outItem = $outItems->get((int) $outItemId);
-                $receivedQty = (float) ($request->received_qty[$index] ?? 0);
+                $receivedQty = round((float) ($request->received_qty[$index] ?? 0), 2);
 
                 if (empty($outItem->work_pro_req_id)) {
                     throw new Exception('Invalid Warehouse Out Item ID or status.');
+                }
+
+                $workRequirement = WorkProcessRequirement::whereKey($outItem->work_pro_req_id)
+                    ->where('work_order_id', $workOrderId)->where('status', 'Active')->lockForUpdate()->first();
+                if (! $workRequirement) {
+                    throw new Exception('Related work process requirement not found.');
+                }
+
+                $alreadyReceived = round((float) DB::table('work_process_received_items')
+                    ->where('work_order_id', $workOrderId)
+                    ->where('work_process_requirement_id', $outItem->work_pro_req_id)
+                    ->where('item_id', $outItem->item_id)
+                    ->where('item_type_id', $outItem->item_type_id)
+                    ->where('status', 'Active')
+                    ->lockForUpdate()
+                    ->sum('received_quantity'), 2);
+                $totalIssued = round((float) WarehouseOutItem::where('work_order_id', $workOrderId)
+                    ->where('work_pro_req_id', $outItem->work_pro_req_id)
+                    ->where('item_id', $outItem->item_id)
+                    ->where('item_type_id', $outItem->item_type_id)
+                    ->where('status', 'Active')
+                    ->lockForUpdate()
+                    ->sum('item_qty'), 2);
+                $remainingQty = round($totalIssued - $alreadyReceived, 2);
+
+                if ($remainingQty <= 0 || $receivedQty > $remainingQty + 0.0001) {
+                    throw new Exception("Department receipt exceeds issued quantity for Warehouse Out Item ID {$outItemId}.");
                 }
 
                 DB::table('work_process_received_items')->insert([
@@ -4787,7 +4821,7 @@ class WorkOrderController extends Controller
                 }
 
                 $printingSerial = app(NumberSeriesService::class)->nextInteger('work-order-'.$printingProcess->id);
-                $printingWorkOrder = new WorkOrder;
+                $printingWorkOrder = new WorkOrder();
                 $printingWorkOrder->fill([
                     'company_id' => $workOrder->company_id,
                     'parent_work_order_id' => $workOrder->id,

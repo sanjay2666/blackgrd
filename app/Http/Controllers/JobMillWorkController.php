@@ -353,30 +353,24 @@ class JobMillWorkController extends Controller
                     'status' => 'Active',
                 ]);
 
-                $query = WarehouseBalanceItem::where('item_id', $newItem->item_id)
+                $openBalance = WarehouseBalanceItem::forPhysicalStock($newItem)
+                    ->where('balance_status', 1)->where('status', 'Active')->lockForUpdate()->latest('id')->first();
+                $opItemQty = round((float) ($openBalance->item_qty ?? 0), 2);
+                $physicalBalance = round((float) WarehouseItemStock::where('warehouse_id', $newItem->warehouse_id)
+                    ->where('ware_comp_id', $newItem->ware_comp_id)->where('item_id', $newItem->item_id)
                     ->where('item_type_id', $newItem->item_type_id)
-                    ->where('dyeing_color', $newItem->dyeing_color)
-                    ->where('coating_type', $newItem->coated_pvc)
-                    ->where('print_job', $newItem->print_job)
-                    ->where('extra_job', $newItem->extra_job)
-                    ->where('balance_status', 1)
-                    ->where('status', 'Active')
-                    ->orderBy('id', 'desc')
-                    ->lockForUpdate();
+                    ->where('dyeing_color', $newItem->dyeing_color)->where('coating_type', $newItem->coated_pvc)
+                    ->where('print_job', $newItem->print_job)->where('extra_job', $newItem->extra_job)
+                    ->where('status', 'Active')->sum('insp_bal_quan_size'), 2);
 
-                $opItemQty = (float) ($query->value('item_qty') ?? 0);
+                if (! $openBalance || $opItemQty + 0.0001 < $itemIdQty || abs(($opItemQty - $itemIdQty) - $physicalBalance) > 0.01) {
+                    throw new \Exception('Warehouse balance snapshot is out of sync. Reconcile the affected stock before dispatch.');
+                }
 
-                WarehouseBalanceItem::where('item_id', $newItem->item_id)
-                    ->where('item_type_id', $newItem->item_type_id)
-                    ->where('dyeing_color', $newItem->dyeing_color)
-                    ->where('coating_type', $newItem->coated_pvc)
-                    ->where('print_job', $newItem->print_job)
-                    ->where('extra_job', $newItem->extra_job)
-                    ->where('balance_status', 1)
-                    ->where('status', 'Active')
-                    ->update(['balance_status' => 0]);
-
-                $closingItemQty = max(0, $opItemQty - $newItem->item_qty);
+                WarehouseBalanceItem::forPhysicalStock($newItem)->where('balance_status', 1)->where('status', 'Active')
+                    ->update(['balance_status' => 0, 'current_balance_key' => null]);
+                $closingItemQty = round($opItemQty - $itemIdQty, 2);
+                $balanceKey = hash('sha256', implode('|', [$newItem->company_id, $newItem->warehouse_id, $newItem->ware_comp_id, $newItem->item_id, $newItem->item_type_id, $newItem->dyeing_color, $newItem->coated_pvc, $newItem->print_job, $newItem->extra_job]));
 
                 $warehouseBalanceItem = new WarehouseBalanceItem([
                     'ware_in_item_id' => 0,
@@ -397,17 +391,19 @@ class JobMillWorkController extends Controller
                     'extra_job' => $newItem->extra_job,
                     'created' => now(),
                     'financial_year' => currentFinancialYear(),
+                    'current_balance_key' => $balanceKey,
                     'balance_status' => 1,
                     'status' => 'Active',
                 ]);
                 $warehouseBalanceItem->save();
 
-                $totItemQty = (float) $dataWI->item_qty;
-                $totAllotQty = (float) $dataWI->allotted_qty;
+                if ((float) $dataWI->item_qty + 0.0001 < $itemIdQty) {
+                    throw new \Exception('Warehouse item does not have enough available quantity for dispatch.');
+                }
 
-                WarehouseItem::where('id', $warehouseItemId)->update([
-                    'item_qty' => max(0, $totItemQty - $itemIdQty),
-                    'allotted_qty' => $totAllotQty + $itemIdQty,
+                $dataWI->update([
+                    'item_qty' => round((float) $dataWI->item_qty - $itemIdQty, 2),
+                    'allotted_qty' => round((float) $dataWI->allotted_qty + $itemIdQty, 2),
                 ]);
 
                 if (! empty($workOrderId)) {
@@ -662,7 +658,7 @@ class JobMillWorkController extends Controller
             'vendor_ind_id' => 'required|integer',
             'receiving_date' => 'required|date_format:d-m-Y',
             'stock_mill_dispatch_item_id' => 'required|array',
-            'stock_mill_dispatch_item_id.*' => 'integer',
+            'stock_mill_dispatch_item_id.*' => 'integer|distinct',
             'item_type_id' => 'required|array',
             'item_type_id.*' => 'integer',
             'item_name_arr' => 'required|array',
@@ -770,6 +766,17 @@ class JobMillWorkController extends Controller
 
         DB::beginTransaction();
         try {
+            $duplicateReceipt = DB::table('receive_stock_mill_dispatches')
+                ->where('stock_mill_dispatch_id', $request->stock_mill_dispatch_id)
+                ->where('invoice_number', $invoice_number)
+                ->where('status', 'Active')
+                ->lockForUpdate()
+                ->exists();
+
+            if ($duplicateReceipt) {
+                throw new \Exception('This mill receipt challan has already been recorded for the selected dispatch.');
+            }
+
             $dispatchId = DB::table('receive_stock_mill_dispatches')->insertGetId([
                 'stock_mill_dispatch_id' => $request->stock_mill_dispatch_id,
                 'invoice_number' => $request->chalan_no,
@@ -802,16 +809,27 @@ class JobMillWorkController extends Controller
                 $meterParts = preg_split('/\+/', $recMeterRaw);
 
                 foreach ($meterParts as $singleMeter) {
-                    $singleMeter = floatval(trim($singleMeter));
-                    if (! is_numeric($singleMeter)) {
+                    $singleMeter = round((float) trim($singleMeter), 2);
+                    if (! is_numeric($singleMeter) || $singleMeter <= 0) {
                         throw new \Exception("Invalid meter value: '{$singleMeter}' at index {$index}");
                     }
                     $totRcvMtr += $singleMeter;
 
-                    $smdItem = StockMillDispatchItem::findOrFail($smditemId);
-                    $receivedQuantity = $smdItem->received_quantity + $singleMeter;
-                    $balanceQuantity = $smdItem->insp_quan_size - $receivedQuantity;
-                    $isItemFullyReceived = ($receivedQuantity >= 0.95 * $smdItem->insp_quan_size) ? '1' : '0';
+                    $smdItem = StockMillDispatchItem::whereKey($smditemId)
+                        ->where('stock_mill_dispatch_id', $request->stock_mill_dispatch_id)
+                        ->where('status', 'Active')
+                        ->lockForUpdate()
+                        ->first();
+                    if (! $smdItem) {
+                        throw new \Exception('Mill dispatch item not found.');
+                    }
+
+                    $receivedQuantity = round((float) $smdItem->received_quantity + $singleMeter, 2);
+                    $balanceQuantity = round((float) $smdItem->insp_quan_size - $receivedQuantity, 2);
+                    if ($balanceQuantity < -0.0001) {
+                        throw new \Exception("Mill receipt exceeds dispatched remaining quantity for dispatch item ID {$smditemId}.");
+                    }
+                    $isItemFullyReceived = $balanceQuantity <= 0.0001 ? '1' : '0';
 
                     $smdItem->update([
                         'received_quantity' => $receivedQuantity,
@@ -869,18 +887,14 @@ class JobMillWorkController extends Controller
                     ]);
                     $warehouseItem->save();
 
-                    $existingBalance = WarehouseBalanceItem::where('warehouse_id', $warehouseItem->warehouse_id)
-                        ->where('ware_comp_id', $warehouseItem->ware_comp_id)
-                        ->where('item_id', $itemId)
-                        ->where('item_type_id', $itemTypeId)
-                        ->where('dyeing_color', $warehouseItem->dyeing_color)
-                        ->where('balance_status', '1')
-                        ->first();
+                    $existingBalance = WarehouseBalanceItem::forPhysicalStock($warehouseItem)
+                        ->where('balance_status', 1)->where('status', 'Active')->lockForUpdate()->latest('id')->first();
 
                     if (! empty($existingBalance)) {
-                        $wbId = $existingBalance->id;
-                        WarehouseBalanceItem::where('id', $wbId)->update(['balance_status' => '0']);
+                        WarehouseBalanceItem::whereKey($existingBalance->id)->update(['balance_status' => 0, 'current_balance_key' => null]);
                     }
+
+                    $balanceKey = hash('sha256', implode('|', [$warehouseItem->company_id, $warehouseItem->warehouse_id, $warehouseItem->ware_comp_id, $warehouseItem->item_id, $warehouseItem->item_type_id, $warehouseItem->dyeing_color, $warehouseItem->coated_pvc, $warehouseItem->print_job, $warehouseItem->extra_job]));
 
                     WarehouseBalanceItem::create([
                         'ware_in_item_id' => $warehouseItem->id,
@@ -905,6 +919,7 @@ class JobMillWorkController extends Controller
                         'extra_job' => $warehouseItem->extra_job,
                         'created' => now(),
                         'financial_year' => currentFinancialYear(),
+                        'current_balance_key' => $balanceKey,
                         'balance_status' => '1',
                         'status' => 'Active',
                     ]);
@@ -1048,40 +1063,23 @@ class JobMillWorkController extends Controller
         $p1 = number_format((float) $p1, 2, '.', '');
         $p2 = number_format((float) $p2, 2, '.', '');
 
-        $orig = WarehouseItemStock::find($wisId);
-        if (! $orig) {
-            return response()->json(['success' => false, 'message' => 'Original stock not found.'], 404);
-        }
-
-        $orig_bal = is_null($orig->insp_bal_quan_size) ? '0.00' : number_format((float) $orig->insp_bal_quan_size, 2, '.', '');
-
-        \Log::info('bcmath installed? '.(function_exists('bcadd') ? 'yes' : 'no'));
-
-        if (function_exists('bcadd')) {
-            $sum = \bcadd($p1, $p2, 2);
-        } else {
-            $sumFloat = round((float) $p1 + (float) $p2, 2);
-            $sum = number_format($sumFloat, 2, '.', '');
-        }
-
-        $equal = false;
-        if (function_exists('bccomp')) {
-            $equal = (\bccomp($sum, $orig_bal, 2) === 0);
-        } else {
-            $sumF = round((float) $sum, 2);
-            $origF = round((float) $orig_bal, 2);
-            $equal = (abs($sumF - $origF) < 0.005);
-        }
-
-        if (! $equal) {
-            return response()->json([
-                'success' => false,
-                'message' => "Sum of parts ({$sum}) must equal current balance ({$orig_bal}).",
-            ], 422);
-        }
-
         DB::beginTransaction();
         try {
+            $orig = WarehouseItemStock::whereKey($wisId)->where('status', 'Active')->lockForUpdate()->first();
+            if (! $orig) {
+                throw new \Exception('Original stock not found.');
+            }
+            if ((float) $p1 <= 0 || (float) $p2 <= 0 || (float) $orig->insp_bal_quan_size <= 0 || (float) $orig->insp_allot_quan_size > 0) {
+                throw new \Exception('Only fully available positive stock can be split.');
+            }
+
+            $orig_bal = number_format((float) $orig->insp_bal_quan_size, 2, '.', '');
+            $sum = function_exists('bcadd') ? \bcadd($p1, $p2, 2) : number_format(round((float) $p1 + (float) $p2, 2), 2, '.', '');
+            $equal = function_exists('bccomp') ? \bccomp($sum, $orig_bal, 2) === 0 : abs(round((float) $sum, 2) - round((float) $orig_bal, 2)) < 0.005;
+            if (! $equal) {
+                throw new \Exception("Sum of parts ({$sum}) must equal current balance ({$orig_bal}).");
+            }
+
             $orig->insp_quan_size = $p1;
             $orig->insp_allot_quan_size = 0.00;
             $orig->insp_bal_quan_size = $p1;
@@ -1174,7 +1172,7 @@ class JobMillWorkController extends Controller
             'vendor_ind_id' => 'required|integer',
             'receiving_date' => 'required|date_format:d-m-Y',
             'stock_mill_dispatch_item_id' => 'required|array',
-            'stock_mill_dispatch_item_id.*' => 'integer',
+            'stock_mill_dispatch_item_id.*' => 'integer|distinct',
             'pur_type_arr' => 'required|array',
             'pur_type_arr.*' => 'integer',
             'item_name_arr' => 'required|array',
@@ -1305,6 +1303,17 @@ class JobMillWorkController extends Controller
 
         DB::beginTransaction();
         try {
+            $duplicateReceipt = DB::table('receive_stock_mill_dispatches')
+                ->where('stock_mill_dispatch_id', $request->stock_mill_dispatch_id)
+                ->where('invoice_number', $invoice_number)
+                ->where('status', 'Active')
+                ->lockForUpdate()
+                ->exists();
+
+            if ($duplicateReceipt) {
+                throw new \Exception('This mill receipt challan has already been recorded for the selected dispatch.');
+            }
+
             $dispatchId = DB::table('receive_stock_mill_dispatches')->insertGetId([
                 'stock_mill_dispatch_id' => $request->stock_mill_dispatch_id,
                 'invoice_number' => $invoice_number,
@@ -1328,18 +1337,27 @@ class JobMillWorkController extends Controller
                     $dispatchItem = Item::select(['item_id', 'item_name', 'item_type_id'])->where('item_id', $itemId)->where('status', 'Active')->first();
                     $dispatchItemTypeId = (int) ($dispatchItem->item_type_id ?? 0);
                     $dispatchItemName = $dispatchItem->item_name ?? null;
-                    $currentRcvdMeter = floatval($request->current_rcvd_meter_arr[$index] ?? 0);
+                    $currentRcvdMeter = round((float) ($request->current_rcvd_meter_arr[$index] ?? 0), 2);
 
-                    $smdItem = StockMillDispatchItem::lockForUpdate()->find($smditemId);
+                    $smdItem = StockMillDispatchItem::whereKey($smditemId)
+                        ->where('stock_mill_dispatch_id', $request->stock_mill_dispatch_id)
+                        ->where('status', 'Active')
+                        ->lockForUpdate()
+                        ->first();
+                    if (! $smdItem || $currentRcvdMeter <= 0) {
+                        throw new \Exception('Invalid mill dispatch receipt item or quantity.');
+                    }
                     $StockMillDispatchId = $smdItem->stock_mill_dispatch_id;
 
-                    $newReceivedQuantity = floatval($smdItem->received_quantity ?? 0) + $currentRcvdMeter;
-                    $inspQuanSize = floatval($smdItem->insp_quan_size ?? 0);
-                    $newBalanceQuantity = $inspQuanSize - $newReceivedQuantity;
-                    if ($newBalanceQuantity < 0) {
-                        $newBalanceQuantity = 0;
+                    $alreadyReceivedQuantity = round((float) ($smdItem->received_quantity ?? 0), 2);
+                    $inspQuanSize = round((float) ($smdItem->insp_quan_size ?? 0), 2);
+                    $remainingDispatchQuantity = round($inspQuanSize - $alreadyReceivedQuantity, 2);
+                    if ($remainingDispatchQuantity < 0 || $currentRcvdMeter > $remainingDispatchQuantity + 0.0001) {
+                        throw new \Exception("Mill receipt exceeds dispatched remaining quantity for dispatch item ID {$smditemId}.");
                     }
-                    $isItemFullyReceived = ($newReceivedQuantity >= (0.95 * $inspQuanSize) && $inspQuanSize > 0) ? 1 : 0;
+                    $newReceivedQuantity = round($alreadyReceivedQuantity + $currentRcvdMeter, 2);
+                    $newBalanceQuantity = round($remainingDispatchQuantity - $currentRcvdMeter, 2);
+                    $isItemFullyReceived = ($newBalanceQuantity <= 0.0001 && $inspQuanSize > 0) ? 1 : 0;
 
                     $smdItem->update([
                         'received_quantity' => $newReceivedQuantity,

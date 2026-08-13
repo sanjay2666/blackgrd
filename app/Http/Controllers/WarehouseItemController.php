@@ -17,6 +17,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\StockMillDispatchItem;
 use App\Models\UnitType;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -2211,46 +2212,70 @@ class WarehouseItemController extends Controller
 
     public function updateWarehouseComp(Request $request)
     {
-        $stockId = $request->input('id');
-        $compartmentId = $request->input('selectedValue');
+        DB::beginTransaction();
 
-        $stock = WarehouseItemStock::where('id', $stockId)->whereHas('Warehouse')->where('status', 'Active')->first();
-        $compartment = WarehouseCompartment::where('id', $compartmentId)->whereHas('warehouse')->where('status', 'Active')->first();
+        try {
+            $stockId = (int) $request->input('id');
+            $compartmentId = (int) $request->input('selectedValue');
+            $stock = WarehouseItemStock::whereKey($stockId)->whereHas('Warehouse')->where('status', 'Active')->lockForUpdate()->first();
+            $compartment = WarehouseCompartment::whereKey($compartmentId)->whereHas('warehouse')->where('status', 'Active')->lockForUpdate()->first();
 
-        if (empty($stock) || empty($compartment)) {
-            return response()->json(['success' => false], 404);
+            if (! $stock || ! $compartment) {
+                throw new \Exception('Stock record or warehouse compartment not found.');
+            }
+            if ((int) $stock->warehouse_id !== (int) $compartment->warehouse_id) {
+                throw new \Exception('Warehouse and Compartment do not match.');
+            }
+            if ((int) $stock->ware_comp_id === (int) $compartment->id) {
+                DB::commit();
+
+                return response()->json(['success' => true]);
+            }
+            if ((float) $stock->insp_bal_quan_size > 0.0001) {
+                throw new \Exception('Available stock cannot be moved directly because it would split its balance snapshot. Use the established warehouse movement flow.');
+            }
+
+            $stock->update(['ware_comp_id' => $compartment->id, 'warehouse_id' => $compartment->warehouse_id]);
+            if (! empty($stock->warehouse_item_id)) {
+                $warehouseItem = WarehouseItem::whereKey($stock->warehouse_item_id)->lockForUpdate()->first();
+                $warehouseItem?->update(['ware_comp_id' => $compartment->id, 'warehouse_id' => $compartment->warehouse_id]);
+            }
+
+            DB::commit();
+
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         }
-        if ((int) $stock->warehouse_id !== (int) $compartment->warehouse_id) {
-            return response()->json(['success' => false, 'message' => 'Warehouse and Compartment do not match.'], 422);
-        }
-
-        $stock->ware_comp_id = $compartment->id;
-        $stock->warehouse_id = $compartment->warehouse_id;
-        $stock->save();
-
-        if (! empty($stock->warehouse_item_id)) {
-            WarehouseItem::where('id', $stock->warehouse_item_id)->update([
-                'ware_comp_id' => $compartment->id,
-                'warehouse_id' => $compartment->warehouse_id,
-            ]);
-        }
-
-        return response()->json(['success' => true]);
     }
 
     public function deleteWarehouseItemStock(Request $request)
     {
-        $stock = WarehouseItemStock::where('id', $request->input('FId'))->where('status', 'Active')->first();
+        DB::beginTransaction();
 
-        if (empty($stock)) {
-            return response()->json(['error' => 'Stock record not found.'], 404);
+        try {
+            $stock = WarehouseItemStock::whereKey($request->input('FId'))->where('status', 'Active')->lockForUpdate()->first();
+            if (! $stock) {
+                throw new \Exception('Stock record not found.');
+            }
+
+            $hasMovement = WarehouseOutItem::where('wis_id', $stock->id)->where('status', 'Active')->lockForUpdate()->exists()
+                || StockMillDispatchItem::where('wis_id', $stock->id)->where('status', 'Active')->lockForUpdate()->exists();
+            if ((float) $stock->insp_bal_quan_size > 0.0001 || $hasMovement) {
+                throw new \Exception('Stock with available quantity or movement history cannot be deleted. Use the established reversal flow.');
+            }
+
+            $stock->update(['status' => 'Deleted', 'deleted_by' => Auth::id()]);
+            DB::commit();
+
+            return response()->json(['success' => 'Deleted successfully.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json(['error' => $e->getMessage()], 422);
         }
-
-        $stock->status = 'Deleted';
-        $stock->deleted_by = Auth::id();
-        $stock->save();
-
-        return response()->json(['success' => 'Deleted successfully.']);
     }
 
     public function RefreshWarehouseItem(Request $request)
@@ -2270,49 +2295,26 @@ class WarehouseItemController extends Controller
         $dyeing_color = $dataWB->dyeing_color;
         $coatingType = $dataWB->coating_type;
 
-        $query = WarehouseItemStock::where('item_id', $itemId)
+        $SumInspBalQuanSize = WarehouseItemStock::where('warehouse_id', $dataWB->warehouse_id)
+            ->where('ware_comp_id', $dataWB->ware_comp_id)->where('item_id', $itemId)
             ->where('item_type_id', $itemTypeId)
-            ->where('entry_type', 'IN')
-            ->where('is_allotted_stock', 'No')
-            ->where('status', 'Active');
+            ->where('dyeing_color', $dyeing_color)->where('coating_type', $coatingType)
+            ->where('print_job', $dataWB->print_job)->where('extra_job', $dataWB->extra_job)
+            ->where('status', 'Active')->sum('insp_bal_quan_size');
 
-        if ($itemTypeId == '4' || $itemTypeId == '5') {
-            $query->where('dyeing_color', $dyeing_color);
+        if (abs((float) $dataWB->item_qty - (float) $SumInspBalQuanSize) > 0.01) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Warehouse balance mismatch detected. No value was changed; reconcile the stock movement history.',
+                'balance_qty' => (float) $dataWB->item_qty,
+                'wis_qty' => (float) $SumInspBalQuanSize,
+            ], 409);
         }
-
-        if ($itemTypeId == '5') {
-            $query->where('coating_type', $coatingType);
-        }
-
-        if (is_null($dataWB->print_job)) {
-            $query->whereNull('print_job');
-        } else {
-            $query->where('print_job', $dataWB->print_job);
-        }
-
-        if (is_null($dataWB->extra_job)) {
-            $query->whereNull('extra_job');
-        } else {
-            $query->where('extra_job', $dataWB->extra_job);
-        }
-
-        $SumInspBalQuanSize = $query->sum('insp_bal_quan_size');
-
-        /* $sql = $query->toSql();
-        $bindings = $query->getBindings();
-        $fullSql = vsprintf(str_replace(['?'], ['\'%s\''], $sql), $bindings);
-        echo $fullSql; exit;
-        */
-        WarehouseBalanceItem::where('id', $wbId)->update([
-            'item_qty' => $SumInspBalQuanSize,
-            'modified_by' => Auth::id(),
-            'updated_at' => now(),
-        ]);
 
         return response()->json([
             'success' => true,
-            'new_qty' => $SumInspBalQuanSize,
-            'message' => 'Warehouse item refreshed successfully.',
+            'new_qty' => (float) $SumInspBalQuanSize,
+            'message' => 'Warehouse balance is already synchronized.',
         ]);
     }
 

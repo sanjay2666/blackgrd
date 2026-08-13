@@ -4,13 +4,15 @@ namespace App\Models;
 
 use App\Enums\InventoryMovementStatus;
 use App\Models\Concerns\HasRecordStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WarehouseBalanceItem extends Model
 {
-    use HasFactory, HasRecordStatus;
+    use HasFactory;
+    use HasRecordStatus;
 
     protected $table = 'warehouse_balance_items';
 
@@ -47,6 +49,29 @@ class WarehouseBalanceItem extends Model
     public function setModifiedAttribute($value): void
     {
         $this->attributes['updated_at'] = $value;
+    }
+
+    /**
+     * Limit a balance snapshot to the precise physical stock bucket it
+     * represents. Item attributes alone are not sufficient because the same
+     * item can be available in more than one warehouse or compartment.
+     */
+    public function scopeForPhysicalStock(Builder $query, object $stock): Builder
+    {
+        $query->where('warehouse_id', $stock->warehouse_id)
+            ->where('ware_comp_id', $stock->ware_comp_id)
+            ->where('item_id', $stock->item_id)
+            ->where('item_type_id', $stock->item_type_id)
+            ->where('dyeing_color', $stock->dyeing_color)
+            ->where('coating_type', $stock->coated_pvc ?? $stock->coating_type)
+            ->where('print_job', $stock->print_job)
+            ->where('extra_job', $stock->extra_job);
+
+        if (! empty($stock->company_id)) {
+            $query->where('company_id', $stock->company_id);
+        }
+
+        return $query;
     }
 
     public function WarehouseItem()

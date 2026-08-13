@@ -114,8 +114,10 @@ class WorkProcessRequirementController extends Controller
         // 🔹 Fetch Process Items
         $processI = ProcessItem::where('status', 'Active')->get();
 
-        return view('frontend.workprocessrequirement.show-warehouse-item-requirement',
-            compact('dataWPR', 'itemName', 'processI', 'fromDate', 'toDate', 'search_process_id', 'qsearch', 'req_type', 'lotno', 'dyeingColor'));
+        return view(
+            'frontend.workprocessrequirement.show-warehouse-item-requirement',
+            compact('dataWPR', 'itemName', 'processI', 'fromDate', 'toDate', 'search_process_id', 'qsearch', 'req_type', 'lotno', 'dyeingColor')
+        );
     }
 
     public function acceptWarehouseItemRequirement($id)
@@ -537,7 +539,7 @@ class WorkProcessRequirementController extends Controller
             ->with([
                 'WarehouseOutItem' => function ($query) {
                     $query->where('is_item_return_whouse', '0')->select(['id', 'wis_id', 'warehouse_item_id', 'item_id', 'item_type_id', 'item_qty', 'insp_taka_number', 'dyeing_lot_number', 'dyeing_taka_number', 'fabric_fault_reason_id', 'individual_id', 'receiver_id', 'work_pro_req_id', 'work_order_id', 'item_remark', 'grey_quality', 'dyeing_color', 'coating_type', 'is_item_return_whouse', 'status'])->with(['WarehouseItemStock' => function ($subQuery) {
-                        $subQuery->select(['wis_id', 'insp_id', 'item_id', 'insp_quan_size', 'insp_allot_quan_size', 'insp_bal_quan_size', 'beam_meter', 'vendor_id', 'invoice_number', 'dyeing_lot_number', 'item_type_id', 'unit_type_id', 'dyeing_taka_number', 'insp_taka_number', 'status']);
+                        $subQuery->select(['id', 'insp_id', 'item_id', 'insp_quan_size', 'insp_allot_quan_size', 'insp_bal_quan_size', 'beam_meter', 'vendor_id', 'invoice_number', 'dyeing_lot_number', 'item_type_id', 'unit_type_id', 'dyeing_taka_number', 'insp_taka_number', 'status']);
                     }]);
                 },
                 'Item', 'ItemType', 'UnitType',
@@ -705,12 +707,16 @@ class WorkProcessRequirementController extends Controller
     {
         //  echo "<pre>"; print_r($request->all());   exit;
         $validator = Validator::make($request->all(), [
-            'wis_ids' => 'required',
-            'warehouse_item_ids' => 'required',
-            'work_process_req_ids' => 'required',
-            'work_order_id' => 'required',
-            'allotment_remark' => 'required',
-            'received_quantities' => 'required',
+            'wis_ids' => 'required|array|min:1',
+            'wis_ids.*' => 'required|integer|distinct',
+            'warehouse_item_ids' => 'required|array',
+            'warehouse_item_ids.*' => 'required|integer',
+            'work_process_req_ids' => 'required|array',
+            'work_process_req_ids.*' => 'required|integer',
+            'work_order_id' => 'required|integer',
+            'allotment_remark' => 'required|string',
+            'received_quantities' => 'required|array',
+            'received_quantities.*' => 'required|numeric|gt:0',
         ], [
             'wis_ids.required' => 'Warehouse Item Stock Id not Found',
             'warehouse_item_ids.required' => 'Warehouse item Id not found',
@@ -730,59 +736,59 @@ class WorkProcessRequirementController extends Controller
 
         try {
             $user = Auth::user();
-            $userId = $user->id;
-            $individualId = $user->individual_id;
+            $individualId = $user->individual_id ?? $user->id;
 
             $workProcessReqIds = $request->work_process_req_ids;
             $workOrderId = $request->work_order_id;
             $allotmentRemark = $request->allotment_remark;
-            $usedItems = $request->used_item;
-            $wisIds = $request->wis_ids;
-            $warehouseItemIds = $request->warehouse_item_ids;
-            $receivedQuantity = $request->received_quantities;
+            $wisIds = array_values($request->wis_ids);
+            $warehouseItemIds = array_values($request->warehouse_item_ids);
+            $receivedQuantities = array_values($request->received_quantities);
+
+            if (count($wisIds) !== count($warehouseItemIds) || count($wisIds) !== count($workProcessReqIds) || count($wisIds) !== count($receivedQuantities)) {
+                throw new \Exception('All stock allotment rows must include a stock, warehouse item, requirement, and quantity.');
+            }
 
             $flag = false;
             foreach ($wisIds as $key => $wisId) {
-                // $usedQuantity 		= $usedItems[$key];
-                $warehouseItemId = $warehouseItemIds[$key];
-                $workProcessReqId = $workProcessReqIds[$key];
-                $recvdQuan = $receivedQuantity[$key];
-                //	->where('status', '=', 'Active')->where('is_accept', '=', '0')
-                $dataWPR = WorkProcessRequirement::where('id', '=', $workProcessReqId)->first();
-                // echo "<pre>"; print_r($dataWPR); exit;
+                $warehouseItemId = (int) $warehouseItemIds[$key];
+                $workProcessReqId = (int) $workProcessReqIds[$key];
+                $requestedQuantity = round((float) $receivedQuantities[$key], 2);
+                $dataWPR = WorkProcessRequirement::whereKey($workProcessReqId)->where('work_order_id', $workOrderId)->where('status', 'Active')->lockForUpdate()->first();
+                $dataWIS = WarehouseItemStock::whereKey($wisId)->where('status', 'Active')->lockForUpdate()->first();
 
-                $usedQuantity = $dataWPR->quantity;
-                $whbId = $dataWPR->warehouse_balance_item_id;
-                $dataWIS = WarehouseItemStock::where('wis_id', '=', $wisId)->where('is_allotted_stock', '=', 'No')->where('status', '=', 'Active')->first();
-
-                if ($dataWIS) {
-                    $inspQuanSize = $dataWIS->insp_quan_size;
-                    $inspAllotQuanSize = $dataWIS->insp_allot_quan_size;
-                    $inspBalQuanSize = $dataWIS->insp_bal_quan_size;
-                    $totAllotSize = $inspAllotQuanSize + $recvdQuan;
-                    $balanQunSize = $inspQuanSize - $totAllotSize;
-
-                    WarehouseItemStock::where(['wis_id' => $wisId, 'status' => 'Active'])
-                        ->update([
-                            'insp_allot_quan_size' => $totAllotSize,
-                            'insp_bal_quan_size' => $balanQunSize,
-                            'is_allotted_stock' => $inspQuanSize <= 0 ? 'Yes' : 'No',
-                            'allocation_status' => $inspQuanSize <= 0 ? 'allocated' : 'partially_allocated',
-                            'allot_work_order_id' => $workOrderId,
-                            'work_pro_req_id' => $workProcessReqId,
-                            'stock_alloted_by' => $individualId,
-                            'alloted_remark' => $allotmentRemark,
-                        ]);
-
+                if (! $dataWPR || ! $dataWIS || (int) $dataWIS->warehouse_item_id !== $warehouseItemId) {
+                    throw new \Exception('Selected stock or work requirement is no longer available.');
                 }
-                $dataWI = WarehouseItem::find($warehouseItemId);
-                if (empty($dataWI)) {
-                    DB::rollBack();
-                    Session::put('message', 'Warehouse Item Not Found.');
-                    Session::put('messageClass', 'errorClass');
 
-                    return redirect()->back()->withInput();
+                $availableQuantity = round((float) $dataWIS->insp_bal_quan_size, 2);
+                $alreadyIssued = round((float) WarehouseOutItem::where('work_pro_req_id', $workProcessReqId)->where('status', 'Active')->sum('item_qty'), 2);
+                $requirementRemaining = round((float) $dataWPR->quantity - $alreadyIssued, 2);
+
+                if ($availableQuantity < 0 || $requestedQuantity > $availableQuantity + 0.0001) {
+                    throw new \Exception("Requested quantity exceeds available stock for WIS ID {$wisId}.");
                 }
+                if ($requestedQuantity > $requirementRemaining + 0.0001) {
+                    throw new \Exception("Requested quantity exceeds the remaining work requirement for WPR ID {$workProcessReqId}.");
+                }
+
+                $dataWI = WarehouseItem::whereKey($warehouseItemId)->where('status', 'Active')->lockForUpdate()->first();
+                if (! $dataWI || (float) $dataWI->item_qty + 0.0001 < $requestedQuantity) {
+                    throw new \Exception('Warehouse item does not have enough available quantity.');
+                }
+
+                $totalAllotted = round((float) $dataWIS->insp_allot_quan_size + $requestedQuantity, 2);
+                $balanceQuantity = round($availableQuantity - $requestedQuantity, 2);
+                $dataWIS->update([
+                    'insp_allot_quan_size' => $totalAllotted,
+                    'insp_bal_quan_size' => max(0, $balanceQuantity),
+                    'is_allotted_stock' => $balanceQuantity <= 0 ? 'Yes' : 'No',
+                    'allocation_status' => $balanceQuantity <= 0 ? 'allocated' : 'partially_allocated',
+                    'allot_work_order_id' => $workOrderId,
+                    'work_pro_req_id' => $workProcessReqId,
+                    'stock_alloted_by' => $individualId,
+                    'alloted_remark' => $allotmentRemark,
+                ]);
 
                 $newItem = WarehouseOutItem::create([
                     'process_type_id' => $dataWI->process_type_id ?? 0,
@@ -794,7 +800,7 @@ class WorkProcessRequirementController extends Controller
                     'item_type_id' => $dataWI->item_type_id,
                     'unit_type_id' => $dataWI->unit_type_id,
                     'receiver_id' => $dataWI->receiver_id,
-                    'item_qty' => $usedQuantity,
+                    'item_qty' => $requestedQuantity,
                     'pcs' => $dataWI->pcs ?? 0.00,
                     'cut' => $dataWI->cut,
                     'meter' => $dataWI->meter ?? 0.00,
@@ -812,35 +818,24 @@ class WorkProcessRequirementController extends Controller
                     'status' => 'Active',
                 ]);
 
-                $query = WarehouseBalanceItem::where('item_id', $newItem->item_id)
+                $openBalance = WarehouseBalanceItem::forPhysicalStock($newItem)
+                    ->where('balance_status', 1)->where('status', 'Active')->lockForUpdate()->latest('id')->first();
+                $opItemQty = round((float) ($openBalance->item_qty ?? 0), 2);
+                $physicalBalance = round((float) WarehouseItemStock::where('warehouse_id', $newItem->warehouse_id)
+                    ->where('ware_comp_id', $newItem->ware_comp_id)->where('item_id', $newItem->item_id)
                     ->where('item_type_id', $newItem->item_type_id)
-                    ->where('dyeing_color', $newItem->dyeing_color)
-                    ->where('coating_type', $newItem->coated_pvc)
-                    ->where('print_job', $newItem->print_job)
-                    ->where('extra_job', $newItem->extra_job)
-                    ->orderBy('id', 'desc');
+                    ->where('dyeing_color', $newItem->dyeing_color)->where('coating_type', $newItem->coated_pvc)
+                    ->where('print_job', $newItem->print_job)->where('extra_job', $newItem->extra_job)
+                    ->where('status', 'Active')->sum('insp_bal_quan_size'), 2);
 
-                if (! empty($whbId)) {
-                    $opItemQty = $query->where('id', $whbId)->value('item_qty');
-                } else {
-                    $opItemQty = $query->value('item_qty');
+                if (! $openBalance || $opItemQty + 0.0001 < $requestedQuantity || abs(($opItemQty - $requestedQuantity) - $physicalBalance) > 0.01) {
+                    throw new \Exception('Warehouse balance snapshot is out of sync. Reconcile the affected stock before issuing it.');
                 }
 
-                $whbId = $dataWPR->warehouse_balance_item_id;
-                $affectedRows = WarehouseBalanceItem::where('item_id', $newItem->item_id)
-                    ->where('item_type_id', $newItem->item_type_id)
-                    ->where('dyeing_color', $newItem->dyeing_color)
-                    ->where('coating_type', $newItem->coated_pvc)
-                    ->where('print_job', $newItem->print_job)
-                    ->where('extra_job', $newItem->extra_job)
-                    ->where('balance_status', 1)
-                    // ->where('id', '<>', $warehouseBalanceItem->id)
-                    ->update(['balance_status' => 0]);
-                if (! $affectedRows) {
-                    dd('Update failed for WarehouseBalanceItem');
-                }
-
-                $closingItemQty = $opItemQty - $newItem->item_qty;
+                WarehouseBalanceItem::forPhysicalStock($newItem)->where('balance_status', 1)->where('status', 'Active')
+                    ->update(['balance_status' => 0, 'current_balance_key' => null]);
+                $closingItemQty = round($opItemQty - $requestedQuantity, 2);
+                $balanceKey = hash('sha256', implode('|', [$newItem->company_id, $newItem->warehouse_id, $newItem->ware_comp_id, $newItem->item_id, $newItem->item_type_id, $newItem->dyeing_color, $newItem->coated_pvc, $newItem->print_job, $newItem->extra_job]));
                 $warehouseBalanceItem = new WarehouseBalanceItem([
                     'ware_in_item_id' => 0,
                     'ware_out_item_id' => $newItem->id,
@@ -860,19 +855,17 @@ class WorkProcessRequirementController extends Controller
                     'extra_job' => $newItem->extra_job,
                     'created' => now(),
                     'financial_year' => currentFinancialYear(),
+                    'current_balance_key' => $balanceKey,
                     'balance_status' => 1,
                     'status' => 'Active',
                 ]);
 
                 $warehouseBalanceItem->save();
 
-                $totItemQty = $dataWI->item_qty;
-                $totAllotQty = $dataWI->allotted_qty;
-                WarehouseItem::where(['id' => $warehouseItemId])
-                    ->update([
-                        'item_qty' => $totItemQty - $usedQuantity,
-                        'allotted_qty' => $totAllotQty + $usedQuantity,
-                    ]);
+                $dataWI->update([
+                    'item_qty' => round((float) $dataWI->item_qty - $requestedQuantity, 2),
+                    'allotted_qty' => round((float) $dataWI->allotted_qty + $requestedQuantity, 2),
+                ]);
 
                 WorkProcessRequirement::where('id', '=', $workProcessReqId)
                     ->update([
@@ -880,7 +873,7 @@ class WorkProcessRequirementController extends Controller
                         'is_accept' => '1',
                         'requirement_status' => 'accepted',
                         'allocation_status' => 'allocated',
-                        'alloted_quantity' => $opItemQty,
+                        'alloted_quantity' => round($alreadyIssued + $requestedQuantity, 2),
                         'process_accepted_by' => $individualId,
                         'alloted_remark' => $allotmentRemark,
                         'acc_deny_date' => now(),
@@ -907,7 +900,7 @@ class WorkProcessRequirementController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);
-            Session::put('message', 'Stock Not Alloted.');
+            Session::put('message', 'Stock Not Alloted. '.$e->getMessage());
             Session::put('messageClass', 'errorClass');
 
             return redirect()->back()->withInput();
@@ -2104,7 +2097,7 @@ class WorkProcessRequirementController extends Controller
         $reqLotNo = trim((string) $request->req_lot_no);
         $wisIdArr = (array) $request->wis_id;
         foreach ($wisIdArr as $key => $wisId) {
-            $dyeingLotNumber = WarehouseItemStock::where('wis_id', $wisId)
+            $dyeingLotNumber = WarehouseItemStock::whereKey($wisId)
                 ->where('is_allotted_stock', 'No')
                 ->where('status', 'Active')
                 ->value('dyeing_lot_number');
@@ -2178,17 +2171,22 @@ class WorkProcessRequirementController extends Controller
             // Stock allotment logic
             $flag = false;
             $wisIdArr = (array) $request->wis_id;
-            $reqGreyQtyArr = array_values(array_filter((array) $request->req_grey_qty));
+            $reqGreyQtyArr = (array) $request->req_grey_qty;
             $wprnId = $workReq->id;
             $totAltquantity = $request->tot_req_quantity;
 
             foreach ($wisIdArr as $key => $wisId) {
                 if (isset($reqGreyQtyArr[$key])) {
-                    $dataWIS = WarehouseItemStock::where('wis_id', $wisId)->where('is_allotted_stock', 'No')->where('status', 'Active')->first();
+                    $dataWIS = WarehouseItemStock::whereKey($wisId)->where('is_allotted_stock', 'No')->where('status', 'Active')->lockForUpdate()->first();
                     if ($dataWIS) {
-                        $remainingQuantity = min($reqGreyQtyArr[$key], $dataWIS->insp_quan_size - $dataWIS->insp_allot_quan_size);
+                        $requestedQuantity = round((float) $reqGreyQtyArr[$key], 2);
+                        $availableQuantity = round((float) $dataWIS->insp_bal_quan_size, 2);
+                        if ($requestedQuantity <= 0 || $requestedQuantity > $availableQuantity + 0.0001) {
+                            throw new \Exception("Requested quantity exceeds available stock for WIS ID {$wisId}.");
+                        }
+                        $remainingQuantity = $requestedQuantity;
 
-                        WarehouseItemStock::where('wis_id', $wisId)->update([
+                        WarehouseItemStock::whereKey($wisId)->update([
                             'insp_allot_quan_size' => $dataWIS->insp_allot_quan_size + $remainingQuantity,
                             'insp_bal_quan_size' => max(0, $dataWIS->insp_quan_size - ($dataWIS->insp_allot_quan_size + $remainingQuantity)),
                             'is_allotted_stock' => $dataWIS->insp_quan_size <= ($dataWIS->insp_allot_quan_size + $remainingQuantity) ? 'Yes' : 'No',
