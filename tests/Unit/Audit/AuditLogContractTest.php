@@ -16,7 +16,7 @@ final class AuditLogContractTest extends TestCase
         $this->assertStringContainsString("enum('actor_type', ['Admin', 'User', 'System'])", $migration);
         $this->assertStringContainsString('recordAfterCommit', $logger);
         $this->assertStringContainsString("'password'", $logger);
-        $this->assertCount(143, PermissionRegistry::all());
+        $this->assertCount(148, PermissionRegistry::all());
     }
 
     public function test_audit_model_is_application_level_append_only(): void

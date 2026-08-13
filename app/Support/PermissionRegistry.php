@@ -32,6 +32,7 @@ final class PermissionRegistry
             'warehouse' => ['view-stock', 'create', 'update', 'delete', 'receive', 'issue', 'allot', 'return', 'adjust', 'print', 'export', 'configure'],
             'gate-pass' => ['view', 'create', 'update', 'cancel', 'issue', 'receive', 'close', 'print', 'export'],
             'job-work' => ['view', 'create', 'update', 'cancel', 'dispatch', 'receive', 'close', 'print', 'export'],
+            'sales-challans' => ['view', 'create', 'dispatch', 'cancel', 'print'],
             'reports' => ['view', 'print', 'export', 'configure'],
             'settings' => ['view', 'create', 'update', 'delete', 'configure'],
             'security' => ['view', 'delete', 'export', 'manage'], 'users' => ['view', 'manage'], 'audit-logs' => ['view', 'export'],

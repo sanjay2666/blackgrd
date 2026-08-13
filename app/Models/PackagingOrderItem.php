@@ -45,4 +45,9 @@ class PackagingOrderItem extends Model
     {
         return $this->hasMany(PackagingRollAllocation::class)->where('status', 'Active');
     }
+
+    public function salesChallanItems(): HasMany
+    {
+        return $this->hasMany(SalesChallanItem::class)->where('record_status', 'Active');
+    }
 }

@@ -16,7 +16,7 @@ final class RoleTemplateCatalog
         return [
             'Admin' => $admin,
             'Frontend Administrator' => $frontendAdministrator,
-            'Sales' => ['dashboard.view', 'sale-orders.view', 'sale-orders.create', 'sale-orders.update', 'sale-orders.submit', 'sale-orders.print', 'sale-orders.export'],
+            'Sales' => ['dashboard.view', 'sale-orders.view', 'sale-orders.create', 'sale-orders.update', 'sale-orders.submit', 'sale-orders.print', 'sale-orders.export', 'sales-challans.view', 'sales-challans.create', 'sales-challans.dispatch', 'sales-challans.cancel', 'sales-challans.print'],
             'Purchase' => ['dashboard.view', 'purchases.view', 'purchases.create', 'purchases.update', 'purchases.receive', 'purchases.return', 'purchases.print', 'purchases.export'],
             'Production Manager' => ['dashboard.view', 'work-orders.view', 'work-orders.create', 'work-orders.update', 'work-orders.start', 'work-orders.assign', 'work-orders.complete', 'work-orders.print', 'work-orders.export', 'wpr.view', 'wpr.accept', 'wpr.allot'],
             'Production Operator' => ['dashboard.view', 'work-orders.view', 'work-orders.start', 'wpr.view', 'wpr.accept'],

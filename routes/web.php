@@ -60,6 +60,7 @@ use App\Http\Controllers\PackagingController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SaleOrderController;
+use App\Http\Controllers\SalesChallanController;
 use App\Http\Controllers\WarehouseItemController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\WorkProcessRequirementController;
@@ -294,6 +295,16 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     Route::post('/packaging/{packagingOrder}/accept', [PackagingController::class, 'accept'])->name('packaging.accept');
     Route::post('/packaging/{packagingOrder}/pack', [PackagingController::class, 'pack'])->name('packaging.pack');
     Route::post('/packaging/{packagingOrder}/reverse', [PackagingController::class, 'reverse'])->name('packaging.reverse');
+
+    /* Customer dispatch is deliberately separate from Packaging stock issue. */
+    Route::get('/sales-challans', [SalesChallanController::class, 'index'])->name('sales-challans.index');
+    Route::get('/sales-challans/create', [SalesChallanController::class, 'create'])->name('sales-challans.create');
+    Route::post('/sales-challans', [SalesChallanController::class, 'store'])->name('sales-challans.store');
+    Route::get('/sales-challans/{salesChallan}', [SalesChallanController::class, 'show'])->name('sales-challans.show');
+    Route::post('/sales-challans/{salesChallan}/post', [SalesChallanController::class, 'post'])->name('sales-challans.post');
+    Route::post('/sales-challans/{salesChallan}/cancel', [SalesChallanController::class, 'cancel'])->name('sales-challans.cancel');
+    Route::get('/sales-challans/{salesChallan}/print', [SalesChallanController::class, 'print'])->name('sales-challans.print');
+    Route::post('/sales-challans/{salesChallan}/print-count', [SalesChallanController::class, 'incrementPrint'])->name('sales-challans.print-count');
 
     /*
     |--------------------------------------------------------------------------

@@ -7,6 +7,7 @@ use App\Models\Concerns\HasRecordStatus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PackagingRollAllocation extends Model
 {
@@ -45,5 +46,10 @@ class PackagingRollAllocation extends Model
     public function warehouseOutItem(): BelongsTo
     {
         return $this->belongsTo(WarehouseOutItem::class);
+    }
+
+    public function salesChallanRollAllocations(): HasMany
+    {
+        return $this->hasMany(SalesChallanRollAllocation::class)->where('record_status', 'Active');
     }
 }

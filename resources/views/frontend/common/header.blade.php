@@ -31,7 +31,7 @@
 		 <a href="{{ route('dashboard') }}">Dashboard</a>
 	  </li>
 	   
-	  <li class="dropdown {{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
+	  <li class="dropdown {{ request()->routeIs('sale-orders.*') || request()->routeIs('sales-challans.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
 		 <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
 		   Sales <span class="caret"></span>
 		 </a>
@@ -40,6 +40,7 @@
             <li><a href="{{ route('sale-orders.create') }}">Add Sale Order</a></li>
             <li><a href="{{ route('show-saleorderitems') }}">Create Work Order</a></li>
             <li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+            <li><a href="{{ route('sales-challans.index') }}">Sales Challans / Dispatch</a></li>
 		 </ul>
 	  </li>
 	  <li class="dropdown {{ request()->routeIs('show-purchaseorders') || request()->routeIs('add-purchaseorder') || request()->routeIs('purchase-orders.*') || request()->routeIs('print-purchaseorder') || request()->routeIs('show-purchases', 'show-purchase') ? 'active' : '' }}">
@@ -182,13 +183,14 @@
    <ul>
       <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><a href="{{ route('dashboard') }}">Dashboard</a></li>
        
-      <li class="{{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
+      <li class="{{ request()->routeIs('sale-orders.*') || request()->routeIs('sales-challans.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
          <a href="javascript:void(0);" class="frontend-mobile-submenu-link">Sales <i class="fa fa-angle-down"></i></a>
          <ul>
             <li><a href="{{ route('sale-orders.index') }}">Sale Order List</a></li>
             <li><a href="{{ route('sale-orders.create') }}">Add Sale Order</a></li>
             <li><a href="{{ route('show-saleorderitems') }}">Create Work Order</a></li>
             <li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+            <li><a href="{{ route('sales-challans.index') }}">Sales Challans / Dispatch</a></li>
          </ul>
       </li>
       <li class="{{ request()->routeIs('show-purchaseorders') || request()->routeIs('add-purchaseorder') || request()->routeIs('purchase-orders.*') || request()->routeIs('print-purchaseorder') || request()->routeIs('show-purchases', 'show-purchase') ? 'active' : '' }}">
