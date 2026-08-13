@@ -56,11 +56,15 @@
                                     <div class="panel panel-default">
                                         <div class="panel-heading"><strong>Allowed Active Departments</strong></div>
                                         <div class="panel-body">
+                                            <div class="checkbox checkbox-success">
+                                                <input id="department-access-select-all" type="checkbox">
+                                                <label for="department-access-select-all">Select All Active Departments</label>
+                                            </div>
                                             <div class="row">
                                                 @forelse ($departments as $department)
                                                     <div class="col-sm-6 col-md-4">
                                                         <div class="checkbox checkbox-success">
-                                                            <input id="department-access-{{ $department->id }}" type="checkbox" name="department_ids[]" value="{{ $department->id }}" @checked(in_array($department->id, old('department_ids', $assigned), true))>
+                                                            <input id="department-access-{{ $department->id }}" class="department-access-option" type="checkbox" name="department_ids[]" value="{{ $department->id }}" @checked(in_array($department->id, old('department_ids', $assigned), true))>
                                                             <label for="department-access-{{ $department->id }}">
                                                                 {{ $department->department_name }}
                                                                 @if ($department->factory)
@@ -95,6 +99,25 @@
     </div>
 
     @include('admin.common.formfooterscript')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var selectAll = document.getElementById('department-access-select-all');
+            var options = Array.prototype.slice.call(document.querySelectorAll('.department-access-option'));
+            if (! selectAll || options.length === 0) {
+                return;
+            }
+            var syncSelectAll = function () {
+                selectAll.checked = options.every(function (option) { return option.checked; });
+                selectAll.indeterminate = ! selectAll.checked && options.some(function (option) { return option.checked; });
+            };
+            selectAll.addEventListener('change', function () {
+                options.forEach(function (option) { option.checked = selectAll.checked; });
+                syncSelectAll();
+            });
+            options.forEach(function (option) { option.addEventListener('change', syncSelectAll); });
+            syncSelectAll();
+        });
+    </script>
 </body>
 
 </html>
