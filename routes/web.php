@@ -56,6 +56,7 @@ use App\Http\Controllers\CommonController;
 use App\Http\Controllers\DyeingColourLookupController;
 use App\Http\Controllers\JobMillWorkController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\PackagingController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\PurchaseOrderController;
 use App\Http\Controllers\SaleOrderController;
@@ -279,6 +280,19 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     Route::post('/warehouse/break-meter', [JobMillWorkController::class, 'breakMeter'])->name('warehouse.breakMeter');
     Route::match(['get', 'post'], '/stock-mill-dispatch/update-vendor', [JobMillWorkController::class, 'updateVendor'])->name('updateVendor');
     Route::match(['get', 'post'], '/update_mtr_received_status', [JobMillWorkController::class, 'updateMtrReceivedStatus'])->name('update_mtr_received_status');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Packaging
+    |--------------------------------------------------------------------------
+    */
+    Route::get('/packaging', [PackagingController::class, 'index'])->name('packaging.index');
+    Route::get('/packaging/sale-order-items/{saleOrderItem}/create', [PackagingController::class, 'create'])->name('packaging.create');
+    Route::post('/packaging', [PackagingController::class, 'store'])->name('packaging.store');
+    Route::get('/packaging/{packagingOrder}', [PackagingController::class, 'show'])->name('packaging.show');
+    Route::post('/packaging/{packagingOrder}/accept', [PackagingController::class, 'accept'])->name('packaging.accept');
+    Route::post('/packaging/{packagingOrder}/pack', [PackagingController::class, 'pack'])->name('packaging.pack');
+    Route::post('/packaging/{packagingOrder}/reverse', [PackagingController::class, 'reverse'])->name('packaging.reverse');
 
     /*
     |--------------------------------------------------------------------------
