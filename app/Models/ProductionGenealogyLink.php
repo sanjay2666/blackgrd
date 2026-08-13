@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductionGenealogyLink extends Model
 {
@@ -18,4 +19,9 @@ class ProductionGenealogyLink extends Model
     protected $casts = [
         'quantity' => 'decimal:2',
     ];
+
+    public function financialYear(): BelongsTo
+    {
+        return $this->belongsTo(FinancialYear::class);
+    }
 }

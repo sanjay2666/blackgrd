@@ -30,13 +30,13 @@ class PackagingSchemaIntegrationTest extends TestCase
         $this->assertTrue(Schema::hasTable('packaging_order_items'));
         $this->assertTrue(Schema::hasTable('packaging_roll_allocations'));
         $this->assertTrue(Schema::hasColumns('packaging_orders', [
-            'company_id', 'packaging_mode', 'parcel_count', 'roll_count', 'lot_count', 'allocated_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity',
+            'company_id', 'financial_year_id', 'packaging_mode', 'parcel_count', 'roll_count', 'lot_count', 'allocated_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity',
         ]));
         $this->assertTrue(Schema::hasColumns('packaging_order_items', [
-            'sale_order_id', 'sale_order_item_id', 'item_name', 'grey_quality', 'dyeing_color', 'coating_type', 'final_dispatch_width', 'tube_width', 'roll_count', 'lot_count',
+            'financial_year_id', 'sale_order_id', 'sale_order_item_id', 'item_name', 'grey_quality', 'dyeing_color', 'coating_type', 'final_dispatch_width', 'tube_width', 'roll_count', 'lot_count',
         ]));
         $this->assertTrue(Schema::hasColumns('packaging_roll_allocations', [
-            'warehouse_item_stock_id', 'warehouse_out_item_id', 'warehouse_id', 'ware_comp_id', 'dyeing_lot_number', 'source_available_quantity', 'allocated_quantity', 'accepted_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity', 'allocation_status',
+            'financial_year_id', 'warehouse_item_stock_id', 'warehouse_out_item_id', 'warehouse_id', 'ware_comp_id', 'dyeing_lot_number', 'source_available_quantity', 'allocated_quantity', 'accepted_quantity', 'packed_quantity', 'dispatched_quantity', 'cancelled_quantity', 'returned_quantity', 'remaining_quantity', 'allocation_status',
         ]));
     }
 

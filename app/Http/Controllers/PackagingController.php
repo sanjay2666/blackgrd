@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\InventoryAllocationStatus;
 use App\Enums\InventoryMovementStatus;
 use App\Models\Company;
+use App\Models\FinancialYear;
 use App\Models\ItemType;
 use App\Models\PackagingOrder;
 use App\Models\PackagingOrderItem;
@@ -17,6 +18,7 @@ use App\Models\WarehouseItem;
 use App\Models\WarehouseItemStock;
 use App\Models\WarehouseOutItem;
 use App\Services\CurrentOrganizationContext;
+use App\Services\FinancialYearResolver;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +39,9 @@ class PackagingController extends Controller
             ->where('status', 'Active')
             ->where('is_work_completed', 1)
             ->where('is_work_final_completed', '0');
+        if ($request->filled('financial_year_id')) {
+            $query->where('financial_year_id', (int) $request->financial_year_id);
+        }
         if ($request->filled('customer_id')) {
             $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('customer_id', (int) $request->customer_id));
         } elseif ($request->filled('customer_name')) {
@@ -63,9 +68,6 @@ class PackagingController extends Controller
                 $item->where('item_name', 'like', '%'.trim($request->item).'%')
                     ->orWhereHas('item', fn ($master) => $master->where('item_name', 'like', '%'.trim($request->item).'%'));
             });
-        }
-        if ($request->filled('quality')) {
-            $query->where('grey_quality', 'like', '%'.trim($request->quality).'%');
         }
         if ($request->filled('shade')) {
             $query->where('dyeing_color', 'like', '%'.trim($request->shade).'%');
@@ -116,8 +118,10 @@ class PackagingController extends Controller
         $priorities = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')
             ->whereNotNull('order_item_priority')->where('order_item_priority', '!=', '')
             ->distinct()->orderBy('order_item_priority')->pluck('order_item_priority');
+        $financialYears = FinancialYear::where('company_id', $companyId)->where('status', 'Active')
+            ->orderByDesc('start_date')->get(['id', 'display_name']);
 
-        return view('frontend.packaging.index', compact('worklist', 'packagingItems', 'itemTypes', 'priorities'));
+        return view('frontend.packaging.index', compact('worklist', 'packagingItems', 'itemTypes', 'priorities', 'financialYears'));
     }
 
     public function showPackagedOrders(Request $request)
@@ -133,6 +137,9 @@ class PackagingController extends Controller
             'items.rollAllocations',
             'items.salesChallanItems.salesChallan',
         ])->where('company_id', $companyId)->where('status', 'Active');
+        if ($request->filled('financial_year_id')) {
+            $query->where('financial_year_id', (int) $request->financial_year_id);
+        }
         if ($request->filled('customer_id')) {
             $query->where('customer_id', (int) $request->customer_id);
         } elseif ($request->filled('customer_name')) {
@@ -207,8 +214,10 @@ class PackagingController extends Controller
         $priorities = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')
             ->whereNotNull('order_item_priority')->where('order_item_priority', '!=', '')
             ->distinct()->orderBy('order_item_priority')->pluck('order_item_priority');
+        $financialYears = FinancialYear::where('company_id', $companyId)->where('status', 'Active')
+            ->orderByDesc('start_date')->get(['id', 'display_name']);
 
-        return view('frontend.packaging.history', compact('packagingOrders', 'itemTypes', 'priorities'));
+        return view('frontend.packaging.history', compact('packagingOrders', 'itemTypes', 'priorities', 'financialYears'));
     }
 
     public function listPackagingLots(Request $request)
@@ -371,7 +380,7 @@ class PackagingController extends Controller
         return view('frontend.packaging.cart', compact('saleOrderItems', 'stockGroups', 'customer', 'warehouses', 'warehouseId', 'packagingTypes', 'packagingMode'));
     }
 
-    public function storePackagingOrder(Request $request)
+    public function storePackagingOrder(Request $request, FinancialYearResolver $financialYears)
     {
         $validator = Validator::make($request->all(), [
             'sale_order_item_ids' => 'required|array|min:1',
@@ -401,6 +410,7 @@ class PackagingController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
+            $financialYear = $financialYears->current($companyId);
             $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
             sort($saleOrderItemIds);
             $stockIds = array_map('intval', array_values($request->warehouse_item_stock_ids));
@@ -469,6 +479,7 @@ class PackagingController extends Controller
             $individualId = $user->individual_id ?? Auth::id() ?? 0;
             $packagingOrder = PackagingOrder::create([
                 'company_id' => $companyId,
+                'financial_year_id' => $financialYear->id,
                 'customer_id' => $customerIds->first(),
                 'packaging_mode' => $request->packaging_mode,
                 'packaging_status' => 'draft',
@@ -489,6 +500,7 @@ class PackagingController extends Controller
                 $lineQuantity = round((float) $lineRows->sum(fn ($index) => $quantities[$index]), 2);
                 $packagingOrderItem = PackagingOrderItem::create([
                     'company_id' => $companyId,
+                    'financial_year_id' => $financialYear->id,
                     'packaging_order_id' => $packagingOrder->id,
                     'sale_order_id' => $saleOrderItem->sale_order_id,
                     'sale_order_item_id' => $saleOrderItem->id,
@@ -517,6 +529,7 @@ class PackagingController extends Controller
                     $stock = $stocks->get($stockIds[$index]);
                     PackagingRollAllocation::create([
                         'company_id' => $companyId,
+                        'financial_year_id' => $financialYear->id,
                         'packaging_order_id' => $packagingOrder->id,
                         'packaging_order_item_id' => $packagingOrderItem->id,
                         'warehouse_item_stock_id' => $stock->id,

@@ -31,6 +31,11 @@ class PackagingOrderItem extends Model
         return $this->belongsTo(PackagingOrder::class);
     }
 
+    public function financialYear(): BelongsTo
+    {
+        return $this->belongsTo(FinancialYear::class);
+    }
+
     public function saleOrderItem(): BelongsTo
     {
         return $this->belongsTo(SaleOrderItem::class);

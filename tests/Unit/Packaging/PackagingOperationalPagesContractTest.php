@@ -17,7 +17,7 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString('public function getPackagingAvailableStock(Request $request)', $controller);
         $this->assertStringContainsString('public function openPackagingCartForSaleOrderItem(Request $request, int $saleOrderItem)', $controller);
         $this->assertStringContainsString('public function showPackagingOrderCart(Request $request)', $controller);
-        $this->assertStringContainsString('public function storePackagingOrder(Request $request)', $controller);
+        $this->assertStringContainsString('public function storePackagingOrder(Request $request, FinancialYearResolver $financialYears)', $controller);
         $this->assertStringContainsString('public function showPackagingOrderDetails(Request $request, int $packagingOrder)', $controller);
         $this->assertStringContainsString('public function printPackagingSlip(Request $request, int $packagingOrder)', $controller);
         $this->assertStringContainsString('public function acceptPackagingWarehouseStock(Request $request, int $packagingOrder)', $controller);
@@ -39,6 +39,8 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString("where('packaging_mode', \$request->packaging_mode)", $controller);
         $this->assertStringContainsString("where('is_work_completed', 1)", $controller);
         $this->assertStringContainsString("where('is_work_final_completed', '0')", $controller);
+        $this->assertStringContainsString("where('financial_year_id', (int) \$request->financial_year_id)", $controller);
+        $this->assertStringContainsString("'financial_year_id' => \$financialYear->id", $controller);
         $this->assertStringContainsString('taka_count', $controller);
     }
 
@@ -62,12 +64,15 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString('packaging-customer-search', $history);
         $this->assertStringContainsString('packaging-lot-search', $history);
         $this->assertStringContainsString('packaging-item-type', $available);
+        $this->assertStringNotContainsString('packaging-quality', $available);
+        $this->assertStringContainsString('packaging-financial-year', $available);
         $this->assertStringContainsString('packaging-coating', $available);
         $this->assertStringContainsString('packaging-from-date', $available);
         $this->assertStringContainsString('Search', $available);
         $this->assertStringContainsString('Reset', $available);
         $this->assertStringContainsString('packaging-mode', $history);
         $this->assertStringContainsString('packaging-challan-number', $history);
+        $this->assertStringContainsString('packaging-history-financial-year', $history);
         $this->assertStringContainsString('Lots / Rolls / Taka', $history);
         $this->assertStringContainsString('Reset', $history);
         $this->assertStringContainsString('minLength: 2', $filters);

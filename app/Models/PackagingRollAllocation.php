@@ -33,6 +33,11 @@ class PackagingRollAllocation extends Model
         return $this->belongsTo(PackagingOrder::class);
     }
 
+    public function financialYear(): BelongsTo
+    {
+        return $this->belongsTo(FinancialYear::class);
+    }
+
     public function packagingOrderItem(): BelongsTo
     {
         return $this->belongsTo(PackagingOrderItem::class);

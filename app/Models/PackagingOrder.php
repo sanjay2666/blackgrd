@@ -31,6 +31,11 @@ class PackagingOrder extends Model
         return $this->belongsTo(Individual::class, 'customer_id');
     }
 
+    public function financialYear(): BelongsTo
+    {
+        return $this->belongsTo(FinancialYear::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(PackagingOrderItem::class)->where('status', 'Active');

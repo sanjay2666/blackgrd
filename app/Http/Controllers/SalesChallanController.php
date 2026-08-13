@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Department;
 use App\Models\Company;
+use App\Models\Department;
+use App\Models\FinancialYear;
 use App\Models\Individual;
 use App\Models\PackagingOrder;
 use App\Models\PackagingOrderItem;
@@ -33,9 +34,12 @@ class SalesChallanController extends Controller
         $challans = SalesChallan::with('customer')->where('company_id', $context->companyId())->where('record_status', 'Active')
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
             ->when($request->filled('challan_number'), fn ($query) => $query->where('challan_number', 'like', '%'.trim($request->challan_number).'%'))
+            ->when($request->filled('financial_year_id'), fn ($query) => $query->where('financial_year_id', (int) $request->financial_year_id))
             ->orderByDesc('id')->paginate(config('app.pagination_limit'));
+        $financialYears = FinancialYear::where('company_id', $context->companyId())->where('status', 'Active')
+            ->orderByDesc('start_date')->get(['id', 'display_name']);
 
-        return view('frontend.sales_challans.index', compact('challans'));
+        return view('frontend.sales_challans.index', compact('challans', 'financialYears'));
     }
 
     public function create(Request $request, DepartmentAccessService $departmentAccess)
@@ -50,6 +54,7 @@ class SalesChallanController extends Controller
             ->where('packed_quantity', '>', 0)->orderBy('packaging_order_id')->orderBy('packaging_order_item_id')->orderBy('dyeing_lot_number')->orderBy('id')->get()
             ->map(function (PackagingRollAllocation $allocation) {
                 $allocation->available_to_dispatch = max(0, round((float) $allocation->packed_quantity - (float) $allocation->dispatched_quantity, 2));
+
                 return $allocation;
             })->filter(fn (PackagingRollAllocation $allocation) => $allocation->available_to_dispatch > 0)->values();
         $transporters = Individual::where('company_id', $context->companyId())->where('type', 'transport')->where('status', 'Active')->orderBy('name')->get();
@@ -142,7 +147,7 @@ class SalesChallanController extends Controller
                 $packagingItem = $itemAllocations->first()->packagingOrderItem;
                 $saleOrder = $packagingItem->saleOrderItem?->saleOrder;
                 $challanItems[$packagingItemId] = SalesChallanItem::create([
-                    'company_id' => $companyId, 'sales_challan_id' => $challan->id, 'packaging_order_id' => $packagingItem->packaging_order_id, 'packaging_order_item_id' => $packagingItem->id,
+                    'company_id' => $companyId, 'financial_year_id' => $financialYear->id, 'sales_challan_id' => $challan->id, 'packaging_order_id' => $packagingItem->packaging_order_id, 'packaging_order_item_id' => $packagingItem->id,
                     'sale_order_id' => $packagingItem->sale_order_id, 'sale_order_item_id' => $packagingItem->sale_order_item_id, 'sale_order_number' => $saleOrder?->sale_order_number,
                     'item_id' => $packagingItem->item_id, 'item_type_id' => $packagingItem->item_type_id, 'unit_type_id' => $packagingItem->unit_type_id, 'packaging_type_id' => $packagingItem->packaging_type_id,
                     'packaging_type_name' => $packagingItem->packagingType?->name, 'item_name' => $packagingItem->item_name, 'grey_quality' => $packagingItem->grey_quality, 'dyeing_color' => $packagingItem->dyeing_color,
@@ -153,7 +158,7 @@ class SalesChallanController extends Controller
             foreach ($allocationIds as $index => $allocationId) {
                 $allocation = $allocations->get($allocationId);
                 SalesChallanRollAllocation::create([
-                    'company_id' => $companyId, 'sales_challan_id' => $challan->id, 'sales_challan_item_id' => $challanItems[$allocation->packaging_order_item_id]->id,
+                    'company_id' => $companyId, 'financial_year_id' => $financialYear->id, 'sales_challan_id' => $challan->id, 'sales_challan_item_id' => $challanItems[$allocation->packaging_order_item_id]->id,
                     'packaging_order_id' => $allocation->packaging_order_id, 'packaging_order_item_id' => $allocation->packaging_order_item_id, 'packaging_roll_allocation_id' => $allocation->id,
                     'warehouse_item_stock_id' => $allocation->warehouse_item_stock_id, 'warehouse_out_item_id' => $allocation->warehouse_out_item_id, 'dyeing_lot_number' => $allocation->dyeing_lot_number,
                     'packet_number' => $allocation->packet_number, 'insp_taka_number' => $allocation->insp_taka_number, 'packed_quantity_snapshot' => $allocation->packed_quantity,
@@ -162,9 +167,11 @@ class SalesChallanController extends Controller
                 ]);
             }
             DB::commit();
+
             return redirect()->route('sales-challans.show', $challan->id)->with('message', 'Sales Challan draft created. Post it to record customer dispatch.')->with('messageClass', 'successClass');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()->withInput()->with('message', $e->getMessage())->with('messageClass', 'errorClass');
         }
     }
@@ -175,6 +182,7 @@ class SalesChallanController extends Controller
         abort_unless($context instanceof CurrentOrganizationContext, 403);
         $salesChallan = SalesChallan::with(['customer', 'items.rollAllocations'])->where('company_id', $context->companyId())->where('record_status', 'Active')->findOrFail($salesChallan);
         abort_unless($departmentAccess->mayAccess((int) $salesChallan->department_id), 403);
+
         return view('frontend.sales_challans.show', compact('salesChallan'));
     }
 
@@ -240,9 +248,11 @@ class SalesChallanController extends Controller
             $user = Auth::user();
             $challan->update(['status' => 'Posted', 'posted_by' => $user->individual_id ?? Auth::id() ?? null, 'posted_at' => now(), 'dispatch_date' => $challan->dispatch_date ?: now()->toDateString(), 'updated_at' => now()]);
             DB::commit();
+
             return redirect()->route('sales-challans.show', $challan->id)->with('message', 'Customer Dispatch posted. Packaging stock was not issued again.')->with('messageClass', 'successClass');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()->with('message', $e->getMessage())->with('messageClass', 'errorClass');
         }
     }
@@ -296,9 +306,11 @@ class SalesChallanController extends Controller
             $user = Auth::user();
             $challan->update(['status' => 'Cancelled', 'cancelled_by' => $user->individual_id ?? Auth::id() ?? null, 'cancelled_at' => now(), 'cancellation_reason' => $request->cancellation_reason, 'updated_at' => now()]);
             DB::commit();
+
             return redirect()->route('sales-challans.show', $challan->id)->with('message', 'Sales Challan cancelled; Packaging dispatch availability and Sale Order pending meter were restored. Warehouse stock was not restored.')->with('messageClass', 'successClass');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return back()->with('message', $e->getMessage())->with('messageClass', 'errorClass');
         }
     }
@@ -313,6 +325,7 @@ class SalesChallanController extends Controller
         $lotTotals = $salesChallan->items->flatMap(fn (SalesChallanItem $item) => $item->rollAllocations)
             ->groupBy(fn (SalesChallanRollAllocation $roll) => $roll->dyeing_lot_number ?: 'Unspecified')
             ->map(fn ($rolls) => ['roll_count' => $rolls->count(), 'meter' => round((float) $rolls->sum('dispatched_quantity'), 2)]);
+
         return view('frontend.sales_challans.print', compact('salesChallan', 'company', 'lotTotals'));
     }
 
@@ -330,9 +343,11 @@ class SalesChallanController extends Controller
             }
             $challan->update(['print_count' => (int) $challan->print_count + 1, 'first_printed_at' => $challan->first_printed_at ?: now(), 'updated_at' => now()]);
             DB::commit();
+
             return response()->json(['print_count' => $challan->print_count]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json(['message' => $e->getMessage()], 422);
         }
     }
