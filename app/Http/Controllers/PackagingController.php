@@ -130,6 +130,7 @@ class PackagingController extends Controller
             'items.saleOrderItem.saleOrder',
             'items.packagingType',
             'items.rollAllocations',
+            'items.salesChallanItems.salesChallan',
         ])->where('company_id', $companyId)->where('status', 'Active');
         if ($request->filled('customer_id')) {
             $query->where('customer_id', (int) $request->customer_id);
@@ -139,11 +140,11 @@ class PackagingController extends Controller
                 $search->where('name', 'like', '%'.$customerName.'%')->orWhere('company_name', 'like', '%'.$customerName.'%');
             }));
         }
-        if ($request->filled('packaging_number')) {
-            $number = (int) preg_replace('/\D+/', '', (string) $request->packaging_number);
-            if ($number > 0) {
-                $query->whereKey($number);
-            }
+        if ($request->filled('challan_number')) {
+            $challanNumber = trim((string) $request->challan_number);
+            $query->whereHas('items.salesChallanItems.salesChallan', fn ($challan) => $challan
+                ->where('company_id', $companyId)
+                ->where('challan_number', 'like', '%'.$challanNumber.'%'));
         }
         if ($request->filled('sale_order_id')) {
             $query->whereHas('items', fn ($item) => $item->where('sale_order_id', (int) $request->sale_order_id));
@@ -188,6 +189,8 @@ class PackagingController extends Controller
         $packagingOrders = $query->orderByDesc('id')->paginate(config('app.pagination_limit'));
         $packagingOrders->getCollection()->transform(function (PackagingOrder $order) {
             $order->sale_order_numbers = $order->items->map(fn (PackagingOrderItem $item) => $item->saleOrderItem?->saleOrder?->sale_order_number)->filter()->unique()->values();
+            $order->challan_numbers = $order->items->flatMap(fn (PackagingOrderItem $item) => $item->salesChallanItems)
+                ->map(fn ($item) => $item->salesChallan?->challan_number)->filter()->unique()->values();
             $order->item_names = $order->items->pluck('item_name')->filter()->unique()->values();
             $order->packaging_type_names = $order->items->map(fn (PackagingOrderItem $item) => $item->packagingType?->name)->filter()->unique()->values();
             $order->taka_count = $order->items->flatMap(fn (PackagingOrderItem $item) => $item->rollAllocations)

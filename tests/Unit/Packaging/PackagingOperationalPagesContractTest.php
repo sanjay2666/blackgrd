@@ -35,6 +35,7 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString("where('item_type_id', (int) \$request->item_type_id)", $controller);
         $this->assertStringContainsString("where('coating_type', 'like'", $controller);
         $this->assertStringContainsString("whereDate('expect_delivery_date'", $controller);
+        $this->assertStringContainsString("where('challan_number', 'like'", $controller);
         $this->assertStringContainsString("where('packaging_mode', \$request->packaging_mode)", $controller);
         $this->assertStringContainsString('taka_count', $controller);
     }
@@ -60,6 +61,7 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString('Search', $available);
         $this->assertStringContainsString('Reset', $available);
         $this->assertStringContainsString('packaging-mode', $history);
+        $this->assertStringContainsString('packaging-challan-number', $history);
         $this->assertStringContainsString('Lots / Rolls / Taka', $history);
         $this->assertStringContainsString('Reset', $history);
         $this->assertStringContainsString('minLength: 2', $filters);

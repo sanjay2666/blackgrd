@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     @include('frontend.common.head', ['pageTitle' => 'Packaged Orders | Loomexa'])
-    <style>.packaging-filters .form-group { margin-bottom: 8px; } .packaging-filters label { display: block; font-size: 11px; margin-bottom: 2px; }</style>
 </head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
@@ -18,27 +17,30 @@
                         <a class="btn btn-success btn-sm pull-right" href="{{ route('packaging.show-available-orders') }}"><i class="fa fa-plus"></i> Packaging Available</a>
                     </div>
                     <div class="panel-body">
-                        <form method="get" action="{{ route('packaging.show-packaged-orders') }}" class="packaging-filters">
-                            <div class="row">
-                                <div class="col-sm-1 form-group"><label for="packaging-number">Packaging No.</label><input class="form-control input-sm" name="packaging_number" id="packaging-number" value="{{ request('packaging_number') }}" placeholder="PKG-#"></div>
-                                <div class="col-sm-2 form-group"><label for="packaging-customer-search">Customer</label><input class="form-control input-sm" name="customer_name" id="packaging-customer-search" value="{{ request('customer_name') }}" autocomplete="off"><input type="hidden" name="customer_id" id="packaging-customer-id" value="{{ request('customer_id') }}"></div>
-                                <div class="col-sm-2 form-group"><label for="packaging-sale-order-search">Sale Order</label><input class="form-control input-sm" name="sale_order" id="packaging-sale-order-search" value="{{ request('sale_order') }}" autocomplete="off"><input type="hidden" name="sale_order_id" id="packaging-sale-order-id" value="{{ request('sale_order_id') }}"></div>
-                                <div class="col-sm-2 form-group"><label for="packaging-item-search">Item</label><input class="form-control input-sm" name="item" id="packaging-item-search" value="{{ request('item') }}" autocomplete="off"><input type="hidden" name="item_id" id="packaging-item-id" value="{{ request('item_id') }}"></div>
-                                <div class="col-sm-1 form-group"><label for="packaging-lot-search">Lot</label><input class="form-control input-sm" name="lot" id="packaging-lot-search" value="{{ request('lot') }}" autocomplete="off"></div>
-                                <div class="col-sm-1 form-group"><label for="packaging-mode">Mode</label><select class="form-control input-sm" name="packaging_mode" id="packaging-mode"><option value="">All</option>@foreach (['bulk' => 'Bulk', 'sample' => 'Sample'] as $mode => $label)<option value="{{ $mode }}" @selected(request('packaging_mode') === $mode)>{{ $label }}</option>@endforeach</select></div>
-                                <div class="col-sm-1 form-group"><label for="packaging-history-status">Status</label><select class="form-control input-sm" name="packaging_status" id="packaging-history-status"><option value="">All</option>@foreach(['draft','accepted','packed','dispatched','cancelled'] as $status)<option value="{{ $status }}" @selected(request('packaging_status') === $status)>{{ ucfirst($status) }}</option>@endforeach</select></div>
-                                <div class="col-sm-1 form-group"><label for="packaging-from-date">From</label><input class="form-control input-sm" type="date" name="from_date" id="packaging-from-date" value="{{ request('from_date') }}"></div>
-                                <div class="col-sm-1 form-group"><label for="packaging-to-date">To</label><input class="form-control input-sm" type="date" name="to_date" id="packaging-to-date" value="{{ request('to_date') }}"></div>
+                        <div class="workorder-filter-wrap">
+                            <div class="workorder-filter-box">
+                                <form method="get" action="{{ route('packaging.show-packaged-orders') }}" role="search" autocomplete="off">
+                                    <div class="workorder-filter-row">
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-user"></i></span><input class="form-control" name="customer_name" id="packaging-customer-search" value="{{ request('customer_name') }}" placeholder="Customer"></div><input type="hidden" name="customer_id" id="packaging-customer-id" value="{{ request('customer_id') }}"></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-cube"></i></span><input class="form-control" name="item" id="packaging-item-search" value="{{ request('item') }}" placeholder="Item"></div><input type="hidden" name="item_id" id="packaging-item-id" value="{{ request('item_id') }}"></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-file-text-o"></i></span><input class="form-control" name="sale_order" id="packaging-sale-order-search" value="{{ request('sale_order') }}" placeholder="S.O. Number"></div><input type="hidden" name="sale_order_id" id="packaging-sale-order-id" value="{{ request('sale_order_id') }}"></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-barcode"></i></span><input class="form-control" name="challan_number" id="packaging-challan-number" value="{{ request('challan_number') }}" placeholder="Challan Number"></div></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-tag"></i></span><input class="form-control" name="lot" id="packaging-lot-search" value="{{ request('lot') }}" placeholder="Lot Number"></div></div>
+                                        <div><select class="form-control input-sm" name="packaging_mode" id="packaging-mode"><option value="">All Packaging Modes</option>@foreach (['bulk' => 'Bulk / Lot-wise', 'sample' => 'Sample'] as $mode => $label)<option value="{{ $mode }}" @selected(request('packaging_mode') === $mode)>{{ $label }}</option>@endforeach</select></div>
+                                        <div><select class="form-control input-sm" name="packaging_status" id="packaging-history-status"><option value="">All Packaging Status</option>@foreach(['draft','accepted','packed','dispatched','cancelled'] as $status)<option value="{{ $status }}" @selected(request('packaging_status') === $status)>{{ ucfirst($status) }}</option>@endforeach</select></div>
+                                    </div>
+                                    <div class="workorder-filter-row">
+                                        <div><select class="form-control input-sm" name="item_type_id" id="packaging-item-type"><option value="">All Item Types</option>@foreach ($itemTypes as $itemType)<option value="{{ $itemType->item_type_id }}" @selected((string) request('item_type_id') === (string) $itemType->item_type_id)>{{ $itemType->item_type_name }}</option>@endforeach</select></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-list-alt"></i></span><input class="form-control" name="quality" id="packaging-quality" value="{{ request('quality') }}" placeholder="Quality"></div></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-tint"></i></span><input class="form-control" name="shade" id="packaging-shade" value="{{ request('shade') }}" placeholder="Dyeing Shade"></div></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-paint-brush"></i></span><input class="form-control" name="coating" id="packaging-coating" value="{{ request('coating') }}" placeholder="Coating"></div></div>
+                                        <div><select class="form-control input-sm" name="priority" id="packaging-priority"><option value="">All Priorities</option>@foreach ($priorities as $priority)<option value="{{ $priority }}" @selected(request('priority') === $priority)>{{ $priority }}</option>@endforeach</select></div>
+                                        <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-calendar"></i></span><input class="form-control" type="date" name="from_date" id="packaging-from-date" value="{{ request('from_date') }}" title="From Date"><span class="input-group-addon">to</span><input class="form-control" type="date" name="to_date" id="packaging-to-date" value="{{ request('to_date') }}" title="To Date"></div></div>
+                                        <div class="filter-action-buttons"><div class="btn-group btn-group-sm" role="group"><button type="submit" class="btn btn-success"><i class="fa fa-search"></i> Search</button><a class="btn btn-default" href="{{ route('packaging.show-packaged-orders') }}"><i class="fa fa-refresh"></i> Reset</a></div></div>
+                                    </div>
+                                </form>
                             </div>
-                            <div class="row">
-                                <div class="col-sm-2 form-group"><label for="packaging-item-type">Item Type</label><select class="form-control input-sm" name="item_type_id" id="packaging-item-type"><option value="">All item types</option>@foreach ($itemTypes as $itemType)<option value="{{ $itemType->item_type_id }}" @selected((string) request('item_type_id') === (string) $itemType->item_type_id)>{{ $itemType->item_type_name }}</option>@endforeach</select></div>
-                                <div class="col-sm-2 form-group"><label for="packaging-quality">Quality</label><input class="form-control input-sm" name="quality" id="packaging-quality" value="{{ request('quality') }}"></div>
-                                <div class="col-sm-2 form-group"><label for="packaging-shade">Dyeing Shade</label><input class="form-control input-sm" name="shade" id="packaging-shade" value="{{ request('shade') }}"></div>
-                                <div class="col-sm-2 form-group"><label for="packaging-coating">Coating</label><input class="form-control input-sm" name="coating" id="packaging-coating" value="{{ request('coating') }}"></div>
-                                <div class="col-sm-2 form-group"><label for="packaging-priority">Priority</label><select class="form-control input-sm" name="priority" id="packaging-priority"><option value="">All priorities</option>@foreach ($priorities as $priority)<option value="{{ $priority }}" @selected(request('priority') === $priority)>{{ $priority }}</option>@endforeach</select></div>
-                                <div class="col-sm-2 form-group"><label>&nbsp;</label><button class="btn btn-primary btn-sm" type="submit"><i class="fa fa-search"></i> Search</button> <a class="btn btn-default btn-sm" href="{{ route('packaging.show-packaged-orders') }}">Reset</a></div>
-                            </div>
-                        </form>
+                        </div>
 
                         <div class="table-responsive">
                             <table class="table table-bordered table-striped table-hover">
@@ -46,7 +48,7 @@
                                 <tbody>
                                 @forelse($packagingOrders as $order)
                                     <tr>
-                                        <td>PKG-{{ $order->id }}<br><small>{{ ucfirst($order->packaging_mode ?: 'bulk') }}</small></td>
+                                        <td>PKG-{{ $order->id }}<br><small>{{ $order->challan_numbers->join(', ') ?: 'No Challan' }} / {{ ucfirst($order->packaging_mode ?: 'bulk') }}</small></td>
                                         <td>{{ $order->customer->name ?? '-' }}</td>
                                         <td>{{ $order->sale_order_numbers->join(', ') ?: '-' }}</td>
                                         <td>{{ $order->item_names->join(', ') ?: '-' }}</td>
