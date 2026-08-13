@@ -18,7 +18,7 @@ Read-only live `blackgrd` inspection found three active company-level department
 
 | Process | Canonical Department |
 | --- | --- |
-| Warping | Weaving |
+| Warping | Warping |
 | Weaving | Weaving |
 | Dyeing | Dyeing |
 | D-Printing | Printing |
@@ -30,7 +30,7 @@ There was no Warehouse-specific Process Master record. The canonical Warehouse D
 
 ## Change
 
-`2026_08_13_000001_complete_department_process_mappings` is an idempotent company-scoped master-data migration. It preserves existing Department IDs, repairs `Warehose` only when a company-level `Warehouse` record does not already exist, creates the missing canonical Departments, and maps only the confirmed Process names. It leaves unrecognized active Process Masters unmapped for review rather than guessing.
+`2026_08_13_000001_complete_department_process_mappings` is an idempotent company-scoped master-data migration. It preserves existing Department IDs, repairs `Warehose` only when a company-level `Warehouse` record does not already exist, creates the missing canonical Departments, and maps only the confirmed Process names. `2026_08_13_000002_correct_warping_department_mapping` preserves Warping as its own canonical Department and maps the Warping Process to it. Both leave unrecognized active Process Masters unmapped for review rather than guessing.
 
 The migration intentionally has a non-destructive `down()` method: removing created Departments or mappings could invalidate later legitimate `user_department_access` assignments. Live application is restricted to the hash-pinned `db:apply-reviewed-department-process-mappings` command, which requires a verified backup manifest, maintenance mode, stopped writers, and exact `blackgrd` confirmation.
 

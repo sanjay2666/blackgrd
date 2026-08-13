@@ -76,6 +76,9 @@ final class DepartmentProcessMappingIntegrationTest extends TestCase
         /** @var Migration $migration */
         $migration = require base_path('database/migrations/2026_08_13_000001_complete_department_process_mappings.php');
         $migration->up();
+        /** @var Migration $warpingMigration */
+        $warpingMigration = require base_path('database/migrations/2026_08_13_000002_correct_warping_department_mapping.php');
+        $warpingMigration->up();
         $this->departmentIds = DB::table('departments')->where('company_id', $this->companyId)->where('status', 'Active')
             ->pluck('id', 'department_name')->map(fn ($id): int => (int) $id)->all();
         ksort($this->departmentIds);
@@ -100,7 +103,7 @@ final class DepartmentProcessMappingIntegrationTest extends TestCase
     public function test_active_processes_map_to_their_canonical_departments_and_warehouse_typo_is_repaired(): void
     {
         $expected = [
-            'Warping' => 'Weaving', 'Weaving' => 'Weaving', 'Dyeing' => 'Dyeing', 'Coating' => 'Coating',
+            'Warping' => 'Warping', 'Weaving' => 'Weaving', 'Dyeing' => 'Dyeing', 'Coating' => 'Coating',
             'Packaging' => 'Packaging', 'D-Printing' => 'Printing', 'C-Printing' => 'Printing',
         ];
         $actual = DB::table('process_items')->join('departments', 'departments.id', '=', 'process_items.department_id')
@@ -108,14 +111,17 @@ final class DepartmentProcessMappingIntegrationTest extends TestCase
             ->pluck('departments.department_name', 'process_items.process_name')->all();
 
         $this->assertSame($expected, $actual);
-        $this->assertSame(['Coating', 'Dyeing', 'Packaging', 'Printing', 'Warehouse', 'Weaving'], array_keys($this->departmentIds));
+        $this->assertSame(['Coating', 'Dyeing', 'Packaging', 'Printing', 'Warehouse', 'Warping', 'Weaving'], array_keys($this->departmentIds));
         $this->assertArrayNotHasKey('Warehose', $this->departmentIds);
     }
 
     public function test_department_access_returns_only_the_selected_department_processes_and_combines_multiple_departments(): void
     {
+        $this->grant('Warping');
+        $this->assertSame([$this->processIds['Warping']], $this->allowedProcessIds());
+
         $this->grant('Weaving');
-        $this->assertSame([$this->processIds['Warping'], $this->processIds['Weaving']], $this->allowedProcessIds());
+        $this->assertSame([$this->processIds['Weaving']], $this->allowedProcessIds());
 
         $this->grant('Dyeing', 'Printing');
         $this->assertSame([$this->processIds['Dyeing'], $this->processIds['D-Printing'], $this->processIds['C-Printing']], $this->allowedProcessIds());
@@ -151,6 +157,9 @@ final class DepartmentProcessMappingIntegrationTest extends TestCase
         /** @var Migration $migration */
         $migration = require base_path('database/migrations/2026_08_13_000001_complete_department_process_mappings.php');
         $migration->up();
+        /** @var Migration $warpingMigration */
+        $warpingMigration = require base_path('database/migrations/2026_08_13_000002_correct_warping_department_mapping.php');
+        $warpingMigration->up();
 
         $this->assertNotContains($otherProcessId, $this->allowedProcessIds());
     }

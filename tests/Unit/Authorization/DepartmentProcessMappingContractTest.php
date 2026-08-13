@@ -22,6 +22,16 @@ final class DepartmentProcessMappingContractTest extends TestCase
         $this->assertStringNotContainsString("where('id', 2)", $migration);
     }
 
+    public function test_warping_correction_keeps_warping_as_a_permanent_canonical_department(): void
+    {
+        $migration = file_get_contents(base_path('database/migrations/2026_08_13_000002_correct_warping_department_mapping.php'));
+
+        $this->assertStringContainsString("where('process_name', 'Warping')", $migration);
+        $this->assertStringContainsString("'department_name' => 'Warping'", $migration);
+        $this->assertStringContainsString("->where('department_name', 'Warping')", $migration);
+        $this->assertStringNotContainsString("'department_name' => 'Weaving'", $migration);
+    }
+
     public function test_select_all_submits_individual_department_mappings_only(): void
     {
         $view = file_get_contents(resource_path('views/admin/users/department-access.blade.php'));
@@ -39,10 +49,14 @@ final class DepartmentProcessMappingContractTest extends TestCase
     public function test_live_application_requires_the_reviewed_protected_path(): void
     {
         $command = file_get_contents(base_path('app/Console/Commands/ApplyReviewedDepartmentProcessMappingMigrationCommand.php'));
+        $warpingCommand = file_get_contents(base_path('app/Console/Commands/ApplyReviewedWarpingDepartmentMappingMigrationCommand.php'));
 
         $this->assertStringContainsString('authorizeReviewedLiveMigration', $command);
         $this->assertStringContainsString('backup-manifest', $command);
         $this->assertStringContainsString('writes-stopped', $command);
         $this->assertStringContainsString('hash_file', $command);
+        $this->assertStringContainsString('authorizeReviewedLiveMigration', $warpingCommand);
+        $this->assertStringContainsString('user_department_access', $warpingCommand);
+        $this->assertStringContainsString('hash_file', $warpingCommand);
     }
 }

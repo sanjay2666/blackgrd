@@ -8,7 +8,7 @@ Department Access is a second authorization dimension. **RBAC answers WHAT** a u
 
 `user_organization_access.department_id` remains the User's primary/home Department in the existing organization context. `individuals.department_id` remains the Employee Master relationship and is not an authorization grant. Explicit legacy organization Department values are backfilled into the canonical relationship; null or ambiguous values are not expanded into broad access.
 
-The production Process Master maps to canonical organizational Departments: Warping and Weaving to Weaving; Dyeing to Dyeing; Printing, D-Printing, and C-Printing to Printing; Coating to Coating; Packaging to Packaging; and a Warehouse Process, when one exists, to Warehouse. This mapping is company-scoped and is the source for Work Order visibility; it does not alter Printing/Coating routing or Work Order creation.
+The production Process Master maps to canonical organizational Departments: Warping to Warping; Weaving to Weaving; Dyeing to Dyeing; Printing, D-Printing, and C-Printing to Printing; Coating to Coating; Packaging to Packaging; and a Warehouse Process, when one exists, to Warehouse. This mapping is company-scoped and is the source for Work Order visibility; it does not alter Printing/Coating routing or Work Order creation.
 
 An ordinary Frontend User with no canonical Department rows has no access to Department-owned functionality. Company-global records remain company-global. A Department becoming inactive does not delete historical access rows and is excluded from new assignment and runtime active access.
 
