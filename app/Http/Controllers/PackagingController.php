@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\InventoryAllocationStatus;
 use App\Enums\InventoryMovementStatus;
 use App\Models\Company;
+use App\Models\ItemType;
 use App\Models\PackagingOrder;
 use App\Models\PackagingOrderItem;
 use App\Models\PackagingRollAllocation;
@@ -51,6 +52,9 @@ class PackagingController extends Controller
         if ($request->filled('development_type')) {
             $query->where('development_type', $request->development_type);
         }
+        if ($request->filled('item_type_id')) {
+            $query->where('item_type_id', (int) $request->item_type_id);
+        }
         if ($request->filled('item_id')) {
             $query->where('item_id', (int) $request->item_id);
         } elseif ($request->filled('item')) {
@@ -64,6 +68,18 @@ class PackagingController extends Controller
         }
         if ($request->filled('shade')) {
             $query->where('dyeing_color', 'like', '%'.trim($request->shade).'%');
+        }
+        if ($request->filled('coating')) {
+            $query->where('coating_type', 'like', '%'.trim($request->coating).'%');
+        }
+        if ($request->filled('priority')) {
+            $query->where('order_item_priority', $request->priority);
+        }
+        if ($request->filled('from_date')) {
+            $query->whereDate('expect_delivery_date', '>=', $request->from_date);
+        }
+        if ($request->filled('to_date')) {
+            $query->whereDate('expect_delivery_date', '<=', $request->to_date);
         }
         $worklist = $query->orderByDesc('in_packaging_send_date')->orderByDesc('id')->get();
         $packagingItems = PackagingOrderItem::with('packagingOrder')
@@ -94,7 +110,13 @@ class PackagingController extends Controller
             ['path' => $request->url(), 'query' => $request->query()]
         );
 
-        return view('frontend.packaging.index', compact('worklist', 'packagingItems'));
+        $itemTypes = ItemType::where('company_id', $companyId)->where('status', 'Active')
+            ->orderBy('item_type_name')->get(['item_type_id', 'item_type_name']);
+        $priorities = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')
+            ->whereNotNull('order_item_priority')->where('order_item_priority', '!=', '')
+            ->distinct()->orderBy('order_item_priority')->pluck('order_item_priority');
+
+        return view('frontend.packaging.index', compact('worklist', 'packagingItems', 'itemTypes', 'priorities'));
     }
 
     public function showPackagedOrders(Request $request)
@@ -133,8 +155,26 @@ class PackagingController extends Controller
         } elseif ($request->filled('item')) {
             $query->whereHas('items', fn ($item) => $item->where('item_name', 'like', '%'.trim($request->item).'%'));
         }
+        if ($request->filled('item_type_id')) {
+            $query->whereHas('items', fn ($item) => $item->where('item_type_id', (int) $request->item_type_id));
+        }
+        if ($request->filled('quality')) {
+            $query->whereHas('items', fn ($item) => $item->where('grey_quality', 'like', '%'.trim($request->quality).'%'));
+        }
+        if ($request->filled('shade')) {
+            $query->whereHas('items', fn ($item) => $item->where('dyeing_color', 'like', '%'.trim($request->shade).'%'));
+        }
+        if ($request->filled('coating')) {
+            $query->whereHas('items', fn ($item) => $item->where('coating_type', 'like', '%'.trim($request->coating).'%'));
+        }
+        if ($request->filled('priority')) {
+            $query->whereHas('items.saleOrderItem', fn ($item) => $item->where('order_item_priority', $request->priority));
+        }
         if ($request->filled('lot')) {
             $query->whereHas('rollAllocations', fn ($allocation) => $allocation->where('dyeing_lot_number', 'like', '%'.trim($request->lot).'%'));
+        }
+        if ($request->filled('packaging_mode')) {
+            $query->where('packaging_mode', $request->packaging_mode);
         }
         if ($request->filled('packaging_status')) {
             $query->where('packaging_status', $request->packaging_status);
@@ -150,13 +190,21 @@ class PackagingController extends Controller
             $order->sale_order_numbers = $order->items->map(fn (PackagingOrderItem $item) => $item->saleOrderItem?->saleOrder?->sale_order_number)->filter()->unique()->values();
             $order->item_names = $order->items->pluck('item_name')->filter()->unique()->values();
             $order->packaging_type_names = $order->items->map(fn (PackagingOrderItem $item) => $item->packagingType?->name)->filter()->unique()->values();
+            $order->taka_count = $order->items->flatMap(fn (PackagingOrderItem $item) => $item->rollAllocations)
+                ->pluck('insp_taka_number')->filter()->unique()->count();
             $order->dispatchable_quantity = round((float) $order->items->flatMap(fn (PackagingOrderItem $item) => $item->rollAllocations)
                 ->sum(fn (PackagingRollAllocation $allocation) => max(0, (float) $allocation->packed_quantity - (float) $allocation->dispatched_quantity)), 2);
 
             return $order;
         });
 
-        return view('frontend.packaging.history', compact('packagingOrders'));
+        $itemTypes = ItemType::where('company_id', $companyId)->where('status', 'Active')
+            ->orderBy('item_type_name')->get(['item_type_id', 'item_type_name']);
+        $priorities = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')
+            ->whereNotNull('order_item_priority')->where('order_item_priority', '!=', '')
+            ->distinct()->orderBy('order_item_priority')->pluck('order_item_priority');
+
+        return view('frontend.packaging.history', compact('packagingOrders', 'itemTypes', 'priorities'));
     }
 
     public function listPackagingLots(Request $request)

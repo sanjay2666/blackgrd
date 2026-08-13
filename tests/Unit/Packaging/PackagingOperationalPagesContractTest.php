@@ -32,6 +32,11 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString("Route::get('/packaging/{packagingOrder}/print'", $routes);
         $this->assertStringContainsString("->name('packaging.get-available-stock')", $routes);
         $this->assertStringContainsString("->name('packaging.cancel-and-restore-stock')", $routes);
+        $this->assertStringContainsString("where('item_type_id', (int) \$request->item_type_id)", $controller);
+        $this->assertStringContainsString("where('coating_type', 'like'", $controller);
+        $this->assertStringContainsString("whereDate('expect_delivery_date'", $controller);
+        $this->assertStringContainsString("where('packaging_mode', \$request->packaging_mode)", $controller);
+        $this->assertStringContainsString('taka_count', $controller);
     }
 
     public function test_operational_pages_keep_bulk_sample_roll_identity_dispatch_link_and_duplicate_submit_protection(): void
@@ -49,6 +54,14 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString('packaging_remaining_quantity', $available);
         $this->assertStringContainsString('packaging-customer-search', $history);
         $this->assertStringContainsString('packaging-lot-search', $history);
+        $this->assertStringContainsString('packaging-item-type', $available);
+        $this->assertStringContainsString('packaging-coating', $available);
+        $this->assertStringContainsString('packaging-from-date', $available);
+        $this->assertStringContainsString('Search', $available);
+        $this->assertStringContainsString('Reset', $available);
+        $this->assertStringContainsString('packaging-mode', $history);
+        $this->assertStringContainsString('Lots / Rolls / Taka', $history);
+        $this->assertStringContainsString('Reset', $history);
         $this->assertStringContainsString('minLength: 2', $filters);
         $this->assertStringContainsString(".on('input'", $filters);
         $this->assertStringContainsString("route('list_customer')", $filters);
