@@ -10,10 +10,10 @@
             <a class="btn btn-default btn-sm pull-right" href="{{ route('packaging.show-packaged-orders') }}"><i class="fa fa-list"></i> Packaged Orders</a>
         </div><div class="panel-body">
             <form method="get" action="{{ route('packaging.show-available-orders') }}" class="row" style="margin-bottom:12px">
-                <div class="col-sm-2"><select class="form-control input-sm" name="customer_id"><option value="">Customer</option>@foreach ($customers as $customer)<option value="{{ $customer->id }}" @selected((int) request('customer_id') === (int) $customer->id)>{{ $customer->name ?? $customer->individual_name }}</option>@endforeach</select></div>
-                <div class="col-sm-2"><input class="form-control input-sm" name="sale_order" value="{{ request('sale_order') }}" placeholder="Sale Order"></div>
+                <div class="col-sm-2"><input class="form-control input-sm" name="customer_name" id="packaging-customer-search" value="{{ request('customer_name') }}" placeholder="Customer"><input type="hidden" name="customer_id" id="packaging-customer-id" value="{{ request('customer_id') }}"></div>
+                <div class="col-sm-2"><input class="form-control input-sm" name="sale_order" id="packaging-sale-order-search" value="{{ request('sale_order') }}" placeholder="Sale Order"><input type="hidden" name="sale_order_id" id="packaging-sale-order-id" value="{{ request('sale_order_id') }}"></div>
                 <div class="col-sm-1"><select class="form-control input-sm" name="development_type"><option value="">Type</option>@foreach (['Bulk', 'Sample', 'JobWork'] as $type)<option value="{{ $type }}" @selected(request('development_type') === $type)>{{ $type }}</option>@endforeach</select></div>
-                <div class="col-sm-2"><input class="form-control input-sm" name="item" value="{{ request('item') }}" placeholder="Item"></div>
+                <div class="col-sm-2"><input class="form-control input-sm" name="item" id="packaging-item-search" value="{{ request('item') }}" placeholder="Item"><input type="hidden" name="item_id" id="packaging-item-id" value="{{ request('item_id') }}"></div>
                 <div class="col-sm-1"><input class="form-control input-sm" name="quality" value="{{ request('quality') }}" placeholder="Quality"></div>
                 <div class="col-sm-1"><input class="form-control input-sm" name="shade" value="{{ request('shade') }}" placeholder="Shade"></div>
                 <div class="col-sm-1"><select class="form-control input-sm" name="packaging_state"><option value="">State</option>@foreach (['pending' => 'Pending', 'partial' => 'Partial', 'packed' => 'Packed'] as $key => $label)<option value="{{ $key }}" @selected(request('packaging_state') === $key)>{{ $label }}</option>@endforeach</select></div>
@@ -44,4 +44,5 @@
 </div>
 @include('frontend.common.footerscript')
 <script>$('#packaging-worklist-form').on('submit', function (event) { var customers = {}; $(this).find('.packaging-worklist-item:checked').each(function () { customers[$(this).closest('tr').data('customer')] = true; }); if (!Object.keys(customers).length) { event.preventDefault(); alert('Select at least one Sale Order Item for Packaging.'); return; } if (Object.keys(customers).length !== 1) { event.preventDefault(); alert('One Packaging Order can contain Sale Order Items for one customer only.'); return; } $(this).find('button[type="submit"]').prop('disabled', true).text('Opening...'); });</script>
+@include('frontend.packaging.partials.filter-autocomplete')
 </body></html>

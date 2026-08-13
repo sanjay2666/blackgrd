@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Enums\InventoryAllocationStatus;
 use App\Enums\InventoryMovementStatus;
 use App\Models\Company;
-use App\Models\Individual;
 use App\Models\PackagingOrder;
 use App\Models\PackagingOrderItem;
 use App\Models\PackagingRollAllocation;
@@ -38,14 +37,23 @@ class PackagingController extends Controller
             ->where('is_packaging_done', '1');
         if ($request->filled('customer_id')) {
             $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('customer_id', (int) $request->customer_id));
+        } elseif ($request->filled('customer_name')) {
+            $customerName = trim((string) $request->customer_name);
+            $query->whereHas('saleOrder.customer', fn ($customer) => $customer->where(function ($search) use ($customerName) {
+                $search->where('name', 'like', '%'.$customerName.'%')->orWhere('company_name', 'like', '%'.$customerName.'%');
+            }));
         }
-        if ($request->filled('sale_order')) {
+        if ($request->filled('sale_order_id')) {
+            $query->where('sale_order_id', (int) $request->sale_order_id);
+        } elseif ($request->filled('sale_order')) {
             $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('sale_order_number', 'like', '%'.trim($request->sale_order).'%'));
         }
         if ($request->filled('development_type')) {
             $query->where('development_type', $request->development_type);
         }
-        if ($request->filled('item')) {
+        if ($request->filled('item_id')) {
+            $query->where('item_id', (int) $request->item_id);
+        } elseif ($request->filled('item')) {
             $query->where(function ($item) use ($request) {
                 $item->where('item_name', 'like', '%'.trim($request->item).'%')
                     ->orWhereHas('item', fn ($master) => $master->where('item_name', 'like', '%'.trim($request->item).'%'));
@@ -85,9 +93,8 @@ class PackagingController extends Controller
             $page,
             ['path' => $request->url(), 'query' => $request->query()]
         );
-        $customers = Individual::where('company_id', $companyId)->where('type', 'customers')->where('status', 'Active')->orderBy('name')->get();
 
-        return view('frontend.packaging.index', compact('worklist', 'packagingItems', 'customers'));
+        return view('frontend.packaging.index', compact('worklist', 'packagingItems'));
     }
 
     public function showPackagedOrders(Request $request)
@@ -104,6 +111,11 @@ class PackagingController extends Controller
         ])->where('company_id', $companyId)->where('status', 'Active');
         if ($request->filled('customer_id')) {
             $query->where('customer_id', (int) $request->customer_id);
+        } elseif ($request->filled('customer_name')) {
+            $customerName = trim((string) $request->customer_name);
+            $query->whereHas('customer', fn ($customer) => $customer->where(function ($search) use ($customerName) {
+                $search->where('name', 'like', '%'.$customerName.'%')->orWhere('company_name', 'like', '%'.$customerName.'%');
+            }));
         }
         if ($request->filled('packaging_number')) {
             $number = (int) preg_replace('/\D+/', '', (string) $request->packaging_number);
@@ -111,10 +123,14 @@ class PackagingController extends Controller
                 $query->whereKey($number);
             }
         }
-        if ($request->filled('sale_order')) {
+        if ($request->filled('sale_order_id')) {
+            $query->whereHas('items', fn ($item) => $item->where('sale_order_id', (int) $request->sale_order_id));
+        } elseif ($request->filled('sale_order')) {
             $query->whereHas('items.saleOrderItem.saleOrder', fn ($saleOrder) => $saleOrder->where('sale_order_number', 'like', '%'.trim($request->sale_order).'%'));
         }
-        if ($request->filled('item')) {
+        if ($request->filled('item_id')) {
+            $query->whereHas('items', fn ($item) => $item->where('item_id', (int) $request->item_id));
+        } elseif ($request->filled('item')) {
             $query->whereHas('items', fn ($item) => $item->where('item_name', 'like', '%'.trim($request->item).'%'));
         }
         if ($request->filled('lot')) {
@@ -139,9 +155,27 @@ class PackagingController extends Controller
 
             return $order;
         });
-        $customers = Individual::where('company_id', $companyId)->where('type', 'customers')->where('status', 'Active')->orderBy('name')->get();
 
-        return view('frontend.packaging.history', compact('packagingOrders', 'customers'));
+        return view('frontend.packaging.history', compact('packagingOrders'));
+    }
+
+    public function listPackagingLots(Request $request)
+    {
+        $context = $request->attributes->get(CurrentOrganizationContext::class);
+        abort_unless($context instanceof CurrentOrganizationContext, 403);
+
+        $term = trim((string) $request->input('term', ''));
+        $lots = PackagingRollAllocation::where('company_id', $context->companyId())
+            ->where('status', 'Active')
+            ->whereNotNull('dyeing_lot_number')
+            ->where('dyeing_lot_number', '!=', '')
+            ->when($term !== '', fn ($query) => $query->where('dyeing_lot_number', 'like', '%'.$term.'%'))
+            ->distinct()
+            ->orderBy('dyeing_lot_number')
+            ->limit(20)
+            ->pluck('dyeing_lot_number');
+
+        return response()->json($lots->map(fn ($lot) => ['id' => $lot, 'label' => $lot, 'value' => $lot])->values());
     }
 
     public function getPackagingAvailableStock(Request $request)

@@ -13,6 +13,7 @@ class PackagingOperationalPagesContractTest extends TestCase
 
         $this->assertStringContainsString('public function showPackagingAvailableOrders(Request $request)', $controller);
         $this->assertStringContainsString('public function showPackagedOrders(Request $request)', $controller);
+        $this->assertStringContainsString('public function listPackagingLots(Request $request)', $controller);
         $this->assertStringContainsString('public function getPackagingAvailableStock(Request $request)', $controller);
         $this->assertStringContainsString('public function openPackagingCartForSaleOrderItem(Request $request, int $saleOrderItem)', $controller);
         $this->assertStringContainsString('public function showPackagingOrderCart(Request $request)', $controller);
@@ -27,6 +28,7 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString("Route::get('/show-add-packaging-list'", $routes);
         $this->assertStringContainsString("Route::get('/show-packagings'", $routes);
         $this->assertStringContainsString("Route::get('/packaging/available-stock'", $routes);
+        $this->assertStringContainsString("Route::get('/packaging/lot-autocomplete'", $routes);
         $this->assertStringContainsString("Route::get('/packaging/{packagingOrder}/print'", $routes);
         $this->assertStringContainsString("->name('packaging.get-available-stock')", $routes);
         $this->assertStringContainsString("->name('packaging.cancel-and-restore-stock')", $routes);
@@ -39,9 +41,19 @@ class PackagingOperationalPagesContractTest extends TestCase
         $cart = file_get_contents(resource_path('views/frontend/packaging/cart.blade.php'));
         $detail = file_get_contents(resource_path('views/frontend/packaging/show.blade.php'));
         $print = file_get_contents(resource_path('views/frontend/packaging/print.blade.php'));
+        $filters = file_get_contents(resource_path('views/frontend/packaging/partials/filter-autocomplete.blade.php'));
 
         $this->assertStringContainsString('Sample multi-order', $available);
+        $this->assertStringContainsString('packaging-customer-search', $available);
+        $this->assertStringContainsString('packaging-customer-id', $available);
         $this->assertStringContainsString('packaging_remaining_quantity', $available);
+        $this->assertStringContainsString('packaging-customer-search', $history);
+        $this->assertStringContainsString('packaging-lot-search', $history);
+        $this->assertStringContainsString('minLength: 2', $filters);
+        $this->assertStringContainsString(".on('input'", $filters);
+        $this->assertStringContainsString("route('list_customer')", $filters);
+        $this->assertStringContainsString("route('list_item')", $filters);
+        $this->assertStringContainsString("route('find_saleOrderNumer')", $filters);
         $this->assertStringContainsString('sales-challans.create', $history);
         $this->assertStringContainsString('Print Slip', $history);
         $this->assertStringContainsString('available-stock', $cart);
