@@ -37,6 +37,8 @@ class PackagingOperationalPagesContractTest extends TestCase
         $this->assertStringContainsString("whereDate('expect_delivery_date'", $controller);
         $this->assertStringContainsString("where('challan_number', 'like'", $controller);
         $this->assertStringContainsString("where('packaging_mode', \$request->packaging_mode)", $controller);
+        $this->assertStringContainsString("where('is_work_completed', 1)", $controller);
+        $this->assertStringContainsString("where('is_work_final_completed', '0')", $controller);
         $this->assertStringContainsString('taka_count', $controller);
     }
 
@@ -49,7 +51,11 @@ class PackagingOperationalPagesContractTest extends TestCase
         $print = file_get_contents(resource_path('views/frontend/packaging/print.blade.php'));
         $filters = file_get_contents(resource_path('views/frontend/packaging/partials/filter-autocomplete.blade.php'));
 
-        $this->assertStringContainsString('Sample multi-order', $available);
+        $this->assertStringNotContainsString('All Priorities', $available);
+        $this->assertStringNotContainsString('All Packaging States', $available);
+        $this->assertStringNotContainsString('Bulk / Lot-wise', $available);
+        $this->assertStringNotContainsString('Sample multi-order', $available);
+        $this->assertStringNotContainsString('Select items for one customer.', $available);
         $this->assertStringContainsString('packaging-customer-search', $available);
         $this->assertStringContainsString('packaging-customer-id', $available);
         $this->assertStringContainsString('packaging_remaining_quantity', $available);

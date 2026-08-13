@@ -26,8 +26,6 @@
                                         <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-file-text-o"></i></span><input class="form-control" name="sale_order" id="packaging-sale-order-search" value="{{ request('sale_order') }}" placeholder="S.O. Number"></div><input type="hidden" name="sale_order_id" id="packaging-sale-order-id" value="{{ request('sale_order_id') }}"></div>
                                         <div><select class="form-control input-sm" name="item_type_id" id="packaging-item-type"><option value="">All Item Types</option>@foreach ($itemTypes as $itemType)<option value="{{ $itemType->item_type_id }}" @selected((string) request('item_type_id') === (string) $itemType->item_type_id)>{{ $itemType->item_type_name }}</option>@endforeach</select></div>
                                         <div><select class="form-control input-sm" name="development_type" id="packaging-development-type"><option value="">All Order Types</option>@foreach (['Bulk', 'Sample', 'JobWork'] as $type)<option value="{{ $type }}" @selected(request('development_type') === $type)>{{ $type }}</option>@endforeach</select></div>
-                                        <div><select class="form-control input-sm" name="priority" id="packaging-priority"><option value="">All Priorities</option>@foreach ($priorities as $priority)<option value="{{ $priority }}" @selected(request('priority') === $priority)>{{ $priority }}</option>@endforeach</select></div>
-                                        <div><select class="form-control input-sm" name="packaging_state" id="packaging-state"><option value="">All Packaging States</option>@foreach (['pending' => 'Pending', 'partial' => 'Partial', 'packed' => 'Packed'] as $key => $label)<option value="{{ $key }}" @selected(request('packaging_state') === $key)>{{ $label }}</option>@endforeach</select></div>
                                     </div>
                                     <div class="workorder-filter-row">
                                         <div><div class="input-group input-group-sm"><span class="input-group-addon"><i class="fa fa-list-alt"></i></span><input class="form-control" name="quality" id="packaging-quality" value="{{ request('quality') }}" placeholder="Quality"></div></div>
@@ -43,11 +41,7 @@
                         </div>
 
                         <form method="get" action="{{ route('packaging.show-order-cart') }}" id="packaging-worklist-form">
-                            <div class="row" style="margin-bottom:12px">
-                                <div class="col-sm-4"><label class="radio-inline"><input type="radio" name="packaging_mode" value="bulk" checked> Bulk / Lot-wise</label><label class="radio-inline"><input type="radio" name="packaging_mode" value="sample"> Sample multi-order</label></div>
-                                <div class="col-sm-4 text-muted">Select items for one customer. Sample mode permits multiple Sale Orders in one Packaging Order.</div>
-                                <div class="col-sm-4 text-right"><button class="btn btn-success btn-sm" type="submit">Open Packaging Cart</button></div>
-                            </div>
+                            <div class="text-right" style="margin-bottom:12px"><button class="btn btn-success btn-sm" type="submit">Open Packaging Cart</button></div>
                             <div class="table-responsive">
                                 <table class="table table-bordered table-striped table-hover">
                                     <thead><tr class="info"><th>Select</th><th>Customer / Sale Order</th><th>Type / Priority</th><th>Item / Quality</th><th>Shade / Coating</th><th>Required</th><th>Already Packed</th><th>Pending</th><th>Packaging Status</th><th>Actions</th></tr></thead>

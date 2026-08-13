@@ -10,7 +10,8 @@ class PackagingFlowContractTest extends TestCase
     {
         $source = file_get_contents(app_path('Http/Controllers/PackagingController.php'));
 
-        $this->assertStringContainsString("->where('is_packaging_done', '1')", $source);
+        $this->assertStringContainsString("->where('is_work_completed', 1)", $source);
+        $this->assertStringContainsString("->where('is_work_final_completed', '0')", $source);
         $this->assertStringContainsString("->where('insp_bal_quan_size', '>', 0)", $source);
         $this->assertStringContainsString('Requested packaging quantity exceeds the sale-order item remaining quantity.', $source);
         $this->assertStringContainsString('Requested packaging quantity exceeds available stock for Roll/Taka', $source);
@@ -56,6 +57,6 @@ class PackagingFlowContractTest extends TestCase
         $this->assertStringContainsString('One Packaging Order can contain Sale Order Items for one customer only.', $controller);
         $this->assertStringContainsString('Packaging Cart', $cart);
         $this->assertStringContainsString('lot-running-total', $cart);
-        $this->assertStringContainsString('Sample multi-order', $worklist);
+        $this->assertStringNotContainsString('Sample multi-order', $worklist);
     }
 }

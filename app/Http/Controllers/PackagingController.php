@@ -35,7 +35,8 @@ class PackagingController extends Controller
         $query = SaleOrderItem::with(['saleOrder.customer', 'item', 'itemType'])
             ->where('company_id', $companyId)
             ->where('status', 'Active')
-            ->where('is_packaging_done', '1');
+            ->where('is_work_completed', 1)
+            ->where('is_work_final_completed', '0');
         if ($request->filled('customer_id')) {
             $query->whereHas('saleOrder', fn ($saleOrder) => $saleOrder->where('customer_id', (int) $request->customer_id));
         } elseif ($request->filled('customer_name')) {
@@ -244,7 +245,7 @@ class PackagingController extends Controller
         abort_unless($context instanceof CurrentOrganizationContext, 403);
         $companyId = $context->companyId();
         $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
-        $saleOrderItems = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')->where('is_packaging_done', '1')
+        $saleOrderItems = SaleOrderItem::where('company_id', $companyId)->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')
             ->whereIn('id', $saleOrderItemIds)->get()->keyBy('id');
         if ($saleOrderItems->count() !== count($saleOrderItemIds)) {
             return response()->json(['message' => 'One or more Sale Order Items are no longer available for Packaging.'], 422);
@@ -284,7 +285,7 @@ class PackagingController extends Controller
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
 
-        SaleOrderItem::where('company_id', $context->companyId())->where('status', 'Active')->where('is_packaging_done', '1')->findOrFail($saleOrderItem);
+        SaleOrderItem::where('company_id', $context->companyId())->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')->findOrFail($saleOrderItem);
 
         return redirect()->route('packaging.show-order-cart', [
             'sale_order_item_ids' => [$saleOrderItem],
@@ -315,7 +316,7 @@ class PackagingController extends Controller
         $saleOrderItemIds = array_map('intval', array_values($request->sale_order_item_ids));
         sort($saleOrderItemIds);
         $saleOrderItems = SaleOrderItem::with(['saleOrder.customer', 'item', 'itemType', 'unitType'])
-            ->where('company_id', $companyId)->where('status', 'Active')->where('is_packaging_done', '1')
+            ->where('company_id', $companyId)->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')
             ->whereIn('id', $saleOrderItemIds)->orderBy('id')->get()->keyBy('id');
         if ($saleOrderItems->count() !== count($saleOrderItemIds)) {
             Session::put('message', 'One or more Sale Order Items are no longer available for Packaging.');
@@ -408,7 +409,7 @@ class PackagingController extends Controller
             if (count($stockIds) !== count($quantities) || count($stockIds) !== count($allocationSaleOrderItemIds)) {
                 throw new \Exception('Each selected Roll/Taka must have one packaging quantity.');
             }
-            $saleOrderItems = SaleOrderItem::with('saleOrder')->where('company_id', $companyId)->where('status', 'Active')->where('is_packaging_done', '1')
+            $saleOrderItems = SaleOrderItem::with('saleOrder')->where('company_id', $companyId)->where('status', 'Active')->where('is_work_completed', 1)->where('is_work_final_completed', '0')
                 ->whereIn('id', $saleOrderItemIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             if ($saleOrderItems->count() !== count($saleOrderItemIds)) {
                 throw new \Exception('One or more Sale Order Items are not available for packaging.');
