@@ -55,6 +55,7 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\CommonController;
 use App\Http\Controllers\DyeingColourLookupController;
 use App\Http\Controllers\JobMillWorkController;
+use App\Http\Controllers\OperationalReportController;
 use App\Http\Controllers\PackagingController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\PurchaseController;
@@ -149,6 +150,15 @@ Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function
     Route::get('/print-saleorder/{id}', [SaleOrderController::class, 'printSaleOrder'])->name('saleorders.print');
     Route::get('/sale-order/ajax-details/{id}', [SaleOrderController::class, 'ajaxSaleOrderDetails']);
     Route::get('/show-saleorder-reports', [SaleOrderController::class, 'show_sale_order_reports'])->name('show-saleorder-reports');
+    Route::get('/reports/pending-orders', [OperationalReportController::class, 'show'])->defaults('report', 'pending-orders')->name('reports.pending-orders');
+    Route::get('/reports/production-status', [OperationalReportController::class, 'show'])->defaults('report', 'production-status')->name('reports.production-status');
+    Route::get('/reports/stock-movement', [OperationalReportController::class, 'show'])->defaults('report', 'stock-movement')->name('reports.stock-movement');
+    Route::get('/reports/packaging', [OperationalReportController::class, 'show'])->defaults('report', 'packaging')->name('reports.packaging');
+    Route::get('/reports/customer-dispatch', [OperationalReportController::class, 'show'])->defaults('report', 'customer-dispatch')->name('reports.customer-dispatch');
+    Route::get('/reports/purchase-receiving', [OperationalReportController::class, 'show'])->defaults('report', 'purchase-receiving')->name('reports.purchase-receiving');
+    Route::get('/reports/job-work', [OperationalReportController::class, 'show'])->defaults('report', 'job-work')->name('reports.job-work');
+    Route::get('/reports/inspection-rejection', [OperationalReportController::class, 'show'])->defaults('report', 'inspection-rejection')->name('reports.inspection-rejection');
+    Route::get('/reports/autocomplete/{entity}', [OperationalReportController::class, 'autocomplete'])->name('reports.autocomplete');
 
     Route::post('/sale-orders', [SaleOrderController::class, 'store'])->middleware(ValidateCustomerSaleOrder::class)->name('sale-orders.store');
     Route::post('/ajax_script/deleteSaleOrder', [SaleOrderController::class, 'deleteSaleOrder'])->name('saleorders.delete');

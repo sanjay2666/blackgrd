@@ -61,16 +61,24 @@
 			<li><a href="{{ route('show-purchases') }}">Received Purchases</a></li>
 		 </ul>
 	  </li>
-	  <li class="dropdown {{ request()->routeIs('show', 'show-stock-details-listing', 'show-saleorder-reports', 'show-warehouse-stock-report', 'show-warehouse-balance-report', 'show-workorder-inspection') ? 'active' : '' }}">
+	  <li class="dropdown {{ request()->routeIs('reports.*', 'show', 'show-stock-details-listing', 'show-saleorder-reports', 'show-warehouse-stock-report', 'show-warehouse-balance-report', 'show-workorder-inspection') ? 'active' : '' }}">
 		 <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
 		  Report <span class="caret"></span>
 		 </a>
 		 <ul class="dropdown-menu">
+			<li><a href="{{ route('reports.pending-orders') }}">Pending Sale Orders</a></li>
 			<li><a href="{{ route('show-saleorder-reports') }}">Sale Order Item Report</a></li>
+			<li><a href="{{ route('reports.production-status') }}">Production Status</a></li>
 			<li><a href="{{ route('show') }}">Warehouse Items List</a></li>
 			<li><a href="{{ route('show-warehouse-stock-report') }}">Warehouse Stock Report</a></li>
 			<li><a href="{{ route('show-warehouse-balance-report') }}">Warehouse Balance Report</a></li>
+			<li><a href="{{ route('reports.stock-movement') }}">Stock Movement</a></li>
 			<li><a href="{{ route('show-workorder-inspection') }}">Inspected Stock Inward</a></li>
+			<li><a href="{{ route('reports.inspection-rejection') }}">Inspection / Rejection</a></li>
+			<li><a href="{{ route('reports.packaging') }}">Packaging Report</a></li>
+			<li><a href="{{ route('reports.customer-dispatch') }}">Customer Dispatch</a></li>
+			<li><a href="{{ route('reports.purchase-receiving') }}">Purchase / Receiving</a></li>
+			<li><a href="{{ route('reports.job-work') }}">Job Work Status</a></li>
 		 </ul>
 	  </li>
 	  <li class="dropdown {{ request()->routeIs('add-item-in-warehouse', 'add-received-item-in-warehouse', 'show-warehouse-item-stock', 'show-warehouse-item-requirement', 'show-department-return-requests', 'show-balance-table-stock', 'storeStockForMillDispatch', 'show-mill-chalan', 'print-mill-dispatch-chalan', 'print-mill-dispatch-received-chalan', 'mill_dispatch_received_items_in_warehouse', 'store_mill_dispatch_received_item_in_warehouse', 'mill_dispatch_received_weaving_items_in_warehouse', 'store_mill_dispatch_received_weaving_item_in_warehouse', 'warehouse.breakMeter', 'updateVendor', 'update_mtr_received_status') ? 'active' : '' }}">
@@ -176,14 +184,22 @@
             <li><a href="{{ route('show-purchases') }}">Received Purchases</a></li>
          </ul>
       </li>
-      <li class="{{ request()->routeIs('show', 'show-stock-details-listing', 'show-saleorder-reports', 'show-warehouse-stock-report', 'show-warehouse-balance-report', 'show-workorder-inspection') ? 'active' : '' }}">
+      <li class="{{ request()->routeIs('reports.*', 'show', 'show-stock-details-listing', 'show-saleorder-reports', 'show-warehouse-stock-report', 'show-warehouse-balance-report', 'show-workorder-inspection') ? 'active' : '' }}">
          <a href="javascript:void(0);" class="frontend-mobile-submenu-link">Report <i class="fa fa-angle-down"></i></a>
          <ul>
+            <li><a href="{{ route('reports.pending-orders') }}">Pending Sale Orders</a></li>
             <li><a href="{{ route('show-saleorder-reports') }}">Sale Order Item Report</a></li>
+            <li><a href="{{ route('reports.production-status') }}">Production Status</a></li>
             <li><a href="{{ route('show') }}">Warehouse Items List</a></li>
             <li><a href="{{ route('show-warehouse-stock-report') }}">Warehouse Stock Report</a></li>
             <li><a href="{{ route('show-warehouse-balance-report') }}">Warehouse Balance Report</a></li>
+            <li><a href="{{ route('reports.stock-movement') }}">Stock Movement</a></li>
             <li><a href="{{ route('show-workorder-inspection') }}">Inspected Stock Inward</a></li>
+            <li><a href="{{ route('reports.inspection-rejection') }}">Inspection / Rejection</a></li>
+            <li><a href="{{ route('reports.packaging') }}">Packaging Report</a></li>
+            <li><a href="{{ route('reports.customer-dispatch') }}">Customer Dispatch</a></li>
+            <li><a href="{{ route('reports.purchase-receiving') }}">Purchase / Receiving</a></li>
+            <li><a href="{{ route('reports.job-work') }}">Job Work Status</a></li>
          </ul>
       </li>
       <li class="{{ request()->routeIs('add-item-in-warehouse', 'add-received-item-in-warehouse', 'show-warehouse-item-stock', 'show-warehouse-item-requirement', 'show-department-return-requests', 'show-balance-table-stock', 'storeStockForMillDispatch', 'show-mill-chalan', 'print-mill-dispatch-chalan', 'print-mill-dispatch-received-chalan', 'mill_dispatch_received_items_in_warehouse', 'store_mill_dispatch_received_item_in_warehouse', 'mill_dispatch_received_weaving_items_in_warehouse', 'store_mill_dispatch_received_weaving_item_in_warehouse', 'warehouse.breakMeter', 'updateVendor', 'update_mtr_received_status') ? 'active' : '' }}">
