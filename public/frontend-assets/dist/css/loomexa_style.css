@@ -823,14 +823,16 @@ body {
     margin-top: 3px;
 }
 
-.warehouse-items-page .warehouse-filter-panel {
+.warehouse-items-page .warehouse-filter-panel,
+.operational-reports-page .warehouse-filter-panel {
     background: #f9fbfd;
     border: 1px solid #e1e8f0;
     margin-bottom: 12px;
     padding: 12px 12px 2px;
 }
 
-.warehouse-items-page .warehouse-filter-panel .form-group {
+.warehouse-items-page .warehouse-filter-panel .form-group,
+.operational-reports-page .warehouse-filter-panel .form-group {
     margin-bottom: 10px;
 }
 
