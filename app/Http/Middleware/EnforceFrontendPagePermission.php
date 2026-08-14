@@ -35,7 +35,7 @@ final class EnforceFrontendPagePermission
     private function deny(Request $request): Response
     {
         if ($request->ajax() || $request->expectsJson()) {
-            return response()->json(['message' => 'आपको इस action की अनुमति नहीं है।'], 403);
+            return response()->json(['message' => 'Action not allowed. You don’t have permission to perform this action.'], 403);
         }
 
         $previous = url()->previous();
@@ -53,7 +53,7 @@ final class EnforceFrontendPagePermission
         $redirect = $isSafePreviousUrl ? redirect()->to($previous) : redirect()->route('home');
 
         return $redirect
-            ->with('message', 'आपको इस पेज को एक्सेस करने की अनुमति नहीं है।')
+            ->with('message', 'Access restricted. You don’t have permission to view this page.')
             ->with('messageClass', 'errorClass');
     }
 }

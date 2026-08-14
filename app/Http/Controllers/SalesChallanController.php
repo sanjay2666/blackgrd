@@ -28,7 +28,7 @@ class SalesChallanController extends Controller
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
-        $department = Department::where('company_id', $context->companyId())->where('status', 'Active')->where('name', 'Packaging')->first();
+        $department = Department::where('company_id', $context->companyId())->where('status', 'Active')->where('department_name', 'Packaging')->first();
         abort_unless($department && $departmentAccess->mayAccess($department->id), 403);
 
         $challans = SalesChallan::with('customer')->where('company_id', $context->companyId())->where('record_status', 'Active')
@@ -46,7 +46,7 @@ class SalesChallanController extends Controller
     {
         $context = $request->attributes->get(CurrentOrganizationContext::class);
         abort_unless($context instanceof CurrentOrganizationContext, 403);
-        $department = Department::where('company_id', $context->companyId())->where('status', 'Active')->where('name', 'Packaging')->first();
+        $department = Department::where('company_id', $context->companyId())->where('status', 'Active')->where('department_name', 'Packaging')->first();
         abort_unless($department && $departmentAccess->mayAccess($department->id), 403);
 
         $allocations = PackagingRollAllocation::with(['packagingOrder.customer', 'packagingOrderItem.saleOrderItem.saleOrder', 'packagingOrderItem.packagingType'])
@@ -90,7 +90,7 @@ class SalesChallanController extends Controller
                 throw new \Exception('An active organization context is required.');
             }
             $companyId = $context->companyId();
-            $department = Department::where('company_id', $companyId)->where('status', 'Active')->where('name', 'Packaging')->lockForUpdate()->first();
+            $department = Department::where('company_id', $companyId)->where('status', 'Active')->where('department_name', 'Packaging')->lockForUpdate()->first();
             if (! $department || ! $departmentAccess->mayAccess($department->id)) {
                 throw new \Exception('Packaging department dispatch access is required.');
             }

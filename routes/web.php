@@ -381,6 +381,9 @@ Route::middleware(['auth:web', 'organization', 'frontend-page', 'audit'])->group
 
 Route::prefix('admin')->name('admin.')->group(function () {
     // Admin guest routes.
+    Route::get('/', function () {
+        return redirect()->route('admin.login');
+    });
     Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
         Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:auth-login')->name('login.store');

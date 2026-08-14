@@ -286,7 +286,7 @@ class RegisteredRouteRuntimeTest extends TestCase
             ->withHeader('Referer', route('home'))
             ->get('/show-workorders')
             ->assertRedirect(route('home'))
-            ->assertSessionHas('message', 'आपको इस पेज को एक्सेस करने की अनुमति नहीं है।')
+            ->assertSessionHas('message', 'Access restricted. You don’t have permission to view this page.')
             ->assertSessionHas('messageClass', 'errorClass');
         $this->actingAs($this->user, 'web')
             ->withHeader('Referer', url('/show-workorders'))
@@ -296,11 +296,11 @@ class RegisteredRouteRuntimeTest extends TestCase
             ->withHeader('X-Requested-With', 'XMLHttpRequest')
             ->get('/ajax_script/deleteGpInspDetails?FId=0')
             ->assertForbidden()
-            ->assertJson(['message' => 'आपको इस action की अनुमति नहीं है।']);
+            ->assertJson(['message' => 'Action not allowed. You don’t have permission to perform this action.']);
         $this->actingAs($this->user, 'web')
             ->getJson('/ajax_script/deleteGpInspDetails?FId=0')
             ->assertForbidden()
-            ->assertJson(['message' => 'आपको इस action की अनुमति नहीं है।']);
+            ->assertJson(['message' => 'Action not allowed. You don’t have permission to perform this action.']);
     }
 
     public function test_authenticated_admin_without_role_assignments_can_open_backend_user_management(): void

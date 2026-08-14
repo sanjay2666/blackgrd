@@ -47,6 +47,7 @@
     </div></div></section></div>
     @include('frontend.common.footer')
 </div>
+@include('frontend.common.footerscript')
 <script>
 $(function () {
     function refresh() {
