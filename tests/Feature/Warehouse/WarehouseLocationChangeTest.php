@@ -91,6 +91,7 @@ final class WarehouseLocationChangeTest extends TestCase
         ]);
         WarehouseCompartment::insert([
             ['id' => 11, 'warehouse_id' => 1, 'compartment_name' => 'Compartment 1', 'status' => 'Active'],
+            ['id' => 12, 'warehouse_id' => 1, 'compartment_name' => 'Compartment 2', 'status' => 'Active'],
             ['id' => 98, 'warehouse_id' => 2, 'compartment_name' => 'Compartment 98', 'status' => 'Active'],
         ]);
         WarehouseItem::insert(['id' => 50, 'warehouse_id' => 1, 'ware_comp_id' => 11]);
@@ -126,12 +127,24 @@ final class WarehouseLocationChangeTest extends TestCase
 
         $options = app(WarehouseItemController::class)->get_warehouse_compartment_options(Request::create('/', 'GET', ['Id' => 400]));
         $this->assertSame([
-            ['id' => 11, 'compartment_name' => 'Warehouse A / Compartment 1'],
-            ['id' => 98, 'compartment_name' => 'Warehouse B / Compartment 98'],
+            ['id' => 11, 'compartment_name' => 'Compartment 1'],
+            ['id' => 12, 'compartment_name' => 'Compartment 2'],
         ], $options->getData(true));
+
+        $options = app(WarehouseItemController::class)->get_warehouse_compartment_options(Request::create('/', 'GET', ['Id' => 400, 'warehouseId' => 2]));
+        $this->assertSame([['id' => 98, 'compartment_name' => 'Compartment 98']], $options->getData(true));
 
         $response = app(WarehouseItemController::class)->updateWarehouseComp(Request::create('/', 'GET', [
             'id' => 400,
+            'warehouseId' => 1,
+            'selectedValue' => 98,
+        ]));
+        $this->assertSame(422, $response->getStatusCode());
+        $this->assertDatabaseHas('warehouse_item_stocks', ['id' => 400, 'warehouse_id' => 1, 'ware_comp_id' => 11, 'insp_bal_quan_size' => 400]);
+
+        $response = app(WarehouseItemController::class)->updateWarehouseComp(Request::create('/', 'GET', [
+            'id' => 400,
+            'warehouseId' => 2,
             'selectedValue' => 98,
         ]));
 

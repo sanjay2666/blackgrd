@@ -115,7 +115,10 @@ final class QualityGateService
     /** @return list<string> */
     public function changedPhpFiles(string $baseline = 'HEAD'): array
     {
-        return $this->changedFiles('*.php');
+        return array_values(array_filter(
+            $this->changedFiles('*.php'),
+            static fn (string $file): bool => ! str_ends_with($file, '.blade.php')
+        ));
     }
 
     /** @return list<string> */

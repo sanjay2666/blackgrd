@@ -145,6 +145,7 @@
 							// $warehouse 				= $data['Warehouse']->warehouse_name ?? $data['WarehouseItem']['Warehouse']->warehouse_name ?? 'N/A';
 							$warehouse 				= $data['WarehouseItem']['Warehouse']->warehouse_name ?? 'N/A';
 							$warehouseComp 			= $data['WarehouseCompartment']->compartment_name ?? $data['WarehouseItem']['WarehouseCompartment']->compartment_name ?? 'N/A';
+							$stockWarehouseId 		= $data->warehouse_id ?? $data['WarehouseItem']->warehouse_id ?? '';
 							$totQuantity 			= $data->insp_quan_size;
 							$AvaTotQuan 			= $totQuantity - $data->insp_allot_quan_size;
 							$fileD 					= $data->StockFile; 
@@ -162,7 +163,14 @@
 							<td> {{ $getItemName }} </td>           
 							<td> {{ $data->insp_taka_number }} </td>
 							<td> {{ $data->dyeing_lot_number }} </td>
-							<td> {{ $warehouse }} </td>
+							<td class="warehouse-cell">
+							<span class="warehouseName" data-id="{{ $data->id }}" data-selected-value="{{ $stockWarehouseId }}">{{ $warehouse }}</span>
+							<select class="warehouseSelect form-control input-sm is-hidden" data-id="{{ $data->id }}">
+							@foreach($dataW as $warehouseOption)
+							<option value="{{ $warehouseOption->id }}" @if((int) $warehouseOption->id === (int) $stockWarehouseId) selected @endif>{{ $warehouseOption->warehouse_name }}</option>
+							@endforeach
+							</select>
+							</td>
 							<td class="compartment-cell">
 							<span class="warehouseComp" data-id="{{ $data->id }}" data-selected-value="{{ $data['WarehouseCompartment']->id ?? '' }}">
 							{{ $warehouseComp }}
@@ -254,18 +262,25 @@
         button.addEventListener('click', function (event) {
             event.preventDefault();
             const id = this.getAttribute('data-id');
+            const row = this.closest('tr');
             const cell = this.closest('.compartment-cell');
-            const selectBox = document.querySelector(`.warehouseCompSelect[data-id='${id}']`);
-            const span = document.querySelector(`.warehouseComp[data-id='${id}']`);
+            const selectBox = row.querySelector(`.warehouseCompSelect[data-id='${id}']`);
+            const span = row.querySelector(`.warehouseComp[data-id='${id}']`);
+            const warehouseSelect = row.querySelector(`.warehouseSelect[data-id='${id}']`);
+            const warehouseSpan = row.querySelector(`.warehouseName[data-id='${id}']`);
             const selectedValue = span.getAttribute('data-selected-value'); // Retrieve the currently saved value
+            const warehouseId = warehouseSpan.getAttribute('data-selected-value');
 
             // Fetch options for the select box and set the saved value as selected
-            fetchWarehouseCompOptions(id, selectBox, selectedValue);
+            warehouseSelect.value = warehouseId;
+            fetchWarehouseCompOptions(id, warehouseId, selectBox, selectedValue);
 
             // Show select box and save/cancel buttons, hide display text and edit button.
             cell.classList.add('is-editing');
             this.classList.add('is-hidden');
             selectBox.classList.remove('is-hidden');
+            warehouseSpan.classList.add('is-hidden');
+            warehouseSelect.classList.remove('is-hidden');
             const saveButton = document.querySelector(`.saveWarehouseComp[data-id='${id}']`);
             if (saveButton) {
                 saveButton.classList.remove('is-hidden');
@@ -283,31 +298,45 @@
         button.addEventListener('click', function (event) {
             event.preventDefault();
             const id = this.getAttribute('data-id');
+            const row = this.closest('tr');
             const cell = this.closest('.compartment-cell');
-            const selectBox = document.querySelector(`.warehouseCompSelect[data-id='${id}']`);
+            const selectBox = row.querySelector(`.warehouseCompSelect[data-id='${id}']`);
             const selectedValue = selectBox.value;
-            const span = document.querySelector(`.warehouseComp[data-id='${id}']`);
+            const span = row.querySelector(`.warehouseComp[data-id='${id}']`);
+            const warehouseSelect = row.querySelector(`.warehouseSelect[data-id='${id}']`);
+            const warehouseSpan = row.querySelector(`.warehouseName[data-id='${id}']`);
+            const warehouseId = warehouseSelect.value;
 
-            // Update the warehouseComp field
-            updateWarehouseComp(id, selectedValue);
+            this.disabled = true;
+            updateWarehouseComp(id, warehouseId, selectedValue).done(function(res) {
+                if (!res.success) {
+                    alert(res.message || 'Warehouse location update failed.');
+                    return;
+                }
 
-            // Update span with the selected value
-            const selectedText = selectBox.options[selectBox.selectedIndex] ? selectBox.options[selectBox.selectedIndex].text : span.textContent;
-            span.textContent = selectedText;
-            span.setAttribute('data-selected-value', selectedValue);
-
-            // Show display text and edit button, hide select/save/cancel controls.
-            cell.classList.remove('is-editing');
-            this.classList.add('is-hidden');
-            selectBox.classList.add('is-hidden');
-            const editButton = document.querySelector(`.editWarehouseComp[data-id='${id}']`);
-            if (editButton) {
-                editButton.classList.remove('is-hidden');
-            }
-            const cancelButton = document.querySelector(`.cancelWarehouseComp[data-id='${id}']`);
-            if (cancelButton) {
-                cancelButton.classList.add('is-hidden');
-            }
+                const selectedText = selectBox.options[selectBox.selectedIndex] ? selectBox.options[selectBox.selectedIndex].text : span.textContent;
+                span.textContent = selectedText;
+                span.setAttribute('data-selected-value', selectedValue);
+                warehouseSpan.textContent = warehouseSelect.options[warehouseSelect.selectedIndex].text;
+                warehouseSpan.setAttribute('data-selected-value', warehouseId);
+                cell.classList.remove('is-editing');
+                button.classList.add('is-hidden');
+                selectBox.classList.add('is-hidden');
+                warehouseSelect.classList.add('is-hidden');
+                warehouseSpan.classList.remove('is-hidden');
+                const editButton = row.querySelector(`.editWarehouseComp[data-id='${id}']`);
+                if (editButton) {
+                    editButton.classList.remove('is-hidden');
+                }
+                const cancelButton = row.querySelector(`.cancelWarehouseComp[data-id='${id}']`);
+                if (cancelButton) {
+                    cancelButton.classList.add('is-hidden');
+                }
+            }).fail(function(xhr) {
+                alert(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Warehouse location update failed.');
+            }).always(function() {
+                button.disabled = false;
+            });
         });
     });
 
@@ -316,15 +345,21 @@
         button.addEventListener('click', function (event) {
             event.preventDefault();
             const id = this.getAttribute('data-id');
+            const row = this.closest('tr');
             const cell = this.closest('.compartment-cell');
-            const selectBox = document.querySelector(`.warehouseCompSelect[data-id='${id}']`);
-            const span = document.querySelector(`.warehouseComp[data-id='${id}']`);
-            const editButton = document.querySelector(`.editWarehouseComp[data-id='${id}']`);
-            const saveButton = document.querySelector(`.saveWarehouseComp[data-id='${id}']`);
+            const selectBox = row.querySelector(`.warehouseCompSelect[data-id='${id}']`);
+            const span = row.querySelector(`.warehouseComp[data-id='${id}']`);
+            const warehouseSelect = row.querySelector(`.warehouseSelect[data-id='${id}']`);
+            const warehouseSpan = row.querySelector(`.warehouseName[data-id='${id}']`);
+            const editButton = row.querySelector(`.editWarehouseComp[data-id='${id}']`);
+            const saveButton = row.querySelector(`.saveWarehouseComp[data-id='${id}']`);
 
             selectBox.value = span.getAttribute('data-selected-value') || '';
+            warehouseSelect.value = warehouseSpan.getAttribute('data-selected-value') || '';
             cell.classList.remove('is-editing');
             selectBox.classList.add('is-hidden');
+            warehouseSelect.classList.add('is-hidden');
+            warehouseSpan.classList.remove('is-hidden');
             this.classList.add('is-hidden');
 
             if (saveButton) {
@@ -335,6 +370,14 @@
             }
         });
     });
+
+    document.querySelectorAll('.warehouseSelect').forEach(selectBox => {
+        selectBox.addEventListener('change', function() {
+            const row = this.closest('tr');
+            const stockId = this.getAttribute('data-id');
+            fetchWarehouseCompOptions(stockId, this.value, row.querySelector(`.warehouseCompSelect[data-id='${stockId}']`), '');
+        });
+    });
 });
 
  
@@ -342,18 +385,25 @@
 </script>
 
 <script>
-function fetchWarehouseCompOptions(id, selectBox, selectedValue) {
+function fetchWarehouseCompOptions(id, warehouseId, selectBox, selectedValue) {
     var siteUrl = "{{ url('/') }}";
+    selectBox.dataset.warehouseId = warehouseId;
+    selectBox.innerHTML = '<option value="">Select...</option>';
 
     $.ajax({
         type: "GET",
         url: siteUrl + "/ajax_script/get_warehouse_compartment_options",
         data: {
             "_token": "{{ csrf_token() }}",
-            "Id": id
+            "Id": id,
+            "warehouseId": warehouseId
         },
         cache: false,
         success: function(res) {
+            if (selectBox.dataset.warehouseId !== String(warehouseId)) {
+                return;
+            }
+
             selectBox.innerHTML = '';
             res.forEach(option => {
                 const isSelected = option.id == selectedValue ? 'selected' : '';
@@ -366,28 +416,19 @@ function fetchWarehouseCompOptions(id, selectBox, selectedValue) {
 
  
 
-function updateWarehouseComp(id, selectedValue) {
+function updateWarehouseComp(id, warehouseId, selectedValue) {
     var siteUrl = "{{ url('/') }}";
 
-    $.ajax({
+    return $.ajax({
         type: "GET",
         url: siteUrl + "/ajax_script/updateWarehouseComp",
         data: {
             "_token": "{{ csrf_token() }}",
             "id": id,
+            "warehouseId": warehouseId,
             "selectedValue": selectedValue
         },
-        cache: false,
-        success: function(res) {
-            if (res.success) {
-                console.log('Update successful');
-            } else {
-                console.error('Update failed');
-            }
-        },
-        error: function(xhr) {
-            console.error('Error: ' + xhr.status + ' ' + xhr.statusText);
-        }
+        cache: false
     });
 }
 

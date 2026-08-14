@@ -1060,7 +1060,7 @@ class WorkProcessRequirementController extends Controller
                             ->where('balance_status', 1)
                             ->update(['balance_status' => 0]);
                         if (! $affectedRows) {
-                            dd('Update failed for WarehouseBalanceItem 1');
+                            throw new \Exception('Unable to update the warehouse balance for the selected stock.');
                         }
 
                         $closingItemQty = $opItemQty - $newItem->item_qty;
@@ -1453,7 +1453,7 @@ class WorkProcessRequirementController extends Controller
                         ->where('balance_status', 1)
                         ->update(['balance_status' => 0]);
                     if (! $affectedRows) {
-                        dd('Update failed for WarehouseBalanceItem');
+                        throw new \Exception('Unable to update the warehouse balance for the selected stock.');
                     }
 
                     $closingItemQty = $opItemQty - $newItem->item_qty;

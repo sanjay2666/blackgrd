@@ -1027,13 +1027,6 @@ class WarehouseItemController extends Controller
             ->when($stockType == 'stockout', function ($query) {
                 return $query->where('is_allotted_stock', '=', 'Yes');
             });
-        /*
-          $sql = $query->toSql();
-            $bindings = $query->getBindings();
-            $sqlWithValues = vsprintf(str_replace('?', "'%s'", $sql), $bindings);
-            dd($sqlWithValues); exit;
-         */
-
         $query->when(! empty($qsearch), function ($query) use ($qsearch) {
             $itemIds = Item::where(DB::raw("CONCAT(item_name, ' ', internal_item_name)"), 'LIKE', '%'.$qsearch.'%')
                 ->where('status', '=', 'Active')
@@ -2201,16 +2194,12 @@ class WarehouseItemController extends Controller
             return response()->json([]);
         }
 
-        $options = WarehouseCompartment::with('warehouse:id,warehouse_name')
+        $warehouseId = (int) $request->input('warehouseId', $stock->warehouse_id);
+        $options = WarehouseCompartment::where('warehouse_id', $warehouseId)
             ->whereHas('warehouse')
             ->where('status', 'Active')
-            ->orderBy('warehouse_id')
             ->orderBy('compartment_name')
-            ->get(['id', 'warehouse_id', 'compartment_name'])
-            ->map(fn (WarehouseCompartment $compartment) => [
-                'id' => $compartment->id,
-                'compartment_name' => $compartment->warehouse->warehouse_name.' / '.$compartment->compartment_name,
-            ]);
+            ->get(['id', 'compartment_name']);
 
         return response()->json($options);
     }
@@ -2221,12 +2210,16 @@ class WarehouseItemController extends Controller
 
         try {
             $stockId = (int) $request->input('id');
+            $warehouseId = (int) $request->input('warehouseId');
             $compartmentId = (int) $request->input('selectedValue');
             $stock = WarehouseItemStock::whereKey($stockId)->whereHas('Warehouse')->where('status', 'Active')->lockForUpdate()->first();
             $compartment = WarehouseCompartment::whereKey($compartmentId)->whereHas('warehouse')->where('status', 'Active')->lockForUpdate()->first();
 
             if (! $stock || ! $compartment) {
                 throw new \Exception('Stock record or warehouse compartment not found.');
+            }
+            if ($warehouseId <= 0 || $warehouseId !== (int) $compartment->warehouse_id) {
+                throw new \Exception('Selected Warehouse and Compartment do not match.');
             }
             if ((int) $stock->warehouse_id === (int) $compartment->warehouse_id && (int) $stock->ware_comp_id === (int) $compartment->id) {
                 DB::commit();

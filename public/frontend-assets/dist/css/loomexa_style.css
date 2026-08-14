@@ -1193,6 +1193,14 @@ body {
     min-width: 170px;
 }
 
+.warehouse-stock-details-page .warehouse-cell {
+    min-width: 150px;
+}
+
+.warehouse-stock-details-page .warehouse-cell .warehouseSelect {
+    width: 145px;
+}
+
 .warehouse-stock-details-page .compartment-cell .warehouseComp {
     display: inline-block;
     max-width: 110px;
