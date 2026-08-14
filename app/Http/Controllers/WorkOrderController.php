@@ -34,6 +34,7 @@ use App\Models\WorkOrderItem;
 use App\Models\WorkProcessRequirement;
 use App\Services\CurrentOrganizationContext;
 use App\Services\DepartmentAccessService;
+use App\Services\FinancialYearResolver;
 use App\Services\NumberSeriesService;
 use Carbon\Carbon;
 use Dompdf\Dompdf;
@@ -1881,7 +1882,7 @@ class WorkOrderController extends Controller
         return redirect()->back()->withInput();
     }
 
-    public function receive_work_item_in_warehouse(Request $request)
+    public function receive_work_item_in_warehouse(Request $request, FinancialYearResolver $financialYears)
     {
         $validator = Validator::make($request->all(), [
             'warehouseId' => 'required|integer',
@@ -1959,6 +1960,7 @@ class WorkOrderController extends Controller
             if ($companyId < 1 || (int) $workOrder->company_id !== $companyId) {
                 throw new Exception('Inspection and work order must belong to the same company.');
             }
+            $financialYear = $financialYears->current($companyId);
 
             $inspectionDetails = WorkInspectionDetail::where('work_insp_id', $inspId)
                 ->where('status', 'Active')
@@ -2108,6 +2110,7 @@ class WorkOrderController extends Controller
 
                 ProductionGenealogyLink::create([
                     'company_id' => $companyId,
+                    'financial_year_id' => $financialYear->id,
                     'event_type' => 'warehouse_receipt',
                     'relationship_type' => 'taka_to_roll',
                     'source_type' => 'taka',
@@ -2159,7 +2162,7 @@ class WorkOrderController extends Controller
         }
     }
 
-    public function receiveWorkItemInDepartmentWarehouse(Request $request)
+    public function receiveWorkItemInDepartmentWarehouse(Request $request, FinancialYearResolver $financialYears)
     {
         $validator = Validator::make($request->all(), [
             'warehouseId' => 'required|integer',
@@ -2238,6 +2241,7 @@ class WorkOrderController extends Controller
             if ($companyId < 1 || (int) $workOrder->company_id !== $companyId) {
                 throw new Exception('Inspection and work order must belong to the same company.');
             }
+            $financialYear = $financialYears->current($companyId);
 
             $inspectionDetails = WorkInspectionDetail::where('work_insp_id', $inspId)
                 ->where('status', 'Active')
@@ -2387,6 +2391,7 @@ class WorkOrderController extends Controller
 
                 ProductionGenealogyLink::create([
                     'company_id' => $companyId,
+                    'financial_year_id' => $financialYear->id,
                     'event_type' => 'warehouse_receipt',
                     'relationship_type' => 'taka_to_roll',
                     'source_type' => 'taka',
@@ -3242,7 +3247,7 @@ class WorkOrderController extends Controller
         }
     }
 
-    public function update_dyeing_inspec_process(Request $request)
+    public function update_dyeing_inspec_process(Request $request, FinancialYearResolver $financialYears)
     {
         $validator = Validator::make($request->all(), [
             'ins_item_id' => 'required',
@@ -3377,6 +3382,7 @@ class WorkOrderController extends Controller
             $dyingColor = WorkOrderItem::where('work_order_id', $workOrderId)->where('status', 'Active')->value('dyeing_color');
             $inspCoatingProcess = $request->insp_coating_process;
             $companyId = (int) $dataOrder->company_id;
+            $financialYear = $financialYears->current($companyId);
             $sourceRequirement = null;
 
             if ($request->filled('insp_work_process_req_id')) {
@@ -3471,6 +3477,7 @@ class WorkOrderController extends Controller
                         if ($sourceRequirement) {
                             ProductionGenealogyLink::create([
                                 'company_id' => $companyId,
+                                'financial_year_id' => $financialYear->id,
                                 'event_type' => 'inspection_output',
                                 'relationship_type' => 'lot_to_taka',
                                 'source_type' => 'lot',
@@ -3684,7 +3691,7 @@ class WorkOrderController extends Controller
         return redirect()->back()->withInput();
     }
 
-    public function update_coating_inspec_process(Request $request)
+    public function update_coating_inspec_process(Request $request, FinancialYearResolver $financialYears)
     {
         // echo "<pre>"; print_r($request->all()); exit;
 
@@ -3768,6 +3775,7 @@ class WorkOrderController extends Controller
             $proSNo = $dataPI->process_sl_no_last ?? 0;
             $shortcode = ($poType == 'JOB') ? 'JOB' : 'CP';
             $companyId = (int) $dataOrder->company_id;
+            $financialYear = $financialYears->current($companyId);
             $sourceRequirement = null;
 
             if ($request->filled('insp_work_process_req_id')) {
@@ -3893,6 +3901,7 @@ class WorkOrderController extends Controller
                         if ($sourceRequirement) {
                             ProductionGenealogyLink::create([
                                 'company_id' => $companyId,
+                                'financial_year_id' => $financialYear->id,
                                 'event_type' => 'inspection_output',
                                 'relationship_type' => 'lot_to_taka',
                                 'source_type' => 'lot',
@@ -4880,16 +4889,7 @@ class WorkOrderController extends Controller
 
     public function print_workorder_gatepass($id, DepartmentAccessService $departmentAccess)
     {
-        if (ctype_digit((string) $id)) {
-            $GpId = (int) $id;
-        } else {
-            $base64Decoded = base64_decode((string) $id, true);
-            if ($base64Decoded !== false && ctype_digit(trim($base64Decoded))) {
-                $GpId = (int) trim($base64Decoded);
-            } else {
-                $GpId = (int) dec((string) $id);
-            }
-        }
+        $GpId = (int) dec((string) $id);
         $userId = Auth::id();
         $userD = User::find($userId);
         $individualId = $userD->individual_id ?? null;

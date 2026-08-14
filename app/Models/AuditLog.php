@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EncryptsRouteKey;
 use Illuminate\Database\Eloquent\Model;
 use LogicException;
 
 final class AuditLog extends Model
 {
+    use EncryptsRouteKey;
+
     protected $table = 'audit_logs';
 
     public $timestamps = false;

@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EncryptsRouteKey;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NumberSeries extends Model
 {
+    use EncryptsRouteKey;
+
     protected $guarded = [];
 
     protected $casts = [

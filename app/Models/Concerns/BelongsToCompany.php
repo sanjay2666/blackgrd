@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 trait BelongsToCompany
 {
+    use EncryptsRouteKey;
+
     protected static function bootBelongsToCompany(): void
     {
         static::addGlobalScope('currentCompany', function (Builder $query): void {

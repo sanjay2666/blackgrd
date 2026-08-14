@@ -31,7 +31,7 @@
 		 <a href="{{ route('dashboard') }}">Dashboard</a>
 	  </li>
 	   
-	  <li class="dropdown {{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
+	  <li class="dropdown {{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') || request()->routeIs('show-dyed-workorders') ? 'active' : '' }}">
 		 <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
 		   Sales <span class="caret"></span>
 		 </a>
@@ -39,7 +39,8 @@
             <li><a href="{{ route('sale-orders.index') }}">Sale Order List</a></li>
             <li><a href="{{ route('sale-orders.create') }}">Add Sale Order</a></li>
             <li><a href="{{ route('show-saleorderitems') }}">Create Work Order</a></li>
-            <li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+			<li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+			<li><a href="{{ route('show-dyed-workorders') }}">Dyeing / Coating Work Orders</a></li>
 		 </ul>
 	  </li>
 	  <li class="dropdown {{ request()->routeIs('packaging.*') || request()->routeIs('sales-challans.*') ? 'active' : '' }}">
@@ -70,13 +71,9 @@
 			<li><a href="{{ route('show-warehouse-stock-report') }}">Warehouse Stock Report</a></li>
 			<li><a href="{{ route('show-warehouse-balance-report') }}">Warehouse Balance Report</a></li>
 			<li><a href="{{ route('show-workorder-inspection') }}">Inspected Stock Inward</a></li>
-			<li><a href="preport.html">Project Report</a></li>
-			<li><a href="creport.html">Client Report</a></li>
-			<li><a href="ereport.html">Expense Report</a></li>
-			<li><a href="incomexp.html">Income expense comparesion</a></li>
 		 </ul>
 	  </li>
-	  <li class="dropdown {{ request()->routeIs('add-item-in-warehouse', 'add-received-item-in-warehouse', 'show-warehouse-item-stock', 'show-warehouse-item-requirement', 'show-department-return-requests', 'storeStockForMillDispatch', 'show-mill-chalan', 'print-mill-dispatch-chalan', 'print-mill-dispatch-received-chalan', 'mill_dispatch_received_items_in_warehouse', 'store_mill_dispatch_received_item_in_warehouse', 'mill_dispatch_received_weaving_items_in_warehouse', 'store_mill_dispatch_received_weaving_item_in_warehouse', 'warehouse.breakMeter', 'updateVendor', 'update_mtr_received_status') ? 'active' : '' }}">
+	  <li class="dropdown {{ request()->routeIs('add-item-in-warehouse', 'add-received-item-in-warehouse', 'show-warehouse-item-stock', 'show-warehouse-item-requirement', 'show-department-return-requests', 'show-balance-table-stock', 'storeStockForMillDispatch', 'show-mill-chalan', 'print-mill-dispatch-chalan', 'print-mill-dispatch-received-chalan', 'mill_dispatch_received_items_in_warehouse', 'store_mill_dispatch_received_item_in_warehouse', 'mill_dispatch_received_weaving_items_in_warehouse', 'store_mill_dispatch_received_weaving_item_in_warehouse', 'warehouse.breakMeter', 'updateVendor', 'update_mtr_received_status') ? 'active' : '' }}">
 		 <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
 		  Stock <span class="caret"></span>
 		 </a>
@@ -87,24 +84,8 @@
 			<li><a href="{{ route('show-department-return-requests') }}">Department Return Requests</a></li>
 			<li><a href="{{ route('show-warehouse-item-stock') }}">Mill Job Dispatch</a></li>
 			<li><a href="{{ route('show-mill-chalan') }}">Mill Dispatch Challan</a></li>
-			<li><a href="stockcat.html">Stock category</a></li>
-			<li><a href="manstock.html">Manage Stock</a></li>
-			<li><a href="astock.html">Assign stock</a></li>
+			<li><a href="{{ route('show-balance-table-stock') }}">Warehouse Balance</a></li>
 		 </ul>
-	  </li>
-	  <li class="dropdown">
-		 <a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
-		   Settings <span class="caret"></span>
-		 </a>
-		 <ul class="dropdown-menu">
-			<li><a href="gsetting.html">Genaral settings</a></li>
-			<li><a href="stfsetting.html">Staff settings</a></li>
-			<li><a href="emailsetting.html">Email settings</a></li>
-			<li><a href="paysetting.html">Payment</a></li>
-		 </ul>
-	  </li>
-	  <li>
-		 <a href="company.html">Companies</a>
 	  </li>
  </ul>
  <div class="navbar-custom-menu">
@@ -147,32 +128,11 @@
 			   </li>
 			</ul>
 		 </li>
-		 <!-- Help -->
-		 <li class="dropdown dropdown-help hidden-xs">
-			<a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
-			<i class="pe-7s-settings"></i></a>
-			<ul class="dropdown-menu" >
-			   <li>
-				  <a href="profile.html">
-				  <i class="fa fa-line-chart"></i> Networking</a>
-			   </li>
-			   <li><a href="javascript:void(0);"><i class="fa fa fa-bullhorn"></i> Lan settings</a></li>
-			   <li><a href="javascript:void(0);"><i class="fa fa-bar-chart"></i> Settings</a></li>
-			   <li><a href="javascript:void(0);">
-				  <i class="fa fa-wifi"></i> wifi</a>
-			   </li>
-			</ul>
-		 </li>
 		 <!-- user -->
 		 <li class="dropdown dropdown-user">
 			<a href="javascript:void(0);" class="dropdown-toggle" data-toggle="dropdown">
 			<img src="{{ asset('frontend-assets/dist/img/avatar5.png') }}" class="img-circle" width="45" height="45" alt="user"></a>
 			<ul class="dropdown-menu" >
-			   <li>
-				  <a href="profile.html">
-				  <i class="fa fa-user"></i> User Profile</a>
-			   </li>
-			   <li><a href="javascript:void(0);"><i class="fa fa-inbox"></i> Inbox</a></li>
 			   <li><a href="javascript:void(0);" onclick="event.preventDefault(); document.getElementById('frontendLogoutForm').submit();">
 				  <i class="fa fa-sign-out"></i> Signout</a>
 			   </li>
@@ -190,13 +150,14 @@
    <ul>
       <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><a href="{{ route('dashboard') }}">Dashboard</a></li>
        
-      <li class="{{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') ? 'active' : '' }}">
+      <li class="{{ request()->routeIs('sale-orders.*') || request()->routeIs('show-saleorderitems') || request()->routeIs('show-workorders') || request()->routeIs('show-dyed-workorders') ? 'active' : '' }}">
          <a href="javascript:void(0);" class="frontend-mobile-submenu-link">Sales <i class="fa fa-angle-down"></i></a>
          <ul>
             <li><a href="{{ route('sale-orders.index') }}">Sale Order List</a></li>
             <li><a href="{{ route('sale-orders.create') }}">Add Sale Order</a></li>
             <li><a href="{{ route('show-saleorderitems') }}">Create Work Order</a></li>
-            <li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+			<li><a href="{{ route('show-workorders') }}">Work Orders</a></li>
+			<li><a href="{{ route('show-dyed-workorders') }}">Dyeing / Coating Work Orders</a></li>
          </ul>
       </li>
       <li class="{{ request()->routeIs('packaging.*') || request()->routeIs('sales-challans.*') ? 'active' : '' }}">
@@ -223,13 +184,9 @@
             <li><a href="{{ route('show-warehouse-stock-report') }}">Warehouse Stock Report</a></li>
             <li><a href="{{ route('show-warehouse-balance-report') }}">Warehouse Balance Report</a></li>
             <li><a href="{{ route('show-workorder-inspection') }}">Inspected Stock Inward</a></li>
-            <li><a href="preport.html">Project Report</a></li>
-            <li><a href="creport.html">Client Report</a></li>
-            <li><a href="ereport.html">Expense Report</a></li>
-            <li><a href="incomexp.html">Income expense comparesion</a></li>
          </ul>
       </li>
-      <li class="{{ request()->routeIs('add-item-in-warehouse', 'add-received-item-in-warehouse', 'show-warehouse-item-stock', 'show-warehouse-item-requirement', 'show-department-return-requests', 'storeStockForMillDispatch', 'show-mill-chalan', 'print-mill-dispatch-chalan', 'print-mill-dispatch-received-chalan', 'mill_dispatch_received_items_in_warehouse', 'store_mill_dispatch_received_item_in_warehouse', 'mill_dispatch_received_weaving_items_in_warehouse', 'store_mill_dispatch_received_weaving_item_in_warehouse', 'warehouse.breakMeter', 'updateVendor', 'update_mtr_received_status') ? 'active' : '' }}">
+      <li class="{{ request()->routeIs('add-item-in-warehouse', 'add-received-item-in-warehouse', 'show-warehouse-item-stock', 'show-warehouse-item-requirement', 'show-department-return-requests', 'show-balance-table-stock', 'storeStockForMillDispatch', 'show-mill-chalan', 'print-mill-dispatch-chalan', 'print-mill-dispatch-received-chalan', 'mill_dispatch_received_items_in_warehouse', 'store_mill_dispatch_received_item_in_warehouse', 'mill_dispatch_received_weaving_items_in_warehouse', 'store_mill_dispatch_received_weaving_item_in_warehouse', 'warehouse.breakMeter', 'updateVendor', 'update_mtr_received_status') ? 'active' : '' }}">
          <a href="javascript:void(0);" class="frontend-mobile-submenu-link">Stock <i class="fa fa-angle-down"></i></a>
          <ul>
             <li><a href="{{ route('add-item-in-warehouse') }}">Store Warehouse Item</a></li>
@@ -237,22 +194,10 @@
             <li><a href="{{ route('show-warehouse-item-requirement') }}">Warehouse Requirements</a></li>
             <li><a href="{{ route('show-department-return-requests') }}">Department Return Requests</a></li>
             <li><a href="{{ route('show-warehouse-item-stock') }}">Mill Job Dispatch</a></li>
-            <li><a href="{{ route('show-mill-chalan') }}">Mill Dispatch Challan</a></li>
-            <li><a href="stockcat.html">Stock category</a></li>
-            <li><a href="manstock.html">Manage Stock</a></li>
-            <li><a href="astock.html">Assign stock</a></li>
-         </ul>
-      </li>
-      <li>
-         <a href="javascript:void(0);" class="frontend-mobile-submenu-link">Settings <i class="fa fa-angle-down"></i></a>
-         <ul>
-            <li><a href="gsetting.html">Genaral settings</a></li>
-            <li><a href="stfsetting.html">Staff settings</a></li>
-            <li><a href="emailsetting.html">Email settings</a></li>
-            <li><a href="paysetting.html">Payment</a></li>
-         </ul>
-      </li>
-      <li><a href="company.html">Companies</a></li>
+			<li><a href="{{ route('show-mill-chalan') }}">Mill Dispatch Challan</a></li>
+			<li><a href="{{ route('show-balance-table-stock') }}">Warehouse Balance</a></li>
+		 </ul>
+	  </li>
    </ul>
 </div>
 <div class="frontend-mobile-menu-bg" id="frontendMobileMenuBg"></div>

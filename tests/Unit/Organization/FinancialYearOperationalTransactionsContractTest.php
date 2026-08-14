@@ -29,11 +29,14 @@ class FinancialYearOperationalTransactionsContractTest extends TestCase
     {
         $packaging = file_get_contents(app_path('Http/Controllers/PackagingController.php'));
         $challans = file_get_contents(app_path('Http/Controllers/SalesChallanController.php'));
+        $workOrders = file_get_contents(app_path('Http/Controllers/WorkOrderController.php'));
 
         $this->assertStringContainsString('$financialYears->current($companyId)', $packaging);
         $this->assertStringContainsString("'financial_year_id' => \$financialYear->id", $packaging);
         $this->assertStringContainsString("where('financial_year_id', (int) dec((string) \$request->financial_year_id))", $packaging);
         $this->assertStringContainsString("'financial_year_id' => \$financialYear->id", $challans);
         $this->assertStringContainsString("where('financial_year_id', (int) dec((string) \$request->financial_year_id))", $challans);
+        $this->assertStringContainsString('ProductionGenealogyLink::create([', $workOrders);
+        $this->assertSame(4, substr_count($workOrders, "'financial_year_id' => \$financialYear->id"));
     }
 }

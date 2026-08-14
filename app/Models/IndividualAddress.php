@@ -2,12 +2,15 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\EncryptsRouteKey;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class IndividualAddress extends Model
 {
+    use EncryptsRouteKey;
+
     use HasFactory;
 
     protected $table = 'individual_address';
