@@ -2197,15 +2197,20 @@ class WarehouseItemController extends Controller
             ->where('status', 'Active')
             ->first();
 
-        if (empty($stock) || empty($stock->warehouse_id)) {
+        if (empty($stock)) {
             return response()->json([]);
         }
 
-        $options = WarehouseCompartment::where('warehouse_id', $stock->warehouse_id)
+        $options = WarehouseCompartment::with('warehouse:id,warehouse_name')
             ->whereHas('warehouse')
             ->where('status', 'Active')
+            ->orderBy('warehouse_id')
             ->orderBy('compartment_name')
-            ->get(['id', 'compartment_name']);
+            ->get(['id', 'warehouse_id', 'compartment_name'])
+            ->map(fn (WarehouseCompartment $compartment) => [
+                'id' => $compartment->id,
+                'compartment_name' => $compartment->warehouse->warehouse_name.' / '.$compartment->compartment_name,
+            ]);
 
         return response()->json($options);
     }
@@ -2223,22 +2228,21 @@ class WarehouseItemController extends Controller
             if (! $stock || ! $compartment) {
                 throw new \Exception('Stock record or warehouse compartment not found.');
             }
-            if ((int) $stock->warehouse_id !== (int) $compartment->warehouse_id) {
-                throw new \Exception('Warehouse and Compartment do not match.');
-            }
-            if ((int) $stock->ware_comp_id === (int) $compartment->id) {
+            if ((int) $stock->warehouse_id === (int) $compartment->warehouse_id && (int) $stock->ware_comp_id === (int) $compartment->id) {
                 DB::commit();
 
                 return response()->json(['success' => true]);
-            }
-            if ((float) $stock->insp_bal_quan_size > 0.0001) {
-                throw new \Exception('Available stock cannot be moved directly because it would split its balance snapshot. Use the established warehouse movement flow.');
             }
 
             $stock->update(['ware_comp_id' => $compartment->id, 'warehouse_id' => $compartment->warehouse_id]);
             if (! empty($stock->warehouse_item_id)) {
                 $warehouseItem = WarehouseItem::whereKey($stock->warehouse_item_id)->lockForUpdate()->first();
                 $warehouseItem?->update(['ware_comp_id' => $compartment->id, 'warehouse_id' => $compartment->warehouse_id]);
+                WarehouseBalanceItem::where('ware_in_item_id', $stock->warehouse_item_id)
+                    ->where('balance_status', 1)
+                    ->where('status', 'Active')
+                    ->lockForUpdate()
+                    ->update(['ware_comp_id' => $compartment->id, 'warehouse_id' => $compartment->warehouse_id]);
             }
 
             DB::commit();
@@ -2295,8 +2299,7 @@ class WarehouseItemController extends Controller
         $dyeing_color = $dataWB->dyeing_color;
         $coatingType = $dataWB->coating_type;
 
-        $SumInspBalQuanSize = WarehouseItemStock::where('warehouse_id', $dataWB->warehouse_id)
-            ->where('ware_comp_id', $dataWB->ware_comp_id)->where('item_id', $itemId)
+        $SumInspBalQuanSize = WarehouseItemStock::where('item_id', $itemId)
             ->where('item_type_id', $itemTypeId)
             ->where('dyeing_color', $dyeing_color)->where('coating_type', $coatingType)
             ->where('print_job', $dataWB->print_job)->where('extra_job', $dataWB->extra_job)
