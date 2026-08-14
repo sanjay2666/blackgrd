@@ -67,13 +67,13 @@
 						  
 						  <div class="col-sm-2 col-xs-12">
                             <div class="form-group">
-                              <input type="text" class="form-control input-sm" name="allot_from_date" id="allot_from_date" value="{{ $allotFromDate }}" placeholder="Allot From Date">
+                              <input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="allot_from_date" id="allot_from_date" value="{{ $allotFromDate }}" placeholder="Allot From Date">
                             </div>
                           </div>
 
                           <div class="col-sm-2 col-xs-12">
                             <div class="form-group">
-                              <input type="text" class="form-control input-sm" name="allot_to_date" id="allot_to_date" value="{{ $allotToDate }}" placeholder="Allot To Date">
+                              <input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="allot_to_date" id="allot_to_date" value="{{ $allotToDate }}" placeholder="Allot To Date">
                             </div>
                           </div>
 						  
@@ -84,13 +84,13 @@
                         <div class="row stock-filter-actions">
                           <div class="col-sm-2 col-xs-12">
                             <div class="form-group">
-                              <input type="text" class="form-control input-sm" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From Date">
+                              <input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From Date">
                             </div>
                           </div>
 
                           <div class="col-sm-2 col-xs-12">
                             <div class="form-group">
-                              <input type="text" class="form-control input-sm" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To Date">
+                              <input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To Date">
                             </div>
                           </div>
 
@@ -349,16 +349,6 @@ $("#colorSearch").autocomplete({
     .append("<div>" + escapeHtml(item.label) + "</div>")
     .appendTo(ul);
 };
-
-$(function() {
-  $("#from_date, #to_date, #allot_from_date, #allot_to_date").datepicker({
-    dateFormat: "dd-mm-yy",
-    changeMonth: true,
-    changeYear: true,
-    autoclose: true,
-    maxDate: 0
-  });
-});
 
 $(document).on("click", ".show-stock-document", function() {
   var wisId = $(this).data("wis-id");

@@ -67,14 +67,14 @@
                       <div class="col-sm-2 col-xs-12 balance-filter-field">
                         <div class="form-group">
                           <label for="from_date">From Date</label>
-                          <input type="text" class="form-control input-sm" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From Date">
+                          <input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From Date">
                         </div>
                       </div>
 
                       <div class="col-sm-2 col-xs-12 balance-filter-field">
                         <div class="form-group">
                           <label for="to_date">To Date</label>
-                          <input type="text" class="form-control input-sm" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To Date">
+                          <input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To Date">
                         </div>
                       </div>
                     </div>
@@ -266,19 +266,6 @@ $("#colorSearch").autocomplete({
 }).autocomplete("instance")._renderItem = function(ul, item) {
   return $("<li>").append("<div>" + escapeHtml(item.label) + "</div>").appendTo(ul);
 };
-</script>
-
-<script type="text/javascript">
-$(function() {
-  $("#from_date, #to_date").datepicker({
-    dateFormat: "dd-mm-yy",
-    changeMonth: true,
-    changeYear: true,
-    autoclose: true,
-    maxDate: 0
-  });
-
-});
 </script>
 
 <script type="text/javascript">

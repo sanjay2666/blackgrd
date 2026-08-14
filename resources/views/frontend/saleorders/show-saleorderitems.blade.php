@@ -42,10 +42,10 @@
                                                     <input type="text" class="form-control" name="ordNumSearch" id="ordNumSearch" value="{{ $ordNumSearch }}" placeholder="Order Number">
                                                 </div>
                                                 <div class="col-sm-2">
-                                                    <input type="text" class="form-control" name="from_date" id="from_date" placeholder="From Date" value="{{ $fromDate }}">
+                                                    <input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" placeholder="From Date" value="{{ $fromDate }}">
                                                 </div>
                                                 <div class="col-sm-2">
-                                                    <input type="text" class="form-control" name="to_date" id="to_date" placeholder="To Date" value="{{ $toDate }}">
+                                                    <input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" placeholder="To Date" value="{{ $toDate }}">
                                                 </div>
                                             </div>
 
@@ -64,7 +64,7 @@
                                                     <input type="text" class="form-control" name="colorSearch" id="colorSearch" value="{{ $colorSearch }}" placeholder="Color">
                                                 </div>
                                                 <div class="col-sm-2">
-                                                    <input type="text" class="form-control" name="create_date" id="create_date" placeholder="Create Date" value="{{ $createDate }}">
+                                                    <input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="create_date" id="create_date" placeholder="Create Date" value="{{ $createDate }}">
                                                 </div>
                                                 <div class="col-sm-2">
                                                     <button type="submit" name="sbtSearch" value="Search" class="btn btn-primary btn-block">
@@ -630,14 +630,6 @@
     }
 
     $(function () {
-        $('#from_date, #to_date, #create_date').datepicker({
-            dateFormat: 'dd-mm-yy',
-            changeMonth: true,
-            changeYear: true,
-            autoclose: true,
-            maxDate: 0
-        });
-
         $('#item_search').autocomplete({
             minLength: 0,
             source: siteUrl + '/fabric_list_item',

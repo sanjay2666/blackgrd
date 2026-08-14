@@ -26,10 +26,10 @@
 									<input type="text" class="form-control" name="vendorName" id="vendor_search" value="{{ $vendorName }}" placeholder="Vendor Name">
 								</div>
 								<div class="col-sm-2 col-xs-12 form-group">
-									<input type="text" class="form-control loomexa-datepicker" name="from_date" value="{{ $fromDate }}" placeholder="From Date">
+									<input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="from_date" value="{{ $fromDate }}" placeholder="From Date">
 								</div>
 								<div class="col-sm-2 col-xs-12 form-group">
-									<input type="text" class="form-control loomexa-datepicker" name="to_date" value="{{ $toDate }}" placeholder="To Date">
+									<input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="to_date" value="{{ $toDate }}" placeholder="To Date">
 								</div>
 								<div class="col-sm-1 col-xs-12 form-group">
 									<button type="submit" class="btn btn-success btn-block"><i class="fa fa-search"></i></button>

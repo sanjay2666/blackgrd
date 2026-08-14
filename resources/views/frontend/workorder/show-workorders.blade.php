@@ -115,14 +115,14 @@ foreach ($processI as $process) {
 							<div>
 								<div class="input-group input-group-sm">
 									<span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-									<input type="text" class="form-control datepicker" name="from_date" id="from_date" placeholder="From Date" value="<?= $fromDate; ?>">
+									<input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" placeholder="From Date" value="<?= $fromDate; ?>">
 								</div>
 							</div>
 
 							<div>
 								<div class="input-group input-group-sm">
 									<span class="input-group-addon"><i class="fa fa-calendar"></i></span>
-									<input type="text" class="form-control datepicker" name="to_date" id="to_date" placeholder="To Date" value="<?= $toDate; ?>">
+									<input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" placeholder="To Date" value="<?= $toDate; ?>">
 								</div>
 							</div>
 

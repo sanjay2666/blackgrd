@@ -138,12 +138,34 @@
       $("body").removeClass("frontend-mobile-menu-open");
    });
 
-   $(".loomexa-datepicker").datepicker({
-      dateFormat: "dd-mm-yy",
-      changeMonth: true,
-      changeYear: true,
-      autoclose: true
-   });
+   window.initLoomexaDatepickers = function (context) {
+      $(context || document).find(".loomexa-datepicker").each(function () {
+         var input = $(this);
+
+         if (input.hasClass("hasDatepicker")) {
+            return;
+         }
+
+         var options = {
+            dateFormat: "dd-mm-yy",
+            changeMonth: true,
+            changeYear: true,
+            autoclose: true
+         };
+
+         if (input.data("datepickerMaxDate") !== undefined) {
+            options.maxDate = input.data("datepickerMaxDate");
+         }
+
+         if (input.data("datepickerMinDate") !== undefined) {
+            options.minDate = input.data("datepickerMinDate");
+         }
+
+         input.datepicker(options);
+      });
+   };
+
+   initLoomexaDatepickers();
 
    $(".frontend-mobile-submenu-link").on("click", function() {
       $(this).parent("li").toggleClass("open");

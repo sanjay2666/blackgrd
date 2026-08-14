@@ -37,8 +37,8 @@
                             @if($report === 'packaging')<div class="col-sm-2 col-xs-12"><div class="form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="draft" @selected(request('status') === 'draft')>Draft</option><option value="accepted" @selected(request('status') === 'accepted')>Accepted</option><option value="packed" @selected(request('status') === 'packed')>Packed</option><option value="dispatched" @selected(request('status') === 'dispatched')>Dispatched</option><option value="cancelled" @selected(request('status') === 'cancelled')>Cancelled</option></select></div></div>@endif
                             @if($report === 'customer-dispatch')<div class="col-sm-2 col-xs-12"><div class="form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="Draft" @selected(request('status') === 'Draft')>Draft</option><option value="Posted" @selected(request('status') === 'Posted')>Posted</option><option value="Cancelled" @selected(request('status') === 'Cancelled')>Cancelled</option></select></div></div>@endif
                             @if($report === 'job-work')<div class="col-sm-2 col-xs-12"><div class="form-group"><select name="status" class="form-control input-sm"><option value="">Dispatch / receive status</option><option value="pending" @selected(request('status') === 'pending')>Pending</option><option value="received" @selected(request('status') === 'received')>Received</option></select></div></div>@endif
-                                <div class="col-sm-1 col-xs-12"><div class="form-group"><input type="text" class="form-control input-sm" name="from_date" id="from_date" placeholder="From Date" value="{{ request('from_date') }}"></div></div>
-                                <div class="col-sm-1 col-xs-12"><div class="form-group"><input type="text" class="form-control input-sm" name="to_date" id="to_date" placeholder="To Date" value="{{ request('to_date') }}"></div></div>
+                                <div class="col-sm-1 col-xs-12"><div class="form-group"><input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" placeholder="From Date" value="{{ request('from_date') }}"></div></div>
+                                <div class="col-sm-1 col-xs-12"><div class="form-group"><input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" placeholder="To Date" value="{{ request('to_date') }}"></div></div>
                                 <div class="col-sm-1 col-xs-6"><div class="form-group"><button type="submit" name="sbtSearch" class="btn btn-success btn-sm btn-block" value="Search"><i class="fa fa-search"></i> Search</button></div></div>
                                 <div class="col-sm-2 col-xs-12"><div class="form-group"><a href="{{ url()->current() }}" class="btn btn-default btn-sm btn-block"><i class="fa fa-refresh"></i> Reset</a></div></div>
                             </div>
@@ -84,17 +84,6 @@ $(function () {
         }, select: function (event, ui) { input.val(ui.item.value); target.val(ui.item.id); return false; }, change: function () { if (!input.val()) target.val(''); } });
     });
 });
-</script>
-<script>
-  $(function() {
-    $("#from_date, #to_date").datepicker({
-      dateFormat: "dd-mm-yy",
-      changeMonth: true,
-      changeYear: true,
-      autoclose: true,
-      maxDate: 0,
-    });
-  });
 </script>
 </body>
 </html>

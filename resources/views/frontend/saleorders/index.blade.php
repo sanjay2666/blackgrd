@@ -57,10 +57,10 @@
 										</select>
 									</div>
 									<div class="col-sm-1 col-xs-12 form-group">
-										<input type="text" class="form-control loomexa-datepicker" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From Date">
+										<input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From Date">
 									</div>
 									<div class="col-sm-1 col-xs-12 form-group">
-										<input type="text" class="form-control loomexa-datepicker" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To Date">
+										<input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To Date">
 									</div>
 									<div class="col-sm-1 col-xs-12 form-group">
 										<select class="form-control" name="sale_order_type">
@@ -70,7 +70,7 @@
 										</select>
 									</div>
 									<div class="col-sm-1 col-xs-12 form-group">
-										<input type="text" class="form-control loomexa-datepicker" name="create_date" id="create_date" value="{{ $createDate }}" placeholder="Created Date">
+										<input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="create_date" id="create_date" value="{{ $createDate }}" placeholder="Created Date">
 									</div>
 									<div class="col-sm-1 col-xs-12 form-group">
 										<button type="submit" class="btn btn-success btn-block"><i class="fa fa-search"></i></button>

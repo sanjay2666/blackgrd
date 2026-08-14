@@ -26,15 +26,6 @@ $(function() {
             $(this).removeClass('open');
         }
     });
-    //Datepicker
-    function datepic() {
-    let date = $('#minMaxExample,#minMaxExample2');
-    $(date).datepicker({
-       language: 'en',
-             minDate: new Date() // Now can select only dates, which goes after today
-         });
-}
-    datepic();
     //preloader
     // makes sure the whole site is loaded
          $( window ).on( "load", function() {

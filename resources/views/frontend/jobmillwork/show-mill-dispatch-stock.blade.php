@@ -32,10 +32,10 @@ use App\Http\Controllers\CommonController;
                     <input type="text" class="form-control" name="vendorName" id="cus_search" value="{{ old('vendorName', $qsearch ?? '') }}" placeholder="Vendor Name">
                   </div>
                   <div class="col-sm-2 col-xs-12">
-                    <input type="text" class="form-control" name="from_date" id="from_date" placeholder="From Date" value="{{ old('from_date', $fromDate ?? '') }}">
+                    <input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" placeholder="From Date" value="{{ old('from_date', $fromDate ?? '') }}">
                   </div>
                   <div class="col-sm-2 col-xs-12">
-                    <input type="text" class="form-control" name="to_date" id="to_date" placeholder="To Date" value="{{ old('to_date', $toDate ?? '') }}">
+                    <input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" placeholder="To Date" value="{{ old('to_date', $toDate ?? '') }}">
                   </div>
 				  
                  <div class="col-sm-2 col-xs-12">
@@ -610,16 +610,5 @@ $("#cus_search").autocomplete({
   };
 </script>
  
-<script type="text/javascript">    
-$(function() {
-	  $("#from_date, #to_date").datepicker({
-		dateFormat: "dd-mm-yy",
-		changeMonth: true,
-		changeYear: true,
-		autoclose: true,
-	  });
-});
-</script>
-
 </body>
 </html>

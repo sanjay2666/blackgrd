@@ -925,17 +925,7 @@ function gatePass(value) {
         }
     }
 
-/* ==================== 27. events ==================== */
-$(function() {
-  $("#from_date, #to_date").datepicker({
-	dateFormat: "dd-mm-yy",
-	changeMonth: true,
-	changeYear: true,
-	autoclose: true,
-  });
-});
-
-/* ==================== 28. split, extractLast ==================== */
+/* ==================== 27. split, extractLast ==================== */
 var siteUrl = "{{url('/')}}";
 
   function split(val) {

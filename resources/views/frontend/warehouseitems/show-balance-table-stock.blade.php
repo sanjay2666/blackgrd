@@ -59,12 +59,12 @@
 						</div>  
 						<div class="col-sm-1 col-xs-6">
 							<div class="form-group">
-								<input type="text" class="form-control input-sm" name="from_date" id="from_date" placeholder="From Date" value="{{ $fromDate }}" >
+								<input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" placeholder="From Date" value="{{ $fromDate }}" >
 							</div>
 						</div> 
 						<div class="col-sm-1 col-xs-6">
 							<div class="form-group">
-								<input type="text" class="form-control input-sm" name="to_date" id="to_date" placeholder="To Date" value="{{ $toDate }}" >
+								<input type="text" class="form-control input-sm loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" placeholder="To Date" value="{{ $toDate }}" >
 							</div>
 						</div>   
 				  
@@ -257,18 +257,6 @@ function selectCompartment(Id) {
         }
     });
 }
-</script>
-
-<script>
-  $(function() {
-    $("#from_date, #to_date").datepicker({
-      dateFormat: "dd-mm-yy",
-      changeMonth: true,
-      changeYear: true,
-      autoclose: true,
-	  maxDate: 0,
-    });
-  });
 </script>
 
 </body>

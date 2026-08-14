@@ -81,11 +81,13 @@ class PackagingController extends Controller
         if ($request->filled('priority')) {
             $query->where('order_item_priority', $request->priority);
         }
-        if ($request->filled('from_date')) {
-            $query->whereDate('expect_delivery_date', '>=', $request->from_date);
+        $fromDate = $request->date('from_date')?->toDateString();
+        $toDate = $request->date('to_date')?->toDateString();
+        if ($fromDate) {
+            $query->whereDate('expect_delivery_date', '>=', $fromDate);
         }
-        if ($request->filled('to_date')) {
-            $query->whereDate('expect_delivery_date', '<=', $request->to_date);
+        if ($toDate) {
+            $query->whereDate('expect_delivery_date', '<=', $toDate);
         }
         $worklist = $query->orderByDesc('in_packaging_send_date')->orderByDesc('id')->get();
         $packagingItems = PackagingOrderItem::with('packagingOrder')
@@ -191,11 +193,13 @@ class PackagingController extends Controller
         if ($request->filled('packaging_status')) {
             $query->where('packaging_status', $request->packaging_status);
         }
-        if ($request->filled('from_date')) {
-            $query->whereDate('created_at', '>=', $request->from_date);
+        $fromDate = $request->date('from_date')?->toDateString();
+        $toDate = $request->date('to_date')?->toDateString();
+        if ($fromDate) {
+            $query->whereDate('created_at', '>=', $fromDate);
         }
-        if ($request->filled('to_date')) {
-            $query->whereDate('created_at', '<=', $request->to_date);
+        if ($toDate) {
+            $query->whereDate('created_at', '<=', $toDate);
         }
         $packagingOrders = $query->orderByDesc('id')->paginate(config('app.pagination_limit'));
         $packagingOrders->getCollection()->transform(function (PackagingOrder $order) {

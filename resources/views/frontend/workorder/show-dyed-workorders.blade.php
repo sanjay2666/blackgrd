@@ -48,8 +48,8 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 1;
                     <tr style="border: none;">
                       <td><input type="text" class="form-control" name="recLotNumSearch" id="recLotNumSearch" value="{{ $recLotNumSerch }}" placeholder="Rec.for Coating Lot Number.">
                       </td>
-                      <td><input type="text" class="form-control" name="from_date" id="from_date" placeholder="From Date" value="<?=$fromDateInput;?>"></td>
-                      <td><input type="text" class="form-control" name="to_date" id="to_date" placeholder="To Date" value="<?=$toDateInput;?>"></td>
+                      <td><input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" placeholder="From Date" value="<?=$fromDateInput;?>"></td>
+                      <td><input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" placeholder="To Date" value="<?=$toDateInput;?>"></td>
                       <td><input type="text" class="form-control" name="LotNumSearch" id="LotNumSearch" value="{{ $LotNumSearch }}" placeholder="Lot Number."></td>
                       <td><input type="text" class="form-control" name="colorSearch" id="colorSearch" value="{{ $colorSearch }}" placeholder="Color"></td>
                       <td><input type="submit" name="sbtSearch" class="btn btn-success" value="Search"></td>
@@ -569,17 +569,6 @@ $current_page = isset($_GET['page']) ? $_GET['page'] : 1;
           .appendTo(ul);
       };
   </script>
-<script type="text/javascript">
-$(function() {
-  $("#from_date, #to_date").datepicker({
-	dateFormat: "dd-mm-yy",
-	changeMonth: true,
-	changeYear: true,
-	autoclose: true,
-  });
-});
-</script>
-
   
 </body>
 </html>

@@ -53,11 +53,11 @@
                                         </div>
                                         <div class="report-filter-field">
                                             <label for="from_date">From</label>
-                                            <input type="text" class="form-control loomexa-datepicker" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From">
+                                            <input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="from_date" id="from_date" value="{{ $fromDate }}" placeholder="From">
                                         </div>
                                         <div class="report-filter-field">
                                             <label for="to_date">To</label>
-                                            <input type="text" class="form-control loomexa-datepicker" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To">
+                                            <input type="text" class="form-control loomexa-datepicker" data-datepicker-max-date="0" name="to_date" id="to_date" value="{{ $toDate }}" placeholder="To">
                                         </div>
                                         <div class="report-filter-field">
                                             <label for="colorSearch">Color</label>
