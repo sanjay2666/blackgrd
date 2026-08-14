@@ -282,8 +282,25 @@ class RegisteredRouteRuntimeTest extends TestCase
             ->assertRedirect();
 
         auth('admin')->logout();
-        $this->actingAs($this->user, 'web')->get('/show-workorders')->assertForbidden();
-        $this->actingAs($this->user, 'web')->get('/ajax_script/deleteGpInspDetails?FId=0')->assertForbidden();
+        $this->actingAs($this->user, 'web')
+            ->withHeader('Referer', route('home'))
+            ->get('/show-workorders')
+            ->assertRedirect(route('home'))
+            ->assertSessionHas('message', 'आपको इस पेज को एक्सेस करने की अनुमति नहीं है।')
+            ->assertSessionHas('messageClass', 'errorClass');
+        $this->actingAs($this->user, 'web')
+            ->withHeader('Referer', url('/show-workorders'))
+            ->get('/show-workorders')
+            ->assertRedirect(route('home'));
+        $this->actingAs($this->user, 'web')
+            ->withHeader('X-Requested-With', 'XMLHttpRequest')
+            ->get('/ajax_script/deleteGpInspDetails?FId=0')
+            ->assertForbidden()
+            ->assertJson(['message' => 'आपको इस action की अनुमति नहीं है।']);
+        $this->actingAs($this->user, 'web')
+            ->getJson('/ajax_script/deleteGpInspDetails?FId=0')
+            ->assertForbidden()
+            ->assertJson(['message' => 'आपको इस action की अनुमति नहीं है।']);
     }
 
     public function test_authenticated_admin_without_role_assignments_can_open_backend_user_management(): void

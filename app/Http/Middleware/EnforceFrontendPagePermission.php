@@ -20,13 +20,40 @@ final class EnforceFrontendPagePermission
 
         $user = auth('web')->user();
         $route = $request->route();
-        abort_unless($user instanceof User && $route !== null, 403);
-        abort_unless(Schema::hasTable('all_pages') && Schema::hasTable('user_web_pages'), 403);
+        if (! $user instanceof User || $route === null || ! Schema::hasTable('all_pages') || ! Schema::hasTable('user_web_pages')) {
+            return $this->deny($request);
+        }
 
         $page = AllPage::findForFrontendRoute($route, $request->method());
-        abort_unless($page !== null, 403);
-        abort_unless(UserWebPage::query()->where('user_id', $user->id)->where('page_id', $page->id)->where('status', 'Active')->exists(), 403);
+        if ($page === null || ! UserWebPage::query()->where('user_id', $user->id)->where('page_id', $page->id)->where('status', 'Active')->exists()) {
+            return $this->deny($request);
+        }
 
         return $next($request);
+    }
+
+    private function deny(Request $request): Response
+    {
+        if ($request->ajax() || $request->expectsJson()) {
+            return response()->json(['message' => 'आपको इस action की अनुमति नहीं है।'], 403);
+        }
+
+        $previous = url()->previous();
+        $previousScheme = parse_url($previous, PHP_URL_SCHEME);
+        $previousHost = parse_url($previous, PHP_URL_HOST);
+        $previousPort = parse_url($previous, PHP_URL_PORT);
+        $previousPath = '/'.ltrim((string) parse_url($previous, PHP_URL_PATH), '/');
+        $currentPath = '/'.ltrim($request->path(), '/');
+        $previousEffectivePort = $previousPort === null ? ($previousScheme === 'https' ? 443 : 80) : (int) $previousPort;
+        $isSafePreviousUrl = $previousScheme === $request->getScheme()
+            && $previousHost === $request->getHost()
+            && $previousEffectivePort === $request->getPort()
+            && $previousPath !== $currentPath;
+
+        $redirect = $isSafePreviousUrl ? redirect()->to($previous) : redirect()->route('home');
+
+        return $redirect
+            ->with('message', 'आपको इस पेज को एक्सेस करने की अनुमति नहीं है।')
+            ->with('messageClass', 'errorClass');
     }
 }
