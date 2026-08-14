@@ -4,6 +4,10 @@ This ERP is single-company. The `admin` guard authenticates Admin-side accounts;
 the `web` guard authenticates Frontend Users. These identities and guards remain
 separate.
 
+Every authenticated Admin has full Admin Panel route access after the existing
+organization and audit middleware. Admin routes do not consult `all_pages`,
+`user_web_pages`, route-wise RBAC middleware, or Frontend permission keys.
+
 ## Roles
 
 - **Super Admin** — system/software owner. This is the reserved `super-admin`

@@ -6,6 +6,7 @@ use Illuminate\Routing\Route;
 
 final class RoutePermissionRegistry
 {
+    // This registry supplies audit labels; it is not a runtime authorization path.
     public static function permission(Route $route): ?string
     {
         $name = (string) ($route->getName() ?? '');

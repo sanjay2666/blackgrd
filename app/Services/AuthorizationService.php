@@ -31,6 +31,9 @@ final class AuthorizationService
 
     public function can(string $permission): bool
     {
+        if (Auth::guard('admin')->check()) {
+            return true;
+        }
         $user = $this->user();
         if (! $user instanceof User) {
             return false;

@@ -68,7 +68,7 @@ class RegisteredRouteRuntimeTest extends TestCase
 
         $permissionIds = [];
         foreach (PermissionRegistry::all() as $permission) {
-            $permissionIds[$permission['key']] = DB::table('permissions')->insertGetId([
+            DB::table('permissions')->insertOrIgnore([
                 'permission_key' => $permission['key'],
                 'resource' => $permission['resource'],
                 'action' => $permission['action'],
@@ -77,6 +77,7 @@ class RegisteredRouteRuntimeTest extends TestCase
                 'is_critical' => $permission['critical'],
                 'status' => 'Active',
             ]);
+            $permissionIds[$permission['key']] = DB::table('permissions')->where('permission_key', $permission['key'])->value('id');
         }
 
         $adminRoleId = DB::table('roles')->insertGetId([
@@ -253,6 +254,53 @@ class RegisteredRouteRuntimeTest extends TestCase
                 ->where('permissions.permission_key', $permissionKey)
                 ->exists()
         );
+    }
+
+    public function test_frontend_user_permission_checkboxes_save_and_enforce_page_access(): void
+    {
+        $response = $this->actingAs($this->admin, 'admin')->get(route('admin.users.permissions.edit', $this->user));
+
+        $response->assertOk();
+        $response->assertSee('Select All Frontend Permissions');
+        $response->assertSee('name="page_ids[]"', false);
+        $workOrderPageId = DB::table('all_pages')->where('page_name', 'GET /show-workorders')->value('id');
+        $ajaxPageId = DB::table('all_pages')->where('page_name', 'GET /ajax_script/deleteGpInspDetails')->value('id');
+        $this->assertNotNull($workOrderPageId);
+        $this->assertNotNull($ajaxPageId);
+
+        $this->put(route('admin.users.permissions.update', $this->user), ['page_ids' => [$workOrderPageId, $ajaxPageId]])
+            ->assertRedirect();
+
+        $this->assertSame('Active', DB::table('user_web_pages')->where('user_id', $this->user->id)->where('page_id', $workOrderPageId)->value('status'));
+        $this->assertSame('Active', DB::table('user_web_pages')->where('user_id', $this->user->id)->where('page_id', $ajaxPageId)->value('status'));
+
+        auth('admin')->logout();
+        $this->actingAs($this->user, 'web')->get('/show-workorders')->assertOk();
+        $this->get('/ajax_script/deleteGpInspDetails?FId=0')->assertStatus(404);
+
+        $this->actingAs($this->admin, 'admin')->put(route('admin.users.permissions.update', $this->user), ['page_ids' => []])
+            ->assertRedirect();
+
+        auth('admin')->logout();
+        $this->actingAs($this->user, 'web')->get('/show-workorders')->assertForbidden();
+        $this->actingAs($this->user, 'web')->get('/ajax_script/deleteGpInspDetails?FId=0')->assertForbidden();
+    }
+
+    public function test_authenticated_admin_without_role_assignments_can_open_backend_user_management(): void
+    {
+        $adminId = DB::table('users')->insertGetId([
+            'user_type' => 'Admin', 'name' => 'Normal Route Audit Admin',
+            'email' => 'normal-route-audit-admin-'.uniqid().'@example.test',
+            'password' => bcrypt('route-audit-password'), 'status' => 'Active',
+        ]);
+        DB::table('user_organization_access')->insert([
+            'user_id' => $adminId, 'company_id' => $this->companyId,
+            'is_default' => true, 'status' => 'Active',
+        ]);
+
+        $admin = Admin::query()->findOrFail($adminId);
+
+        $this->actingAs($admin, 'admin')->get(route('admin.users.index'))->assertOk();
     }
 
     public function test_every_safe_non_parameterized_get_route_completes_the_laravel_lifecycle(): void

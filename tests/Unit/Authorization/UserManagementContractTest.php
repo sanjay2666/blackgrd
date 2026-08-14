@@ -2,20 +2,18 @@
 
 namespace Tests\Unit\Authorization;
 
-use App\Support\RoutePermissionRegistry;
 use Tests\TestCase;
 
 final class UserManagementContractTest extends TestCase
 {
-    public function test_user_management_routes_use_existing_users_manage_permission_and_web_boundary(): void
+    public function test_user_management_routes_are_admin_guarded_without_route_permission_middleware(): void
     {
         $routes = file_get_contents(base_path('routes/web.php'));
-        $registry = file_get_contents(base_path('config/rbac_routes.php'));
         $controller = file_get_contents(base_path('app/Http/Controllers/Admin/UserController.php'));
         $service = file_get_contents(base_path('app/Services/UserManagementService.php'));
 
-        $this->assertStringContainsString("Route::middleware('permission:users.manage')->get('/users'", $routes);
-        $this->assertStringContainsString("'admin.users.reset-password' => 'users.manage'", $registry);
+        $this->assertStringContainsString("['auth:admin', 'organization', 'audit']", $routes);
+        $this->assertStringNotContainsString("middleware('permission:", $routes);
         $this->assertStringContainsString("'user_type' => 'User'", $service);
         $this->assertStringContainsString('assertFrontendUser', $controller);
         $this->assertStringNotContainsString('Admin::class', $controller);
@@ -68,6 +66,6 @@ final class UserManagementContractTest extends TestCase
 
         $this->assertStringContainsString("'provider' => 'admins'", $auth);
         $this->assertStringContainsString("'provider' => 'users'", $auth);
-        $this->assertSame('users.manage', RoutePermissionRegistry::permission(app('router')->getRoutes()->getByName('admin.users.index')));
+        $this->assertSame('admin.users.index', app('router')->getRoutes()->getByName('admin.users.index')->getName());
     }
 }

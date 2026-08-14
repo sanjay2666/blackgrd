@@ -24,7 +24,7 @@ final class BranchFactoryMasterContractTest extends TestCase
     {
         $routes = file_get_contents(base_path('routes/web.php'));
         $mapping = file_get_contents(base_path('config/rbac_routes.php'));
-        $this->assertStringContainsString("Route::middleware(['auth:admin', 'organization', 'rbac', 'audit'])", $routes);
+        $this->assertStringContainsString("Route::middleware(['auth:admin', 'organization', 'audit'])", $routes);
         $this->assertStringContainsString("'admin.factories.update' => 'branches.update'", $mapping);
         $this->assertStringContainsString("'admin.branches.deactivate' => 'branches.deactivate'", $mapping);
     }

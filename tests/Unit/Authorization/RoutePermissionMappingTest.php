@@ -2,55 +2,40 @@
 
 namespace Tests\Unit\Authorization;
 
-use App\Support\PermissionRegistry;
-use App\Support\RoutePermissionRegistry;
+use App\Models\AllPage;
 use Tests\TestCase;
 
 final class RoutePermissionMappingTest extends TestCase
 {
-    public function test_every_authenticated_route_has_an_explicit_permission_or_logout_allowlist(): void
+    public function test_every_authenticated_frontend_route_uses_page_permission_middleware(): void
     {
         $unmapped = collect(app('router')->getRoutes())
-            ->filter(fn ($route): bool => collect($route->middleware())->contains(fn (string $middleware): bool => str_starts_with($middleware, 'auth:')))
-            ->filter(fn ($route): bool => RoutePermissionRegistry::permission($route) === null && ! in_array($route->getName(), config('rbac_routes.excluded_authenticated', []), true))
+            ->filter(fn ($route): bool => collect($route->middleware())->contains(fn (string $middleware): bool => str_starts_with($middleware, 'auth:web')))
+            ->filter(fn ($route): bool => ! collect($route->middleware())->contains('frontend-page'))
             ->map(fn ($route): string => $route->methods()[0].' '.$route->uri().' ['.$route->getName().']')
             ->values()->all();
 
         $this->assertSame([], $unmapped);
     }
 
-    public function test_sensitive_actions_use_distinct_canonical_permissions(): void
+    public function test_frontend_page_definitions_are_individual_and_exclude_admin_routes(): void
     {
-        $this->assertSame('sale-orders.view', $this->permission('sale-orders.index'));
-        $this->assertSame('sale-orders.cancel', $this->permission('saleorders.delete'));
-        $this->assertSame('warehouse.adjust', $this->permission('warehouse.breakMeter'));
-        $this->assertSame('financial-years.set-current', $this->permission('admin.financial-years.set-current'));
-        $this->assertSame('roles.assign', $this->permission('admin.roles.assign.store'));
-        $this->assertSame('security.delete', $this->permission('admin.login-attempts.destroy'));
-        $this->assertNull($this->permission('logout'));
+        $pages = AllPage::frontendRouteDefinitions();
+        $pageNames = $pages->pluck('page_name')->all();
+
+        $this->assertContains('GET /show-workorders', $pageNames);
+        $this->assertContains('POST /workorder/update-machine', $pageNames);
+        $this->assertContains('GET /ajax_script/deleteGpInspDetails', $pageNames);
+        $this->assertNotContains('GET /admin/dashboard', $pageNames);
+        $this->assertSame($pageNames, $pages->pluck('page_name')->unique()->values()->all());
     }
 
-    public function test_every_mapped_permission_is_in_the_canonical_registry(): void
-    {
-        $canonical = array_column(PermissionRegistry::all(), 'key');
-        $unregistered = collect(app('router')->getRoutes())
-            ->filter(fn ($route): bool => RoutePermissionRegistry::permission($route) !== null)
-            ->map(fn ($route): ?string => RoutePermissionRegistry::permission($route))
-            ->unique()->reject(fn (?string $permission): bool => in_array($permission, $canonical, true))->values()->all();
-
-        $this->assertSame([], $unregistered);
-    }
-
-    public function test_route_groups_apply_server_side_rbac_after_organization_scope(): void
+    public function test_route_groups_keep_admin_full_access_and_frontend_page_enforcement(): void
     {
         $routes = file_get_contents(base_path('routes/web.php'));
-        $this->assertStringContainsString("['auth:web,admin', 'organization', 'rbac', 'audit']", $routes);
-        $this->assertStringContainsString("['auth:web', 'organization', 'rbac', 'audit']", $routes);
-        $this->assertStringContainsString("['auth:admin', 'organization', 'rbac', 'audit']", $routes);
-    }
-
-    private function permission(string $name): ?string
-    {
-        return RoutePermissionRegistry::permission(collect(app('router')->getRoutes())->first(fn ($route): bool => $route->getName() === $name));
+        $this->assertStringContainsString("['auth:web,admin', 'organization', 'frontend-page', 'audit']", $routes);
+        $this->assertStringContainsString("['auth:web', 'organization', 'frontend-page', 'audit']", $routes);
+        $this->assertStringContainsString("['auth:admin', 'organization', 'audit']", $routes);
+        $this->assertStringNotContainsString("middleware('permission:", $routes);
     }
 }

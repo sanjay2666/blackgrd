@@ -4,7 +4,7 @@ namespace Tests\Feature\Regression;
 
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\WorkPurchaseRequirementController;
-use App\Http\Middleware\EnforceMappedPermission;
+use App\Http\Middleware\EnforceFrontendPagePermission;
 use App\Models\User;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Routing\Route;
@@ -57,7 +57,7 @@ class ViewModuleStabilizationTest extends TestCase
 
     public function test_dyed_work_order_aliases_redirect_to_the_canonical_filtered_listing(): void
     {
-        $this->withoutMiddleware(EnforceMappedPermission::class);
+        $this->withoutMiddleware(EnforceFrontendPagePermission::class);
         $this->actingAs($this->transientUser(), 'web');
 
         foreach (['show-dyed-workorders', 'show-workorders-dyeing'] as $name) {
@@ -158,7 +158,7 @@ class ViewModuleStabilizationTest extends TestCase
 
     private function transientUser(): User
     {
-        $user = new User;
+        $user = new User();
         $user->forceFill([
             'id' => 990002,
             'individual_id' => 990002,

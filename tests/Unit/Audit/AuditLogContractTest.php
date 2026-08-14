@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Audit;
 
-use App\Support\FrontendPermissionCatalog;
 use App\Support\PermissionRegistry;
 use Tests\TestCase;
 
@@ -27,13 +26,12 @@ final class AuditLogContractTest extends TestCase
         $this->assertStringNotContainsString('public function update', $model);
     }
 
-    public function test_audit_viewer_is_admin_rbac_protected_and_frontend_excluded(): void
+    public function test_audit_viewer_is_admin_guarded_and_frontend_excluded(): void
     {
         $routes = file_get_contents(base_path('routes/web.php'));
-        $catalog = FrontendPermissionCatalog::keys();
-        $this->assertStringContainsString('permission:audit-logs.view', $routes);
-        $this->assertNotContains('audit-logs.view', $catalog);
-        $this->assertNotContains('audit-logs.export', $catalog);
+        $this->assertStringContainsString("['auth:admin', 'organization', 'audit']", $routes);
+        $this->assertStringContainsString("Route::get('/audit-logs'", $routes);
+        $this->assertStringNotContainsString("middleware('permission:", $routes);
     }
 
     public function test_audit_logger_has_no_secret_payload_passthrough(): void

@@ -10,6 +10,12 @@ The Admin-side User Management module only accepts records whose `user_type` is
 `User`. It cannot create, edit, activate, deactivate, delete, or assign roles to
 Admin identities.
 
+The Frontend User Permission screen assigns individual route pages/actions/AJAX
+through `all_pages` and active `user_web_pages` rows. This is independent from
+Department Access: page permission answers whether the endpoint may be called;
+Department Access answers which department/process data may be operated after
+that authorization succeeds.
+
 ## Lifecycle
 
 Users are listed within the current company organization access and can be

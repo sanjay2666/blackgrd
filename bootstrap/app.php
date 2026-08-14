@@ -1,8 +1,7 @@
 <?php
 
-use App\Http\Middleware\EnforceMappedPermission;
-use App\Http\Middleware\EnsurePermission;
 use App\Http\Middleware\AuditMutation;
+use App\Http\Middleware\EnforceFrontendPagePermission;
 use App\Http\Middleware\ResolveOrganizationContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -18,8 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'organization' => ResolveOrganizationContext::class,
-            'permission' => EnsurePermission::class,
-            'rbac' => EnforceMappedPermission::class,
+            'frontend-page' => EnforceFrontendPagePermission::class,
             'audit' => AuditMutation::class,
         ]);
 

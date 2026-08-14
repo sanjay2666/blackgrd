@@ -4,10 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Support\FrontendPermissionCatalog;
 use App\Support\PermissionRegistry;
 use App\Support\RoleTemplateCatalog;
-use App\Support\RoutePermissionRegistry;
 use Illuminate\Routing\Route;
 use Illuminate\Support\Collection;
 use Symfony\Component\Process\Process;
@@ -34,20 +32,6 @@ final class QualityGateService
             }
         }
 
-        $frontend = FrontendPermissionCatalog::keys();
-        foreach ($frontend as $permission) {
-            if (! isset($canonical[$permission])) {
-                $errors[] = "Frontend catalog references unknown permission [{$permission}].";
-            }
-        }
-
-        $adminOnlyResources = ['companies', 'roles', 'users', 'security', 'settings', 'audit-logs', 'number-series'];
-        foreach ($frontend as $permission) {
-            if (in_array(strtok($permission, '.'), $adminOnlyResources, true) || $permission === 'organization.access-manage') {
-                $errors[] = "Admin-only permission [{$permission}] is frontend assignable.";
-            }
-        }
-
         return array_values(array_unique($errors));
     }
 
@@ -56,23 +40,14 @@ final class QualityGateService
     {
         $routes = collect($routes);
         $errors = [];
-        $excluded = config('rbac_routes.excluded_authenticated', []);
-
         foreach ($routes as $route) {
-            if (! $this->isAuthenticated($route)) {
+            $middleware = collect($route->middleware());
+            if (! $middleware->contains(fn (string $value): bool => str_starts_with($value, 'auth:web'))) {
                 continue;
             }
 
-            if (RoutePermissionRegistry::permission($route) === null && ! in_array($route->getName(), $excluded, true)) {
-                $errors[] = 'Authenticated route has no RBAC decision: '.$route->methods()[0].' '.$route->uri().' ['.$route->getName().'].';
-            }
-        }
-
-        $configuredNames = array_keys(config('rbac_routes.admin_custom', []) + config('rbac_routes.frontend_named', []));
-        $routeNames = $routes->map(fn (Route $route): ?string => $route->getName())->filter()->all();
-        foreach ($configuredNames as $name) {
-            if (! in_array($name, $routeNames, true)) {
-                $errors[] = "Stale RBAC route mapping [{$name}].";
+            if (! $middleware->contains('frontend-page')) {
+                $errors[] = 'Authenticated Frontend route lacks page-permission enforcement: '.$route->methods()[0].' '.$route->uri().' ['.$route->getName().'].';
             }
         }
 
@@ -164,10 +139,5 @@ final class QualityGateService
         $process->run();
 
         return ['code' => $process->getExitCode() ?? 1, 'output' => $process->getOutput().$process->getErrorOutput()];
-    }
-
-    private function isAuthenticated(Route $route): bool
-    {
-        return collect($route->middleware())->contains(fn (string $middleware): bool => str_starts_with($middleware, 'auth:'));
     }
 }

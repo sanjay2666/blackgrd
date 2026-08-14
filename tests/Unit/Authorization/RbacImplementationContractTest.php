@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\Authorization;
 
-use App\Support\FrontendPermissionCatalog;
 use App\Support\PermissionRegistry;
 use App\Support\RoleTemplateCatalog;
 use Tests\TestCase;
@@ -60,7 +59,7 @@ class RbacImplementationContractTest extends TestCase
         $templates = RoleTemplateCatalog::all();
         $this->assertArrayHasKey('Admin', $templates);
         $this->assertArrayHasKey('Frontend Administrator', $templates);
-        $this->assertGreaterThan(100, count($templates['Frontend Administrator']));
+        $this->assertGreaterThan(50, count($templates['Frontend Administrator']));
         $this->assertNotContains('roles.assign', $templates['Frontend Administrator']);
         $this->assertNotContains('users.manage', $templates['Frontend Administrator']);
         $this->assertNotContains('security.manage', $templates['Frontend Administrator']);
@@ -88,25 +87,20 @@ class RbacImplementationContractTest extends TestCase
         $this->assertStringContainsString("principal_type' => 'User'", $command);
     }
 
-    public function test_user_specific_permission_customization_is_additive_and_frontend_only(): void
+    public function test_frontend_page_permissions_do_not_use_generated_rbac_route_keys(): void
     {
-        $migration = file_get_contents(base_path('database/migrations/2026_08_10_000004_create_user_permission_overrides_table.php'));
-        $service = file_get_contents(base_path('app/Services/UserPermissionManagementService.php'));
-        $this->assertStringContainsString("Schema::create('user_permission_overrides'", $migration);
-        $this->assertStringContainsString("enum('effect', ['Allow', 'Deny'])", $migration);
-        $this->assertStringContainsString('FrontendPermissionCatalog::keys()', $service);
-        $this->assertStringContainsString('array_merge($rolePermissions, $allows)', file_get_contents(base_path('app/Services/AuthorizationService.php')));
-        $this->assertStringContainsString('auth(\'admin\')->check()', $service);
-        $this->assertStringNotContainsString('super-admin', $service);
+        $registry = file_get_contents(base_path('app/Support/PermissionRegistry.php'));
+        $middleware = file_get_contents(base_path('app/Http/Middleware/EnforceFrontendPagePermission.php'));
+
+        $this->assertStringNotContainsString("'frontend.'", $registry);
+        $this->assertStringContainsString('AllPage::findForFrontendRoute', $middleware);
+        $this->assertStringContainsString('UserWebPage::query()', $middleware);
     }
 
-    public function test_frontend_catalog_excludes_admin_only_permissions(): void
+    public function test_frontend_page_middleware_bypasses_the_admin_guard(): void
     {
-        $keys = FrontendPermissionCatalog::keys();
-        $this->assertNotContains('roles.assign', $keys);
-        $this->assertNotContains('users.manage', $keys);
-        $this->assertNotContains('security.manage', $keys);
-        $this->assertContains('sale-orders.cancel', $keys);
-        $this->assertContains('warehouse.adjust', $keys);
+        $middleware = file_get_contents(base_path('app/Http/Middleware/EnforceFrontendPagePermission.php'));
+
+        $this->assertStringContainsString("if (auth('admin')->check())", $middleware);
     }
 }

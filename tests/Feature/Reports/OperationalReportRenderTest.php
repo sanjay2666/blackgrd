@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Reports;
 
+use App\Models\AllPage;
 use App\Models\User;
+use App\Models\UserWebPage;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -40,14 +42,19 @@ class OperationalReportRenderTest extends TestCase
             'is_default' => true,
             'status' => 'Active',
         ]);
-        $permissionId = DB::table('permissions')->where('permission_key', 'reports.view')->value('id');
-        $this->assertNotNull($permissionId, 'The canonical reports.view permission is required.');
-        DB::table('user_permission_overrides')->insert([
-            'user_id' => 990109,
-            'permission_id' => $permissionId,
-            'effect' => 'Allow',
-            'status' => 'Active',
-        ]);
+        foreach (AllPage::frontendRouteDefinitions() as $routeDefinition) {
+            if (! str_starts_with($routeDefinition['page_name'], 'GET /reports/')) {
+                continue;
+            }
+
+            $page = AllPage::query()->firstOrCreate(['page_name' => $routeDefinition['page_name']], [
+                'model_name' => $routeDefinition['module'], 'page_title' => $routeDefinition['title'],
+                'page_rank' => (int) AllPage::query()->max('page_rank') + 1, 'status' => true,
+            ]);
+            UserWebPage::query()->updateOrCreate(['user_id' => 990109, 'page_id' => $page->id], [
+                'created' => now(), 'modified' => now(), 'status' => 'Active',
+            ]);
+        }
 
         $user = new User();
         $user->forceFill(['id' => 990109, 'user_type' => 'User', 'name' => 'Operational Report Test User', 'email' => 'operational-reports@example.test', 'status' => 'Active']);

@@ -2,24 +2,22 @@
 
 namespace Tests\Unit\Authorization;
 
-use App\Support\FrontendPermissionCatalog;
-use App\Support\PermissionRegistry;
 use Tests\TestCase;
 
 final class PageActionPermissionManagementTest extends TestCase
 {
-    public function test_registry_has_unique_action_keys_and_panel_classification_is_canonical(): void
+    public function test_frontend_permission_screen_uses_existing_page_assignment_tables(): void
     {
-        $keys = array_column(PermissionRegistry::all(), 'key');
+        $controller = file_get_contents(base_path('app/Http/Controllers/Admin/UserPermissionController.php'));
+        $middleware = file_get_contents(base_path('app/Http/Middleware/EnforceFrontendPagePermission.php'));
 
-        $this->assertSame($keys, array_values(array_unique($keys)));
-        $this->assertContains('sale-orders.cancel', PermissionRegistry::assignableForPanel('Frontend'));
-        $this->assertNotContains('roles.assign', PermissionRegistry::assignableForPanel('Frontend'));
-        $this->assertContains('roles.assign', PermissionRegistry::assignableForPanel('Admin'));
-        $this->assertSame(PermissionRegistry::frontendAssignable(), FrontendPermissionCatalog::keys());
+        $this->assertStringContainsString('AllPage::frontendRouteDefinitions()', $controller);
+        $this->assertStringContainsString('UserWebPage::query()', $controller);
+        $this->assertStringContainsString("where('status', 'Active')->exists()", $middleware);
+        $this->assertStringNotContainsString('FrontendPermissionCatalog', $middleware);
     }
 
-    public function test_role_and_user_permission_screens_use_module_grouping_and_effective_explanation(): void
+    public function test_role_and_user_permission_screens_use_module_grouping_and_effective_checkbox_assignment(): void
     {
         $roleForm = file_get_contents(base_path('resources/views/admin/roles/form.blade.php'));
         $userPermissions = file_get_contents(base_path('resources/views/admin/user-permissions/index.blade.php'));
@@ -50,9 +48,10 @@ final class PageActionPermissionManagementTest extends TestCase
         $this->assertStringContainsString('class="content-header"', $roleForm);
         $this->assertStringContainsString('class="panel panel-bd lobidrag"', $roleForm);
         $this->assertStringContainsString('class="reset-button"', $roleForm);
-        $this->assertStringContainsString('Role:', $userPermissions);
-        $this->assertStringContainsString('Override:', $userPermissions);
-        $this->assertStringContainsString('Effective:', $userPermissions);
+        $this->assertStringContainsString('permission-checkbox', $userPermissions);
+        $this->assertStringContainsString('select-all-permissions', $userPermissions);
+        $this->assertStringContainsString('name="page_ids[]"', $userPermissions);
+        $this->assertStringNotContainsString('<select name="permissions[', $userPermissions);
         $this->assertStringContainsString('PermissionRegistry::assignableForPanel($panel)', $service);
     }
 }

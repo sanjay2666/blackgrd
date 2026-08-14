@@ -20,7 +20,7 @@ final class DepartmentAccessContractTest extends TestCase
     {
         $routes = file_get_contents(base_path('routes/web.php'));
         $service = file_get_contents(base_path('app/Services/DepartmentAccessService.php'));
-        $this->assertStringContainsString("middleware('permission:users.manage')", $routes);
+        $this->assertStringContainsString("['auth:admin', 'organization', 'audit']", $routes);
         $this->assertStringContainsString("auth('admin')->check()", $service);
         $this->assertStringContainsString('user_department_access_changed', $service);
         $this->assertStringNotContainsString("auth('web')->user()->departmentAccess", $routes);

@@ -86,7 +86,7 @@ Route::get('/', [PageController::class, 'home'])->name('home');
 | autocomplete inputs, address lookup, and common list data.
 |
 */
-Route::middleware(['auth:web,admin', 'organization', 'rbac', 'audit'])->group(function () {
+Route::middleware(['auth:web,admin', 'organization', 'frontend-page', 'audit'])->group(function () {
     Route::get('/list_customer', [CommonController::class, 'list_customer'])->name('list_customer');
     Route::get('/fabric_list_item', [CommonController::class, 'fabric_list_item'])->name('fabric_list_item');
     Route::get('/list_warehouse_item_type', [CommonController::class, 'list_warehouse_item_type'])->name('list_warehouse_item_type');
@@ -130,7 +130,7 @@ Route::middleware('guest:web')->group(function () {
 | Frontend Authenticated User Routes
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth:web', 'organization', 'rbac', 'audit'])->group(function () {
+Route::middleware(['auth:web', 'organization', 'frontend-page', 'audit'])->group(function () {
     /*
     |--------------------------------------------------------------------------
     | Dashboard
@@ -387,7 +387,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
     });
 
     // Admin logged-in routes.
-    Route::middleware(['auth:admin', 'organization', 'rbac', 'audit'])->group(function () {
+    Route::middleware(['auth:admin', 'organization', 'audit'])->group(function () {
         Route::get('/dashboard', AdminDashboardController::class)->name('dashboard');
 
         // Admin master routes.
@@ -440,7 +440,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('fabric-fault-reasons/{id}/activate', [FabricFaultReasonController::class, 'activate'])->name('fabric-fault-reasons.activate');
         Route::patch('fabric-fault-reasons/{id}/deactivate', [FabricFaultReasonController::class, 'deactivate'])->name('fabric-fault-reasons.deactivate');
         Route::resource('fabric-fault-reasons', FabricFaultReasonController::class)->except(['show']);
-        Route::get('fabric-fault-reasons/options', [FabricFaultReasonController::class, 'options'])->middleware('permission:masters.view')->name('fabric-fault-reasons.options');
+        Route::get('fabric-fault-reasons/options', [FabricFaultReasonController::class, 'options'])->name('fabric-fault-reasons.options');
         Route::patch('printing-designs/{id}/activate', [PrintingDesignController::class, 'activate'])->name('printing-designs.activate');
         Route::patch('printing-designs/{id}/deactivate', [PrintingDesignController::class, 'deactivate'])->name('printing-designs.deactivate');
         Route::get('printing-designs/options', [PrintingDesignController::class, 'options'])->name('printing-designs.options');
@@ -461,8 +461,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::patch('/unit-types/{id}/deactivate', [UnitTypeController::class, 'deactivate'])->name('unit-types.deactivate');
         Route::resource('financial-years', FinancialYearController::class)->except(['show']);
         Route::post('/financial-years/{financial_year}/set-current', [FinancialYearController::class, 'setCurrent'])->name('financial-years.set-current');
-        Route::get('/number-series', [NumberSeriesController::class, 'index'])->middleware('permission:number-series.view')->name('number-series.index');
-        Route::put('/number-series/{number_series}', [NumberSeriesController::class, 'update'])->middleware('permission:number-series.manage')->name('number-series.update');
+        Route::get('/number-series', [NumberSeriesController::class, 'index'])->name('number-series.index');
+        Route::put('/number-series/{number_series}', [NumberSeriesController::class, 'update'])->name('number-series.update');
         Route::get('/document-settings', [DocumentSettingsController::class, 'edit'])->name('document-settings.edit');
         Route::put('/document-settings', [DocumentSettingsController::class, 'update'])->name('document-settings.update');
         Route::resource('user-web-pages', UserWebPageController::class)->except(['show']);
@@ -540,39 +540,29 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/transporters/{transporter}/addresses/{address}', [TransporterAddressController::class, 'update'])->name('transporters.addresses.update');
         Route::delete('/transporters/{transporter}/addresses/{address}', [TransporterAddressController::class, 'destroy'])->name('transporters.addresses.destroy');
 
-        // Company-scoped RBAC administration. System roles are deliberately absent.
-        Route::middleware('permission:roles.view')->group(function (): void {
-            Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-            Route::get('/roles/create', [RoleController::class, 'create'])->middleware('permission:roles.create')->name('roles.create');
-            Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:roles.create')->name('roles.store');
-            Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->middleware('permission:roles.update')->name('roles.edit');
-            Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.update')->name('roles.update');
-            Route::get('/roles/{role}/assign', [RoleController::class, 'assignForm'])->middleware('permission:roles.assign')->name('roles.assign');
-            Route::post('/roles/{role}/assign', [RoleController::class, 'assign'])->middleware('permission:roles.assign')->name('roles.assign.store');
-            Route::delete('/role-assignments/{assignment}', [RoleController::class, 'revoke'])->middleware('permission:roles.assign')->name('roles.assignments.revoke');
-        });
-        Route::middleware('permission:users.manage')->group(function (): void {
-            Route::get('/users/{user}/permissions', [UserPermissionController::class, 'index'])->name('users.permissions.edit');
-            Route::put('/users/{user}/permissions', [UserPermissionController::class, 'update'])->name('users.permissions.update');
-        });
-        Route::middleware('permission:users.manage')->get('/users', [UserController::class, 'index'])->name('users.index');
-        Route::middleware('permission:users.manage')->group(function (): void {
-            Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
-            Route::post('/users', [UserController::class, 'store'])->name('users.store');
-        });
-        Route::middleware('permission:users.manage')->group(function (): void {
-            Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-            Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-        });
-        Route::patch('/users/{user}/activate', [UserController::class, 'activate'])->middleware('permission:users.manage')->name('users.activate');
-        Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate'])->middleware('permission:users.manage')->name('users.deactivate');
-        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->middleware('permission:users.manage')->name('users.reset-password');
-        Route::get('/users/{user}/department-access', [UserController::class, 'departmentAccess'])->middleware('permission:users.manage')->name('users.department-access');
-        Route::put('/users/{user}/department-access', [UserController::class, 'updateDepartmentAccess'])->middleware('permission:users.manage')->name('users.department-access.update');
-        Route::middleware('permission:audit-logs.view')->group(function (): void {
-            Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
-            Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
-        });
+        // Company-scoped role administration. System roles are deliberately absent.
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
+        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
+        Route::get('/roles/{role}/assign', [RoleController::class, 'assignForm'])->name('roles.assign');
+        Route::post('/roles/{role}/assign', [RoleController::class, 'assign'])->name('roles.assign.store');
+        Route::delete('/role-assignments/{assignment}', [RoleController::class, 'revoke'])->name('roles.assignments.revoke');
+        Route::get('/users/{user}/permissions', [UserPermissionController::class, 'index'])->name('users.permissions.edit');
+        Route::put('/users/{user}/permissions', [UserPermissionController::class, 'update'])->name('users.permissions.update');
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::patch('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
+        Route::patch('/users/{user}/deactivate', [UserController::class, 'deactivate'])->name('users.deactivate');
+        Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
+        Route::get('/users/{user}/department-access', [UserController::class, 'departmentAccess'])->name('users.department-access');
+        Route::put('/users/{user}/department-access', [UserController::class, 'updateDepartmentAccess'])->name('users.department-access.update');
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('/audit-logs/{auditLog}', [AuditLogController::class, 'show'])->name('audit-logs.show');
 
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
     });

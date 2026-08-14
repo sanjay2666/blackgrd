@@ -3,6 +3,14 @@
 
 <head>
     @include('admin.common.head')
+    <style>
+        .permission-module { margin-bottom: 12px; }
+        .permission-module .panel-heading { min-height: 34px; padding: 8px 12px; }
+        .permission-grid { margin: 0 -5px; }
+        .permission-item { padding: 4px 5px; }
+        .permission-choice { display: flex; align-items: center; margin: 0; min-height: 24px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+        .permission-choice .permission-checkbox { position: static; display: inline-block; visibility: visible; width: 14px; height: 14px; margin: 0 7px 0 0; opacity: 1; -webkit-appearance: checkbox; appearance: checkbox; flex: 0 0 auto; }
+    </style>
 </head>
 
 <body class="hold-transition sidebar-mini">
@@ -15,15 +23,20 @@
             <section class="content-header">
                 <div class="header-icon"><i class="fa fa-key"></i></div>
                 <div class="header-title">
-                    <h1>User Permission Overrides</h1>
-                    <small>{{ $user->name }} — individual permission adjustments</small>
+                    <h1>Frontend User Permissions</h1>
+                    <small>{{ $user->name }} — page, action and AJAX access</small>
                 </div>
             </section>
 
             <section class="content">
-                {!! display_message('message') !!}
-                @if (session('status'))
-                    <div class="alert alert-success">{{ session('status') }}</div>
+                @if (session('message'))
+                    <div class="alert alert-success alert-dismissible">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <i class="glyphicon glyphicon-ok"></i> {{ session('message') }}
+                    </div>
+                @endif
+                @if ($errors->any())
+                    <div class="alert alert-danger">{{ $errors->first() }}</div>
                 @endif
 
                 <div class="row">
@@ -37,17 +50,23 @@
                             <div class="panel-body">
                                 <div class="alert alert-info">
                                     <strong>User:</strong> {{ $user->name }} ({{ $user->email }})<br>
-                                    <strong>Role(s):</strong> {{ $roles->pluck('name')->join(', ') ?: 'None' }}<br>
-                                    Effective access = Role access + Allow − Deny. A Deny override always wins.
+                                    Checked entries are stored in <code>user_web_pages</code>.
+                                    Unchecked entries are disabled for this user. Department Access is separate and unchanged.
                                 </div>
 
                                 <div class="row" style="margin-bottom: 15px;">
                                     <div class="col-sm-6">
-                                        <label for="permission-filter">Filter Permissions</label>
+                                        <label for="permission-filter">Filter Frontend Pages, Actions or AJAX</label>
                                         <div class="input-group">
                                             <span class="input-group-addon"><i class="fa fa-search"></i></span>
-                                            <input id="permission-filter" class="form-control" type="search" placeholder="Search modules or actions..." autocomplete="off">
+                                            <input id="permission-filter" class="form-control" type="search" placeholder="Search modules, routes or AJAX actions..." autocomplete="off">
                                         </div>
+                                    </div>
+                                    <div class="col-sm-6" style="padding-top: 25px;">
+                                        <label class="checkbox-inline">
+                                            <input id="select-all-permissions" type="checkbox"> <strong>Select All Frontend Permissions</strong>
+                                        </label>
+                                        <span id="selected-permission-count" class="text-muted" style="margin-left: 10px;"></span>
                                     </div>
                                 </div>
 
@@ -55,46 +74,33 @@
                                     @csrf
                                     @method('PUT')
 
-                                    @forelse ($permissions as $resource => $items)
+                                    @forelse ($pages->groupBy('display_module') as $module => $items)
                                         <div class="panel panel-default permission-module">
                                             <div class="panel-heading">
-                                                <strong>{{ ucfirst(str_replace('-', ' ', $resource)) }}</strong>
-                                                <span class="label label-info pull-right">{{ $items->count() }} actions</span>
+                                                <strong>{{ $module }}</strong>
+                                                <span class="label label-info pull-right">{{ $items->count() }} pages / actions</span>
+                                                <label class="checkbox-inline pull-right" style="margin: -4px 12px 0 0;">
+                                                    <input class="select-module-permissions" type="checkbox"> Select All
+                                                </label>
                                             </div>
-                                            <div class="panel-body">
-                                                @foreach ($items as $permission)
-                                                    @php($key = $permission->permission_key)
-                                                    <div class="row permission-item" data-search="{{ strtolower($resource.' '.$key.' '.$permission->description) }}" style="padding: 7px 0; border-bottom: 1px solid #eeeeee;">
-                                                        <div class="col-sm-4">
-                                                            <strong>{{ ucfirst(str_replace('-', ' ', $permission->action)) }}</strong>
-                                                            <small class="help-block">{{ $key }}</small>
-                                                        </div>
-                                                        <div class="col-sm-3">
-                                                            <select name="permissions[{{ $key }}]" class="form-control input-sm">
-                                                                <option value="" @selected(! isset($overrides[$key]))>Inherit role</option>
-                                                                <option value="Allow" @selected(($overrides[$key]->effect ?? null) === 'Allow')>Allow for this user</option>
-                                                                <option value="Deny" @selected(($overrides[$key]->effect ?? null) === 'Deny')>Deny for this user</option>
-                                                            </select>
-                                                        </div>
-                                                        <div class="col-sm-5">
-                                                            <span class="label label-{{ $roleKeys->contains($key) ? 'success' : 'default' }}">Role: {{ $roleKeys->contains($key) ? 'Allowed' : 'Not allowed' }}</span>
-                                                            <span class="label label-info">Override: {{ $overrides[$key]->effect ?? 'Inherit' }}</span>
-                                                            <span class="label label-{{ $effective->contains($key) ? 'success' : 'danger' }}">Effective: {{ $effective->contains($key) ? 'Allowed' : 'Denied' }}</span>
-                                                            @if ($permission->description)
-                                                                <small class="help-block">{{ $permission->description }}</small>
-                                                            @endif
-                                                        </div>
+                                            <div class="row permission-grid">
+                                                @foreach ($items as $page)
+                                                    <div class="col-md-3 col-sm-4 col-xs-12 permission-item" data-search="{{ strtolower($module.' '.$page->page_title.' '.$page->page_name.' '.$page->route_label) }}">
+                                                        <label class="permission-choice" title="{{ $page->page_title }}">
+                                                            <input class="permission-checkbox" type="checkbox" name="page_ids[]" value="{{ $page->id }}" @checked(in_array($page->id, $assignedPageIds, true))>
+                                                            <span>{{ $page->page_title }}</span>
+                                                        </label>
                                                     </div>
                                                 @endforeach
                                             </div>
                                         </div>
                                     @empty
-                                        <div class="alert alert-warning">No assignable permissions are available for this user.</div>
+                                        <div class="alert alert-warning">No authenticated Frontend page, action or AJAX route is available.</div>
                                     @endforelse
 
                                     <div class="reset-button">
                                         <a class="btn btn-warning" href="{{ route('admin.users.index') }}">Cancel</a>
-                                        <button class="btn btn-success" type="submit"><i class="fa fa-save"></i> Save User Overrides</button>
+                                        <button class="btn btn-success" type="submit"><i class="fa fa-save"></i> Save Frontend Permissions</button>
                                     </div>
                                 </form>
                             </div>
@@ -125,6 +131,33 @@
                     $(this).toggle(matched > 0);
                 });
             });
+
+            function updateSelectionState() {
+                var checkboxes = $('.permission-checkbox');
+                var selected = checkboxes.filter(':checked').length;
+
+                $('#selected-permission-count').text(selected + ' of ' + checkboxes.length + ' selected');
+                $('#select-all-permissions').prop('checked', checkboxes.length > 0 && selected === checkboxes.length);
+                $('.permission-module').each(function () {
+                    var moduleCheckboxes = $(this).find('.permission-checkbox');
+                    $(this).find('.select-module-permissions').prop('checked', moduleCheckboxes.length > 0 && moduleCheckboxes.filter(':checked').length === moduleCheckboxes.length);
+                });
+            }
+
+            $('#select-all-permissions').on('change', function () {
+                $('.permission-checkbox').prop('checked', this.checked);
+                updateSelectionState();
+            });
+
+            $('.select-module-permissions').on('change', function () {
+                $(this).closest('.permission-module').find('.permission-checkbox').prop('checked', this.checked);
+                updateSelectionState();
+            });
+
+            $('.permission-checkbox').on('change', function () {
+                updateSelectionState();
+            });
+            updateSelectionState();
         });
     </script>
 </body>

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Regression;
 
-use App\Http\Middleware\EnforceMappedPermission;
+use App\Http\Middleware\EnforceFrontendPagePermission;
 use App\Models\User;
 use Tests\TestCase;
 
@@ -29,7 +29,7 @@ class AuthenticationGuardBaselineTest extends TestCase
 
     public function test_admin_guard_does_not_authenticate_the_user_dashboard(): void
     {
-        $this->withoutMiddleware(EnforceMappedPermission::class);
+        $this->withoutMiddleware(EnforceFrontendPagePermission::class);
         $admin = $this->transientUser('Admin', 900001);
 
         $this->actingAs($admin, 'admin');
@@ -40,7 +40,7 @@ class AuthenticationGuardBaselineTest extends TestCase
 
     public function test_user_guard_does_not_authenticate_the_admin_dashboard(): void
     {
-        $this->withoutMiddleware(EnforceMappedPermission::class);
+        $this->withoutMiddleware(EnforceFrontendPagePermission::class);
         $user = $this->transientUser('User', 900002);
 
         $this->actingAs($user, 'web');

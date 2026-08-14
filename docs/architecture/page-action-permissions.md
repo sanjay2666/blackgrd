@@ -1,4 +1,8 @@
-# Page and action permissions
+# Frontend page and action permissions
+
+> Current runtime rule: authenticated Frontend routes use only `all_pages` plus
+> active `user_web_pages` assignments. The historical RBAC text below is not a
+> runtime Frontend authorization path.
 
 Blackgrd uses one action-based permission registry: `App\Support\PermissionRegistry`. Keys such as `sale-orders.view`, `sale-orders.cancel`, and `warehouse.adjust` are stable identifiers; URLs and Blade components are never permission keys.
 
@@ -10,15 +14,20 @@ Company roles have a panel (`Admin` or `Frontend`). Role management displays mod
 
 ## User overrides and effective access
 
-Frontend Users retain explicit per-permission `Inherit`, `Allow`, or `Deny` state. The effective result is:
-
-`(role permissions + explicit Allow) - explicit Deny`
-
-Therefore an explicit Deny wins over role access, while Allow can add access not supplied by a role. Role changes do not delete overrides. The user screen shows the role result, override, and final effective result.
+The Admin permission page syncs missing authenticated Frontend routes into
+`all_pages`, preserving existing page metadata and excluding Admin routes. Its
+existing checkboxes submit `all_pages.id` values; selected entries are Active in
+`user_web_pages`, while unselected entries are Inactive. Each method/route entry
+is independently controllable, including nested routes and AJAX endpoints.
 
 ## Enforcement and UI
 
-`RoutePermissionRegistry` maps named routes and legacy URI actions to canonical permissions. `EnforceMappedPermission` is authoritative for pages, mutations, AJAX, print, export, and download routes; hidden buttons are only presentation. Blade may use a resolved authorization result, but must not query permissions directly or reproduce the effective-permission calculation.
+`EnforceFrontendPagePermission` is authoritative for Frontend pages, mutations,
+AJAX, print, export, and download routes. It resolves the exact method plus
+declared route URI in `all_pages`, then requires an active matching
+`user_web_pages` row for the authenticated Frontend User. Missing, inactive, or
+unmatched entries return 403. `RoutePermissionRegistry` is retained only to
+label audit records and is not a runtime authorization path.
 
 Role changes, role assignment/revocation, and user override changes call `AuthorizationService::forget()`, so updates apply on the next request. Centralized `AuditLogger` records permission additions/removals, override changes (including Inherit), role changes, and rejected reserved-permission attempts; permission checks are not audited.
 

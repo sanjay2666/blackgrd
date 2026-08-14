@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Authorization;
 
+use App\Models\AllPage;
 use Tests\TestCase;
 
 final class WorkOrderAuthorizationClosureTest extends TestCase
@@ -28,14 +29,14 @@ final class WorkOrderAuthorizationClosureTest extends TestCase
         }
     }
 
-    public function test_work_order_and_inspection_routes_keep_canonical_rbac_permissions(): void
+    public function test_work_order_and_inspection_routes_have_individual_frontend_page_definitions(): void
     {
-        $routes = file_get_contents(base_path('config/rbac_routes.php'));
+        $pages = AllPage::frontendRouteDefinitions()->pluck('page_name')->all();
 
-        $this->assertStringContainsString("'show-workorders' => 'work-orders.view'", $routes);
-        $this->assertStringContainsString("'workorders.totals' => 'reports.view'", $routes);
-        $this->assertStringContainsString("'show-workorder-inspection' => 'inspection.view'", $routes);
-        $this->assertStringContainsString("'receive-work-item' => 'work-orders.complete'", $routes);
+        $this->assertContains('GET /show-workorders', $pages);
+        $this->assertContains('GET /workorders/totals', $pages);
+        $this->assertContains('GET /show-workorder-inspection', $pages);
+        $this->assertContains('GET /receive-work-item/{id}', $pages);
     }
 
     public function test_work_order_scope_does_not_use_employee_home_department_or_process_names(): void

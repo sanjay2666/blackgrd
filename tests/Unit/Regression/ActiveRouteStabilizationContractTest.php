@@ -4,7 +4,7 @@ namespace Tests\Unit\Regression;
 
 use App\Http\Controllers\CommonController;
 use App\Http\Controllers\SaleOrderController;
-use App\Http\Middleware\EnforceMappedPermission;
+use App\Http\Middleware\EnforceFrontendPagePermission;
 use App\Models\User;
 use Illuminate\Routing\Route;
 use Tests\TestCase;
@@ -85,7 +85,7 @@ class ActiveRouteStabilizationContractTest extends TestCase
 
     public function test_sale_order_work_order_details_returns_the_existing_explicit_unavailable_response(): void
     {
-        $this->withoutMiddleware(EnforceMappedPermission::class);
+        $this->withoutMiddleware(EnforceFrontendPagePermission::class);
         $this->actingAs($this->transientUser(), 'web');
 
         foreach (['1', 'not-an-encrypted-id'] as $id) {
@@ -110,7 +110,7 @@ class ActiveRouteStabilizationContractTest extends TestCase
 
     private function transientUser(): User
     {
-        $user = new User;
+        $user = new User();
         $user->forceFill([
             'id' => 990001,
             'user_type' => 'User',
