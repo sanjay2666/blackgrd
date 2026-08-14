@@ -1,4 +1,8 @@
-@include('frontend.common.head', ['pageTitle' => $titles[$report].' | Loomexa'])
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    @include('frontend.common.head', ['pageTitle' => $titles[$report].' | Loomexa'])
+</head>
 <body class="hold-transition sidebar-mini">
 <div class="wrapper">
     @include('frontend.common.header')
@@ -8,35 +12,37 @@
             <div class="panel panel-bd lobidrag">
                 <div class="panel-heading"><div class="panel-title"><h4><i class="fa fa-bar-chart"></i> {{ $titles[$report] }}</h4></div></div>
                 <div class="panel-body">
-                    <form method="get" autocomplete="off" class="form-inline">
-                        <div class="row">
-                            <div class="col-md-2 col-sm-4 form-group"><select name="financial_year_id" class="form-control input-sm"><option value="">Financial Year</option>@foreach($financialYears as $year)<option value="{{ enc($year->id) }}" @selected(request('financial_year_id') === enc($year->id))>{{ $year->display_name }}</option>@endforeach</select></div>
+                    <div class="report-filter-panel">
+                        <form method="get" role="search" autocomplete="off">
+                            <div class="row">
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><select name="financial_year_id" class="form-control input-sm"><option value="">Financial Year</option>@foreach($financialYears as $year)<option value="{{ enc($year->id) }}" @selected(request('financial_year_id') === enc($year->id))>{{ $year->display_name }}</option>@endforeach</select></div></div>
                             @if(in_array($report, ['pending-orders', 'production-status', 'packaging', 'customer-dispatch', 'inspection-rejection']))
-                                <div class="col-md-2 col-sm-4 form-group"><input class="form-control input-sm report-autocomplete" data-entity="customer" data-target="#customer_id" name="customer" value="{{ request('customer') }}" placeholder="Customer"><input type="hidden" id="customer_id" name="customer_id" value="{{ request('customer_id') }}"></div>
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><input class="form-control input-sm report-autocomplete" data-entity="customer" data-target="#customer_id" name="customer" value="{{ request('customer') }}" placeholder="Customer"><input type="hidden" id="customer_id" name="customer_id" value="{{ request('customer_id') }}"></div></div>
                             @endif
                             @if(in_array($report, ['pending-orders', 'production-status', 'stock-movement', 'packaging', 'purchase-receiving', 'job-work', 'inspection-rejection']))
-                                <div class="col-md-2 col-sm-4 form-group"><input class="form-control input-sm report-autocomplete" data-entity="item" data-target="#item_id" name="item" value="{{ request('item') }}" placeholder="Item"><input type="hidden" id="item_id" name="item_id" value="{{ request('item_id') }}"></div>
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><input class="form-control input-sm report-autocomplete" data-entity="item" data-target="#item_id" name="item" value="{{ request('item') }}" placeholder="Item"><input type="hidden" id="item_id" name="item_id" value="{{ request('item_id') }}"></div></div>
                             @endif
                             @if(in_array($report, ['pending-orders', 'production-status', 'packaging', 'customer-dispatch']))
-                                <div class="col-md-2 col-sm-4 form-group"><input class="form-control input-sm report-autocomplete" data-entity="sale-order" data-target="#sale_order_id" name="sale_order" value="{{ request('sale_order') }}" placeholder="Sale Order"><input type="hidden" id="sale_order_id" name="sale_order_id" value="{{ request('sale_order_id') }}"></div>
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><input class="form-control input-sm report-autocomplete" data-entity="sale-order" data-target="#sale_order_id" name="sale_order" value="{{ request('sale_order') }}" placeholder="Sale Order"><input type="hidden" id="sale_order_id" name="sale_order_id" value="{{ request('sale_order_id') }}"></div></div>
                             @endif
                             @if(in_array($report, ['production-status', 'inspection-rejection']))
-                                <div class="col-md-2 col-sm-4 form-group"><input class="form-control input-sm report-autocomplete" data-entity="work-order" data-target="#work_order_id" name="work_order" value="{{ request('work_order') }}" placeholder="Work Order"><input type="hidden" id="work_order_id" name="work_order_id" value="{{ request('work_order_id') }}"></div>
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><input class="form-control input-sm report-autocomplete" data-entity="work-order" data-target="#work_order_id" name="work_order" value="{{ request('work_order') }}" placeholder="Work Order"><input type="hidden" id="work_order_id" name="work_order_id" value="{{ request('work_order_id') }}"></div></div>
                             @endif
                             @if(in_array($report, ['purchase-receiving', 'job-work']))
-                                <div class="col-md-2 col-sm-4 form-group"><input class="form-control input-sm report-autocomplete" data-entity="vendor" data-target="#vendor_id" name="vendor" value="{{ request('vendor') }}" placeholder="Vendor"><input type="hidden" id="vendor_id" name="vendor_id" value="{{ request('vendor_id') }}"></div>
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><input class="form-control input-sm report-autocomplete" data-entity="vendor" data-target="#vendor_id" name="vendor" value="{{ request('vendor') }}" placeholder="Vendor"><input type="hidden" id="vendor_id" name="vendor_id" value="{{ request('vendor_id') }}"></div></div>
                             @endif
-                            @if($report === 'stock-movement')<div class="col-md-2 col-sm-4 form-group"><select name="movement_type" class="form-control input-sm"><option value="">All movements</option><option value="in" @selected(request('movement_type') === 'in')>IN</option><option value="out" @selected(request('movement_type') === 'out')>OUT</option><option value="allotment" @selected(request('movement_type') === 'allotment')>Allotment</option><option value="return" @selected(request('movement_type') === 'return')>Return</option><option value="job_dispatch" @selected(request('movement_type') === 'job_dispatch')>Job Work Dispatch</option><option value="packaging" @selected(request('movement_type') === 'packaging')>Packaging</option></select></div>@endif
-                            @if($report === 'production-status')<div class="col-md-2 col-sm-4 form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="created" @selected(request('status') === 'created')>Created</option><option value="started" @selected(request('status') === 'started')>Started</option><option value="partially_completed" @selected(request('status') === 'partially_completed')>Partially Completed</option><option value="completed" @selected(request('status') === 'completed')>Completed</option><option value="inspection_pending" @selected(request('status') === 'inspection_pending')>Inspection Pending</option><option value="rejected" @selected(request('status') === 'rejected')>Rejected</option></select></div>@endif
-                            @if($report === 'packaging')<div class="col-md-2 col-sm-4 form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="draft" @selected(request('status') === 'draft')>Draft</option><option value="accepted" @selected(request('status') === 'accepted')>Accepted</option><option value="packed" @selected(request('status') === 'packed')>Packed</option><option value="dispatched" @selected(request('status') === 'dispatched')>Dispatched</option><option value="cancelled" @selected(request('status') === 'cancelled')>Cancelled</option></select></div>@endif
-                            @if($report === 'customer-dispatch')<div class="col-md-2 col-sm-4 form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="Draft" @selected(request('status') === 'Draft')>Draft</option><option value="Posted" @selected(request('status') === 'Posted')>Posted</option><option value="Cancelled" @selected(request('status') === 'Cancelled')>Cancelled</option></select></div>@endif
-                            @if($report === 'job-work')<div class="col-md-2 col-sm-4 form-group"><select name="status" class="form-control input-sm"><option value="">Dispatch / receive status</option><option value="pending" @selected(request('status') === 'pending')>Pending</option><option value="received" @selected(request('status') === 'received')>Received</option></select></div>@endif
-                            <div class="col-md-2 col-sm-4 form-group"><input type="date" class="form-control input-sm" name="from_date" value="{{ request('from_date') }}"></div>
-                            <div class="col-md-2 col-sm-4 form-group"><input type="date" class="form-control input-sm" name="to_date" value="{{ request('to_date') }}"></div>
-                            <div class="col-md-1 col-sm-2 form-group"><button class="btn btn-success btn-sm"><i class="fa fa-search"></i> Search</button></div>
-                            <div class="col-md-1 col-sm-2 form-group"><a href="{{ url()->current() }}" class="btn btn-default btn-sm">Reset</a></div>
-                        </div>
-                    </form>
+                            @if($report === 'stock-movement')<div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><select name="movement_type" class="form-control input-sm"><option value="">All movements</option><option value="in" @selected(request('movement_type') === 'in')>IN</option><option value="out" @selected(request('movement_type') === 'out')>OUT</option><option value="allotment" @selected(request('movement_type') === 'allotment')>Allotment</option><option value="return" @selected(request('movement_type') === 'return')>Return</option><option value="job_dispatch" @selected(request('movement_type') === 'job_dispatch')>Job Work Dispatch</option><option value="packaging" @selected(request('movement_type') === 'packaging')>Packaging</option></select></div></div>@endif
+                            @if($report === 'production-status')<div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="created" @selected(request('status') === 'created')>Created</option><option value="started" @selected(request('status') === 'started')>Started</option><option value="partially_completed" @selected(request('status') === 'partially_completed')>Partially Completed</option><option value="completed" @selected(request('status') === 'completed')>Completed</option><option value="inspection_pending" @selected(request('status') === 'inspection_pending')>Inspection Pending</option><option value="rejected" @selected(request('status') === 'rejected')>Rejected</option></select></div></div>@endif
+                            @if($report === 'packaging')<div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="draft" @selected(request('status') === 'draft')>Draft</option><option value="accepted" @selected(request('status') === 'accepted')>Accepted</option><option value="packed" @selected(request('status') === 'packed')>Packed</option><option value="dispatched" @selected(request('status') === 'dispatched')>Dispatched</option><option value="cancelled" @selected(request('status') === 'cancelled')>Cancelled</option></select></div></div>@endif
+                            @if($report === 'customer-dispatch')<div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><select name="status" class="form-control input-sm"><option value="">All statuses</option><option value="Draft" @selected(request('status') === 'Draft')>Draft</option><option value="Posted" @selected(request('status') === 'Posted')>Posted</option><option value="Cancelled" @selected(request('status') === 'Cancelled')>Cancelled</option></select></div></div>@endif
+                            @if($report === 'job-work')<div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><select name="status" class="form-control input-sm"><option value="">Dispatch / receive status</option><option value="pending" @selected(request('status') === 'pending')>Pending</option><option value="received" @selected(request('status') === 'received')>Received</option></select></div></div>@endif
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><input type="date" class="form-control input-sm" name="from_date" value="{{ request('from_date') }}" aria-label="From Date"></div></div>
+                                <div class="col-lg-2 col-md-3 col-sm-4 col-xs-12"><div class="form-group"><input type="date" class="form-control input-sm" name="to_date" value="{{ request('to_date') }}" aria-label="To Date"></div></div>
+                                <div class="col-lg-1 col-md-2 col-sm-3 col-xs-6"><div class="form-group"><button class="btn btn-success btn-sm btn-block"><i class="fa fa-search"></i> Search</button></div></div>
+                                <div class="col-lg-1 col-md-2 col-sm-3 col-xs-6"><div class="form-group"><a href="{{ url()->current() }}" class="btn btn-default btn-sm btn-block"><i class="fa fa-refresh"></i> Reset</a></div></div>
+                            </div>
+                        </form>
+                    </div>
                     <hr>
                     <div class="row">@foreach($totals as $label => $total)<div class="col-md-2 col-sm-4"><div class="alert alert-info"><strong>{{ $label }}</strong><br>{{ is_numeric($total) ? number_format((float) $total, 2) : $total }}</div></div>@endforeach</div>
                     <div class="table-responsive"><table class="table table-bordered table-striped table-hover small"><thead><tr class="info">
@@ -67,6 +73,7 @@
     </div>
     @include('frontend.common.footer')
 </div>
+@include('frontend.common.footerscript')
 <script>
 $(function () {
     $('.report-autocomplete').each(function () {

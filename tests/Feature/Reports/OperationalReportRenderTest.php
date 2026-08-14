@@ -69,7 +69,16 @@ class OperationalReportRenderTest extends TestCase
         ];
 
         foreach ($reports as $route => $title) {
-            $this->get(route($route))->assertOk()->assertSee($title)->assertSee('Search');
+            $this->get(route($route))
+                ->assertOk()
+                ->assertSee($title)
+                ->assertSee('report-filter-panel', false)
+                ->assertSee('btn btn-success btn-sm btn-block', false)
+                ->assertSee('frontend-assets/plugins/jQuery/jquery-1.12.4.min.js', false)
+                ->assertSee('frontend-assets/plugins/jquery-ui-1.12.1/jquery-ui.min.js', false)
+                ->assertSee('frontend-assets/bootstrap/js/bootstrap.min.js', false)
+                ->assertSee('frontend-assets/dist/js/custom.js', false)
+                ->assertSee('Search');
         }
     }
 }
