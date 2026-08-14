@@ -2197,15 +2197,20 @@ class WarehouseItemController extends Controller
             ->where('status', 'Active')
             ->first();
 
-        if (empty($stock) || empty($stock->warehouse_id)) {
+        if (empty($stock)) {
             return response()->json([]);
         }
 
-        $options = WarehouseCompartment::where('warehouse_id', $stock->warehouse_id)
+        $options = WarehouseCompartment::with('warehouse:id,warehouse_name')
             ->whereHas('warehouse')
             ->where('status', 'Active')
+            ->orderBy('warehouse_id')
             ->orderBy('compartment_name')
-            ->get(['id', 'compartment_name']);
+            ->get(['id', 'warehouse_id', 'compartment_name'])
+            ->map(fn (WarehouseCompartment $compartment) => [
+                'id' => $compartment->id,
+                'compartment_name' => $compartment->warehouse->warehouse_name.' / '.$compartment->compartment_name,
+            ]);
 
         return response()->json($options);
     }

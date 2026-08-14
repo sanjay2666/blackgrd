@@ -126,7 +126,8 @@ final class WarehouseLocationChangeTest extends TestCase
 
         $options = app(WarehouseItemController::class)->get_warehouse_compartment_options(Request::create('/', 'GET', ['Id' => 400]));
         $this->assertSame([
-            ['id' => 11, 'compartment_name' => 'Compartment 1'],
+            ['id' => 11, 'compartment_name' => 'Warehouse A / Compartment 1'],
+            ['id' => 98, 'compartment_name' => 'Warehouse B / Compartment 98'],
         ], $options->getData(true));
 
         $response = app(WarehouseItemController::class)->updateWarehouseComp(Request::create('/', 'GET', [
